@@ -16,6 +16,7 @@ import {
 import { UserProfile } from "../types";
 import { apiClient } from "../services/apiClient";
 import { sendEmailNotification } from "../services/emailService";
+import { isAdminRoute } from "../utils/adminRoute";
 
 export type { UserProfile };
 
@@ -212,7 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Do NOT dispatch general "User Login" notification if logging into the Admin Panel or if the user is an Administrator
-      const isAdminPortal = typeof window !== "undefined" && window.location.hash.startsWith("#/admin");
+      const isAdminPortal = typeof window !== "undefined" && (isAdminRoute(window.location.hash) || window.location.hash.startsWith("#/admin"));
       const isAdministrator = userRole === "admin" || userRole === "superAdmin";
 
       if (!isAdminPortal && !isAdministrator) {

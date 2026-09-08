@@ -69,6 +69,7 @@ import {
   deleteWorkflow as deleteWorkflowDb 
 } from "./services/workflowService";
 import { auth, onIdTokenChanged } from "./lib/firebase";
+import { isAdminRoute, PRIMARY_ADMIN_ROUTE } from "./utils/adminRoute";
 
 
 export default function App() {
@@ -110,9 +111,16 @@ export default function App() {
     showToast("Signed out of Admin Portal.");
   };
 
+  // Honeypot / Obfuscation: Automatically bounce any attempt to access the old public /#/admin URL to home
+  useEffect(() => {
+    if (currentHash === "#/admin" || currentHash.startsWith("#/admin")) {
+      window.location.hash = "#/";
+    }
+  }, [currentHash]);
+
   // Active Admin Session Security Heartbeat & Firebase Password Change Revocation Guard
   useEffect(() => {
-    if (!isAdminAuthenticated || !currentHash.startsWith("#/admin")) return;
+    if (!isAdminAuthenticated || !isAdminRoute(currentHash)) return;
 
     let isTerminated = false;
 
@@ -590,7 +598,7 @@ export default function App() {
 
   const handleOpenAdmin = () => {
     setIsWizardOpen(false);
-    window.location.hash = "#/admin";
+    window.location.hash = PRIMARY_ADMIN_ROUTE;
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -599,7 +607,7 @@ export default function App() {
   };
 
   // STANDALONE ADMIN PORTAL VIEW (Completely isolated from public Header & Footer)
-  if (currentHash.startsWith("#/admin")) {
+  if (isAdminRoute(currentHash)) {
     if (!isAdminAuthenticated) {
       return (
         <AdminLoginScreen
@@ -954,7 +962,7 @@ export default function App() {
 
       {/* Pop-Up Smart Selection Wizard Modal */}
       <SelectionWizardModal
-        isOpen={isWizardOpen && !currentHash.startsWith("#/admin") && !currentHash.startsWith("#/builder")}
+        isOpen={isWizardOpen && !isAdminRoute(currentHash) && !currentHash.startsWith("#/builder")}
         onClose={() => setIsWizardOpen(false)}
         products={productsList}
         services={servicesList}

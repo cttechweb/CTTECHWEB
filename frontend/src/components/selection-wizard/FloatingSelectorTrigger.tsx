@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Bot, Sparkles, ChevronRight, X } from "lucide-react";
+import { isAdminRoute } from "../../utils/adminRoute";
 
 interface FloatingSelectorTriggerProps {
   onOpenWizard: () => void;
@@ -88,7 +89,7 @@ export default function FloatingSelectorTrigger({ onOpenWizard, currentHash }: F
   };
 
   // Hide ONLY on admin or builder routes
-  if (currentHash.startsWith("#/admin") || currentHash.startsWith("#/builder")) {
+  if (isAdminRoute(currentHash) || currentHash.startsWith("#/admin") || currentHash.startsWith("#/builder")) {
     return null;
   }
 

@@ -6,6 +6,7 @@
  */
 
 import { getEmailSettings, getGeneralSettings } from "./generalSettingsService";
+import { isAdminRoute } from "../utils/adminRoute";
 
 export type EmailNotificationType =
   | "order"
@@ -687,7 +688,7 @@ export async function sendEmailNotification(
       return { success: false, message: "Login notifications disabled." };
     }
     // Never dispatch routine user login emails for Admin logins (handled exclusively by 2FA and Security Alerts)
-    const isAdminPortal = typeof window !== "undefined" && window.location.hash.startsWith("#/admin");
+    const isAdminPortal = typeof window !== "undefined" && (isAdminRoute(window.location.hash) || window.location.hash.startsWith("#/admin"));
     if (isAdminPortal || payload.senderEmail?.toLowerCase().includes("admin") || payload.customParams?.is_admin) {
       console.log("[EmailService] ℹ Suppressed general 'auth_login' notification for Admin Portal login.");
       return { success: true, message: "Suppressed for Admin Portal." };
