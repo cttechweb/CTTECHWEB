@@ -227,6 +227,14 @@ export default function ProductDetailPage({
                 alt={product.name} 
                 className="max-h-[85%] max-w-[85%] object-contain mix-blend-multiply transition-transform duration-500 group-hover:scale-105"
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  const currentSrc = e.currentTarget.src;
+                  if (currentSrc.includes("/src/assets/images/")) {
+                    e.currentTarget.src = currentSrc.replace("/src/assets/images/", "/assets/images/");
+                  } else if (!currentSrc.includes("hvac_air_conditioner")) {
+                    e.currentTarget.src = "/assets/images/hvac_air_conditioner_1784350824930.jpg";
+                  }
+                }}
               />
               
               {/* Previous Arrow */}
@@ -265,6 +273,14 @@ export default function ProductDetailPage({
                     alt={`Thumbnail ${idx + 1}`} 
                     className="max-h-full max-w-full object-contain mix-blend-multiply"
                     referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      const currentSrc = e.currentTarget.src;
+                      if (currentSrc.includes("/src/assets/images/")) {
+                        e.currentTarget.src = currentSrc.replace("/src/assets/images/", "/assets/images/");
+                      } else if (!currentSrc.includes("hvac_air_conditioner")) {
+                        e.currentTarget.src = "/assets/images/hvac_air_conditioner_1784350824930.jpg";
+                      }
+                    }}
                   />
                 </button>
               ))}

@@ -4,6 +4,8 @@ import { useAuth } from "../context/AuthContext";
 import { createRfqRequest } from "../services/rfqService";
 import { submitGeneralEnquiry } from "../services/enquiryService";
 import { sendEmailNotification } from "../services/emailService";
+// @ts-ignore
+import heroBg from "../assets/images/hero_background.jpg";
 
 interface HeroProps {
   onShopProductsClick: () => void;
@@ -141,7 +143,7 @@ export default function Hero({ onShopProductsClick, onRequestQuoteClick, onBecom
     <section 
       className="w-full bg-[#f4f8fc] bg-cover bg-center bg-no-repeat py-8 sm:py-16 md:py-20 lg:py-24 xl:py-28 overflow-hidden relative" 
       id="hero-section"
-      style={{ backgroundImage: "url('/src/assets/images/ChatGPT Image Jul 18, 2026, 12_24_42 PM.png')" }}
+      style={{ backgroundImage: `url(${heroBg})` }}
     >
       {/* Backdrop overlay for enhanced copy readability */}
       <div className="absolute inset-0 bg-gradient-to-b from-white/95 via-white/90 to-white/85 lg:bg-gradient-to-r lg:from-white/95 lg:via-white/80 lg:to-transparent z-10 pointer-events-none"></div>

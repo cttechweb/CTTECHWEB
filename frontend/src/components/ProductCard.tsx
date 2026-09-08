@@ -102,6 +102,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             alt={product.name}
             className="w-full h-28 sm:h-40 md:h-44 object-contain group-hover:scale-105 transition-transform duration-300"
             referrerPolicy="no-referrer"
+            onError={(e) => {
+              const currentSrc = e.currentTarget.src;
+              if (currentSrc.includes("/src/assets/images/")) {
+                e.currentTarget.src = currentSrc.replace("/src/assets/images/", "/assets/images/");
+              } else if (!currentSrc.includes("hvac_air_conditioner")) {
+                e.currentTarget.src = "/assets/images/hvac_air_conditioner_1784350824930.jpg";
+              }
+            }}
           />
 
           {/* Promotional Tag & Stock Status Badges */}
