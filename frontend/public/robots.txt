@@ -1,0 +1,11 @@
+# Cool Technologies UAE - Technical SEO Robots Rules
+User-agent: *
+Allow: /
+Disallow: /#/admin
+Disallow: /#/builder
+Disallow: /admin
+Disallow: /builder
+
+# XML Sitemaps
+Sitemap: https://cooltechnologies.ae/sitemap.xml
+Sitemap: https://cooltechnologies.ae/sitemap-images.xml

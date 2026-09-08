@@ -1,0 +1,19 @@
+{
+  "name": "cool-technologies-platform",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview",
+    "lint": "npm --prefix frontend run lint",
+    "clean": "npm --prefix frontend run clean",
+    "worker:dev": "npm --prefix backend run dev",
+    "worker:deploy": "npm --prefix backend run deploy"
+  }
+}

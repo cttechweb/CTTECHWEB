@@ -1,0 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --animate-marquee: marquee 25s linear infinite;
+
+  /* Custom blue theme overrides using #2596be */
+  --color-blue-50: #f0f8fc;
+  --color-blue-100: #def0f8;
+  --color-blue-200: #bce1f0;
+  --color-blue-300: #88cce5;
+  --color-blue-400: #4cb2d6;
+  --color-blue-500: #2596be;
+  --color-blue-600: #2596be;
+  --color-blue-700: #1c7e9f;
+  --color-blue-800: #15637e;
+  --color-blue-900: #0f4c62;
+  --color-blue-950: #0a3748;
+
+  @keyframes marquee {
+    0% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+}
+
+@utility scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+

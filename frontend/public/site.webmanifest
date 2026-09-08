@@ -1,0 +1,23 @@
+{
+  "name": "Cool Technologies UAE",
+  "short_name": "Cool Technologies",
+  "description": "Cool Technologies - Premier HVAC Equipment, Ducting & Engineering Solutions in UAE.",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "theme_color": "#031b4e",
+  "background_color": "#031b4e",
+  "display": "standalone",
+  "start_url": "/?homescreen=1"
+}

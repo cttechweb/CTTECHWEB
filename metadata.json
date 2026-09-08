@@ -1,0 +1,6 @@
+{
+  "name": "Cool Technologies",
+  "description": "Professional B2B HVAC & Cooling Solutions e-commerce store featuring air conditioners, heat pumps, compressors, and climate controls.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

