@@ -228,12 +228,7 @@ export default function ProductDetailPage({
                 className="max-h-[85%] max-w-[85%] object-contain mix-blend-multiply transition-transform duration-500 group-hover:scale-105"
                 referrerPolicy="no-referrer"
                 onError={(e) => {
-                  const currentSrc = e.currentTarget.src;
-                  if (currentSrc.includes("/src/assets/images/")) {
-                    e.currentTarget.src = currentSrc.replace("/src/assets/images/", "/assets/images/");
-                  } else if (!currentSrc.includes("hvac_air_conditioner")) {
-                    e.currentTarget.src = "/assets/images/hvac_air_conditioner_1784350824930.jpg";
-                  }
+                  (e.currentTarget as HTMLImageElement).src = "/src/assets/images/hvac_air_conditioner_1784350824930.jpg";
                 }}
               />
               
@@ -274,12 +269,7 @@ export default function ProductDetailPage({
                     className="max-h-full max-w-full object-contain mix-blend-multiply"
                     referrerPolicy="no-referrer"
                     onError={(e) => {
-                      const currentSrc = e.currentTarget.src;
-                      if (currentSrc.includes("/src/assets/images/")) {
-                        e.currentTarget.src = currentSrc.replace("/src/assets/images/", "/assets/images/");
-                      } else if (!currentSrc.includes("hvac_air_conditioner")) {
-                        e.currentTarget.src = "/assets/images/hvac_air_conditioner_1784350824930.jpg";
-                      }
+                      (e.currentTarget as HTMLImageElement).src = "/src/assets/images/hvac_air_conditioner_1784350824930.jpg";
                     }}
                   />
                 </button>
@@ -1086,6 +1076,9 @@ export default function ProductDetailPage({
                         src={product.image} 
                         alt={product.name} 
                         className="w-full h-full object-contain p-4" 
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = "/src/assets/images/hvac_air_conditioner_1784350824930.jpg";
+                        }}
                       />
                       <span className="absolute top-2 right-2 px-2 py-0.5 bg-slate-900/80 text-white rounded text-[10px] font-bold uppercase tracking-wider">
                         {product.brand}

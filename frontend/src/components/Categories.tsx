@@ -122,19 +122,14 @@ const MainCategoryCard: React.FC<MainCategoryCardProps> = ({
       <div className="w-28 sm:w-36 bg-gray-50/50 p-2 flex items-center justify-center shrink-0 border-l border-gray-50 relative overflow-hidden h-full">
         <div className="absolute inset-0 bg-white/20 group-hover:bg-transparent transition-colors z-10"></div>
         <img
-          src={currentCat.image || "/assets/images/hvac_air_conditioner_1784350824930.jpg"}
+          src={currentCat.image || "/src/assets/images/hvac_air_conditioner_1784350824930.jpg"}
           alt={currentCat.name}
           className={`w-full h-auto object-contain max-h-[110px] group-hover:scale-110 transition-all duration-500 z-0 ${
             isTransitioning ? "opacity-40 scale-95" : "opacity-100 scale-100"
           }`}
           referrerPolicy="no-referrer"
           onError={(e) => {
-            const currentSrc = e.currentTarget.src;
-            if (currentSrc.includes("/src/assets/images/")) {
-              e.currentTarget.src = currentSrc.replace("/src/assets/images/", "/assets/images/");
-            } else if (!currentSrc.includes("hvac_air_conditioner")) {
-              e.currentTarget.src = "/assets/images/hvac_air_conditioner_1784350824930.jpg";
-            }
+            (e.currentTarget as HTMLImageElement).src = "/src/assets/images/hvac_air_conditioner_1784350824930.jpg";
           }}
         />
       </div>

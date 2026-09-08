@@ -263,6 +263,9 @@ export default function CartDrawer({
                               src={item.product.image}
                               alt={item.product.name}
                               className="w-full h-auto object-contain max-h-[52px]"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = "/src/assets/images/hvac_air_conditioner_1784350824930.jpg";
+                              }}
                             />
                           </div>
 

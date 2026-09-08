@@ -263,6 +263,9 @@ export default function Header({
                           alt={product.name}
                           className="w-8 h-8 rounded border border-slate-200 object-cover bg-slate-50 shrink-0"
                           referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = "/src/assets/images/hvac_air_conditioner_1784350824930.jpg";
+                          }}
                         />
                         <span className="text-xs font-semibold line-clamp-1 flex-1">{product.name}</span>
                       </button>

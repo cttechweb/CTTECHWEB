@@ -57,6 +57,9 @@ export default function ProductDetailModal({
                 alt={product.name}
                 className="w-full h-auto object-contain max-h-[250px]"
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = "/src/assets/images/hvac_air_conditioner_1784350824930.jpg";
+                }}
               />
             </div>
 
