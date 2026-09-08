@@ -682,8 +682,16 @@ export async function sendEmailNotification(
   if (payload.type === "auth_signup" && settings.notifyOnSignup === false) {
     return { success: false, message: "Signup notifications disabled." };
   }
-  if (payload.type === "auth_login" && settings.notifyOnLogin === false) {
-    return { success: false, message: "Login notifications disabled." };
+  if (payload.type === "auth_login") {
+    if (settings.notifyOnLogin === false) {
+      return { success: false, message: "Login notifications disabled." };
+    }
+    // Never dispatch routine user login emails for Admin logins (handled exclusively by 2FA and Security Alerts)
+    const isAdminPortal = typeof window !== "undefined" && window.location.hash.startsWith("#/admin");
+    if (isAdminPortal || payload.senderEmail?.toLowerCase().includes("admin") || payload.customParams?.is_admin) {
+      console.log("[EmailService] ℹ Suppressed general 'auth_login' notification for Admin Portal login.");
+      return { success: true, message: "Suppressed for Admin Portal." };
+    }
   }
   if (payload.type === "b2b_application" && settings.notifyOnB2B === false) {
     return { success: false, message: "B2B notifications disabled." };

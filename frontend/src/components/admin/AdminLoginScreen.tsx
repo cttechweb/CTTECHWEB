@@ -334,13 +334,6 @@ export default function AdminLoginScreen({ onLoginSuccess, onBackToWebsite }: Ad
               )}
             </button>
 
-            <div className="pt-3 border-t border-slate-100 text-center">
-              <div className="inline-flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
-                <ShieldAlert size={13} className="text-amber-600" />
-                <span>Protected by dual-admin OTP & telemetry security monitoring</span>
-              </div>
-            </div>
-
           </form>
         )}
 
@@ -355,20 +348,11 @@ export default function AdminLoginScreen({ onLoginSuccess, onBackToWebsite }: Ad
               </div>
             )}
 
-            {/* Recipient Notice */}
-            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 text-center space-y-1">
+            {/* Recipient Notice without exposing email IDs */}
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 text-center">
               <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                A verification code has been dispatched to authorized administrator inboxes:
+                A 6-digit verification code has been dispatched to authorized administrator inboxes.
               </p>
-              <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
-                <span className="font-mono text-[11px] font-bold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-800">
-                  shamzy.cnn@gmail.com
-                </span>
-                <span className="text-slate-400 text-xs">&</span>
-                <span className="font-mono text-[11px] font-bold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-800">
-                  nafalkt7@gmail.com
-                </span>
-              </div>
             </div>
 
             {/* 6 Digit Inputs */}
@@ -449,12 +433,6 @@ export default function AdminLoginScreen({ onLoginSuccess, onBackToWebsite }: Ad
                   {resendCooldown > 0 ? `Resend code (${resendCooldown}s)` : "Resend Code"}
                 </span>
               </button>
-            </div>
-
-            <div className="pt-3 border-t border-slate-100 text-center">
-              <p className="text-[10px] text-slate-400">
-                A security alert containing client IP & device telemetry is logged on every login.
-              </p>
             </div>
 
           </div>

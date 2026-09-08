@@ -197,10 +197,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("Provider:", res.user.providerData[0]?.providerId || "password");
 
       // D1 synchronization is secondary and non-blocking
+      let userRole = "customer";
       try {
         const prof = await syncAndFetchD1Profile();
         if (prof) {
           setProfile(prof);
+          userRole = prof.role || "customer";
           console.log("D1 PROFILE SYNC: Result: SUCCESS");
         } else {
           console.log("D1 PROFILE SYNC: Result: DEFERRED (fallback profile active)");
@@ -209,21 +211,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn("D1 PROFILE SYNC: Result: FAILED (non-blocking)", profileError);
       }
 
-      // Dispatch real-time EmailJS notification for user login event
-      sendEmailNotification({
-        type: "auth_login",
-        title: `User Login: ${email.trim()}`,
-        senderName: res.user.displayName || email.split("@")[0],
-        senderEmail: email.trim(),
-        subject: `[Cool Technologies] User Login Notification - ${email.trim()}`,
-        message: `A user has logged in to the Cool Technologies platform.`,
-        detailsText: `User: ${res.user.displayName || email.split("@")[0]}\nEmail: ${email.trim()}\nAuth Method: Password Login\nTimestamp: ${new Date().toLocaleString("en-AE", { timeZone: "Asia/Dubai" })}\nUser UID: ${res.user.uid}`,
-        customParams: {
-          event_type: "user_login",
-          user_uid: res.user.uid,
-          auth_provider: "password"
-        }
-      }).catch((err) => console.warn("[Auth] Login email alert error:", err));
+      // Do NOT dispatch general "User Login" notification if logging into the Admin Panel or if the user is an Administrator
+      const isAdminPortal = typeof window !== "undefined" && window.location.hash.startsWith("#/admin");
+      const isAdministrator = userRole === "admin" || userRole === "superAdmin";
+
+      if (!isAdminPortal && !isAdministrator) {
+        // Dispatch real-time notification for regular customer login event
+        sendEmailNotification({
+          type: "auth_login",
+          title: `User Login: ${email.trim()}`,
+          senderName: res.user.displayName || email.split("@")[0],
+          senderEmail: email.trim(),
+          subject: `[Cool Technologies] User Login Notification - ${email.trim()}`,
+          message: `A user has logged in to the Cool Technologies platform.`,
+          detailsText: `User: ${res.user.displayName || email.split("@")[0]}\nEmail: ${email.trim()}\nAuth Method: Password Login\nTimestamp: ${new Date().toLocaleString("en-AE", { timeZone: "Asia/Dubai" })}\nUser UID: ${res.user.uid}`,
+          customParams: {
+            event_type: "user_login",
+            user_uid: res.user.uid,
+            auth_provider: "password"
+          }
+        }).catch((err) => console.warn("[Auth] Login email alert error:", err));
+      }
     }
   };
 
