@@ -547,7 +547,33 @@ export interface GeneralSiteSettings {
   socialLinks?: DynamicSocialLink[];
   whatsappSettings?: WhatsAppRoutingSettings;
   departmentHotlines?: DepartmentHotlines;
+  socialSeoSettings?: SocialSeoPreviewSettings;
   updatedAt?: string;
+}
+
+export interface PageSocialPreview {
+  pageId: string; // "home" | "products" | "services" | "about" | "contact" | "blog" | "careers"
+  pageName: string;
+  urlPath: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  isActive: boolean;
+}
+
+export interface SocialSeoPreviewSettings {
+  defaultOgImage: string;
+  defaultOgTitle: string;
+  defaultOgDescription: string;
+  siteName: string;
+  twitterHandle?: string;
+  productTitlePattern: string;
+  productDescriptionPattern: string;
+  productUseCustomImageIfAvailable: boolean;
+  serviceTitlePattern: string;
+  serviceDescriptionPattern: string;
+  serviceUseCustomImageIfAvailable: boolean;
+  pagePreviews: PageSocialPreview[];
 }
 
 export interface DynamicSocialLink {

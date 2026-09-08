@@ -4,7 +4,7 @@ import {
   ChevronRight, ChevronLeft, FileText, Thermometer, Wind, Droplet, Snowflake, Zap,
   RefreshCw, Calendar, CheckCircle2, Clock, Star, Quote, ThumbsUp, ShieldCheck, Filter,
   MessageSquare, User, Send, X, Download, Building, Award, ClipboardList, CheckCircle, Heart, Eye, Check, Loader2,
-  Upload, Camera, Trash2
+  Upload, Camera, Trash2, Share2, Copy, Linkedin, Twitter
 } from "lucide-react";
 import { SERVICES } from "../data";
 import { ServiceItem, Product } from "../types";
@@ -78,6 +78,8 @@ export default function ServicesPage({
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [detailImageIdx, setDetailImageIdx] = useState<number>(0);
   const [copied, setCopied] = useState<boolean>(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
+  const [isCopiedLink, setIsCopiedLink] = useState<boolean>(false);
   const itemsPerPage = 10;
 
   // Dynamic emergency dispatch hotline
@@ -639,6 +641,18 @@ export default function ServicesPage({
                     <span>Order via WhatsApp</span>
                   </button>
 
+                  {/* Share Service */}
+                  <button
+                    type="button"
+                    onClick={() => setIsShareModalOpen(true)}
+                    className="px-4 h-12 border border-slate-200 hover:border-[#2596be] hover:text-[#2596be] text-slate-600 rounded-lg text-xs font-black tracking-wider uppercase transition-all flex items-center justify-center gap-2 bg-white cursor-pointer active:scale-95"
+                    id="service-share-btn"
+                    title="Share this service link & preview"
+                  >
+                    <Share2 size={15} />
+                    <span>Share</span>
+                  </button>
+
                 </div>
 
                 {/* Emergency Hotline Direct Line */}
@@ -703,13 +717,174 @@ export default function ServicesPage({
                 ))}
               </div>
             </div>
-
           </div>
 
-        </div>
+        {/* ================= SOCIAL SHARE SERVICE MODAL ================= */}
+        {isShareModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div 
+              className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-[#2596be]/10 text-[#2596be] flex items-center justify-center font-bold">
+                    <Share2 size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900">Share Service</h3>
+                    <p className="text-[11px] text-slate-500 font-medium">Send engineering scope, standards and booking link</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsShareModalOpen(false)}
+                  className="w-8 h-8 rounded-full hover:bg-slate-200/70 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-5">
+                {/* Social Card Preview */}
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Card Preview (As Seen on Social Media & WhatsApp)</span>
+                  <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs bg-slate-50">
+                    <div className="h-40 w-full bg-slate-100 relative overflow-hidden flex items-center justify-center border-b border-slate-100">
+                      <img 
+                        src={selectedService.image || "/src/assets/images/hvac_air_conditioner_1784350824930.jpg"} 
+                        alt={selectedService.title} 
+                        className="w-full h-full object-cover" 
+                      />
+                      <span className="absolute top-2 right-2 px-2 py-0.5 bg-slate-900/80 text-white rounded text-[10px] font-bold uppercase tracking-wider">
+                        {selectedService.category}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-white space-y-1">
+                      <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">cooltechnologies.ae</div>
+                      <div className="text-xs font-bold text-slate-800 line-clamp-1">{selectedService.title} | Cool Technologies UAE</div>
+                      <div className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
+                        {selectedService.description || selectedService.tagline || `Certified HVAC engineering and services by Cool Technologies UAE.`}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Direct Link Box */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Direct Share Link</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}#/services?id=${selectedService.id}` : `https://cooltechnologies.ae/#/services?id=${selectedService.id}`}
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 font-mono select-all focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = `${window.location.origin}${window.location.pathname}#/services?id=${selectedService.id}`;
+                        navigator.clipboard.writeText(url);
+                        setIsCopiedLink(true);
+                        setTimeout(() => setIsCopiedLink(false), 2000);
+                      }}
+                      className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                        isCopiedLink 
+                          ? "bg-emerald-600 text-white" 
+                          : "bg-slate-900 hover:bg-slate-800 text-white active:scale-95"
+                      }`}
+                    >
+                      {isCopiedLink ? (
+                        <>
+                          <Check size={13} />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={13} />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Channel Sharing Buttons */}
+                <div className="space-y-1.5 pt-1">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Share Instantly To</label>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {/* WhatsApp */}
+                    <a
+                      href={`https://wa.me/?text=${encodeURIComponent(
+                        `*Check out ${selectedService.title} by Cool Technologies UAE*\n\nCategory: ${selectedService.category}\n\nView service scope & booking:\n${typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}#/services?id=${selectedService.id}` : `https://cooltechnologies.ae/#/services?id=${selectedService.id}`}`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border border-emerald-100 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs transition-colors cursor-pointer group"
+                    >
+                      <img src="/whatsapp-official.png" alt="WhatsApp" className="w-5 h-5 object-contain group-hover:scale-110 transition-transform" />
+                      <span>WhatsApp</span>
+                    </a>
+
+                    {/* LinkedIn */}
+                    <a
+                      href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+                        typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}#/services?id=${selectedService.id}` : `https://cooltechnologies.ae/#/services?id=${selectedService.id}`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border border-blue-100 bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs transition-colors cursor-pointer group"
+                    >
+                      <Linkedin size={20} className="text-[#0A66C2] group-hover:scale-110 transition-transform" />
+                      <span>LinkedIn</span>
+                    </a>
+
+                    {/* Twitter / X */}
+                    <a
+                      href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                        `Check out ${selectedService.title} by Cool Technologies UAE`
+                      )}&url=${encodeURIComponent(
+                        typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}#/services?id=${selectedService.id}` : `https://cooltechnologies.ae/#/services?id=${selectedService.id}`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-colors cursor-pointer group"
+                    >
+                      <Twitter size={20} className="text-slate-800 group-hover:scale-110 transition-transform" />
+                      <span>X / Twitter</span>
+                    </a>
+                  </div>
+
+                  {/* Native Mobile / System Share if available */}
+                  {typeof navigator !== "undefined" && typeof navigator.share === "function" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.share({
+                          title: `${selectedService.title} | Cool Technologies UAE`,
+                          text: `Certified HVAC Engineering: ${selectedService.title}`,
+                          url: `${window.location.origin}${window.location.pathname}#/services?id=${selectedService.id}`,
+                        }).catch(() => {});
+                      }}
+                      className="w-full mt-2 py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                    >
+                      <Share2 size={14} />
+                      <span>Share with Device Apps...</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
-    );
-  }
+
+    </div>
+  );
+}
 
   // ==========================================
   // MAIN SERVICES DIRECTORY (PAGINATED WITH 10 ITEMS PER PAGE)

@@ -12,7 +12,9 @@ import {
   EmailIntegrationSettings,
   DynamicSocialLink,
   WhatsAppRoutingSettings,
-  DepartmentHotlines
+  DepartmentHotlines,
+  SocialSeoPreviewSettings,
+  PageSocialPreview
 } from "../types";
 import { apiClient } from "./apiClient";
 
@@ -74,6 +76,85 @@ export const DEFAULT_DEPARTMENT_HOTLINES: DepartmentHotlines = {
   pressWhatsapp: "+971 50 123 4567",
   legalEmail: "legal@cooltechuae.com",
   privacyEmail: "privacy@cooltechuae.com"
+};
+
+export const DEFAULT_SOCIAL_SEO_SETTINGS: SocialSeoPreviewSettings = {
+  defaultOgImage: "https://images.unsplash.com/photo-1581094288338-2314dddb7ece?auto=format&fit=crop&w=1200&q=80",
+  defaultOgTitle: "Cool Technologies | Direct Wholesale HVAC & Commercial Cooling UAE",
+  defaultOgDescription: "Cool Technologies is the leading B2B HVAC & cooling equipment supplier in UAE. Air conditioning systems, chillers, AHUs, water coolers & commercial refrigeration with direct wholesale rates.",
+  siteName: "Cool Technologies",
+  twitterHandle: "@cooltechuae",
+  productTitlePattern: "{product_name} | Wholesale Sourcing UAE - Cool Technologies",
+  productDescriptionPattern: "Procure {product_name} ({model_id}). Wholesale B2B pricing, fast UAE delivery, AHRI/CE certified commercial equipment.",
+  productUseCustomImageIfAvailable: true,
+  serviceTitlePattern: "{service_title} - HVAC Engineering Services UAE | Cool Technologies",
+  serviceDescriptionPattern: "Professional {service_title} in UAE with certified engineers and 24/7 technical dispatch.",
+  serviceUseCustomImageIfAvailable: true,
+  pagePreviews: [
+    {
+      pageId: "home",
+      pageName: "Home Page",
+      urlPath: "/",
+      title: "Cool Technologies | Direct Wholesale HVAC & Commercial Cooling UAE",
+      description: "Direct wholesale HVAC equipment sourcing, chillers, air conditioners, and engineering services in the United Arab Emirates.",
+      imageUrl: "https://images.unsplash.com/photo-1581094288338-2314dddb7ece?auto=format&fit=crop&w=1200&q=80",
+      isActive: true
+    },
+    {
+      pageId: "products",
+      pageName: "Products Catalog",
+      urlPath: "/#/products",
+      title: "HVAC Sourcing Catalog Dubai | Industrial Chillers & VRF UAE - Cool Technologies",
+      description: "Browse comprehensive industrial HVAC equipment, air conditioning units, rooftop packages, and commercial water cooling solutions.",
+      imageUrl: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=1200&q=80",
+      isActive: true
+    },
+    {
+      pageId: "services",
+      pageName: "Engineering Services",
+      urlPath: "/#/services",
+      title: "Commercial HVAC Maintenance, Installation & AMC Services UAE - Cool Technologies",
+      description: "End-to-end commercial HVAC contracting, emergency repairs, chilled water piping, duct fabrication, and planned preventative maintenance.",
+      imageUrl: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80",
+      isActive: true
+    },
+    {
+      pageId: "about",
+      pageName: "About Cool Technologies",
+      urlPath: "/#/about",
+      title: "About Cool Technologies | UAE's Leading Climate Engineering Partner",
+      description: "Founded in 2012 in Abu Dhabi Mussafah, Cool Technologies delivers premier HVAC engineering, distribution, and commercial cooling projects.",
+      imageUrl: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80",
+      isActive: true
+    },
+    {
+      pageId: "contact",
+      pageName: "Contact & Regional Branches",
+      urlPath: "/#/contact",
+      title: "Contact Cool Technologies | Abu Dhabi HQ & Regional Branches UAE",
+      description: "Reach our sales engineering desk and 24/7 emergency HVAC dispatch across Abu Dhabi, Dubai, Sharjah, and Northern Emirates.",
+      imageUrl: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80",
+      isActive: true
+    },
+    {
+      pageId: "blog",
+      pageName: "News & Technical Insights",
+      urlPath: "/#/blog",
+      title: "HVAC Engineering Insights & Case Studies UAE - Cool Technologies",
+      description: "Expert technical articles, low-GWP refrigerant guidelines, energy efficiency benchmarks, and commercial cooling maintenance strategies.",
+      imageUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80",
+      isActive: true
+    },
+    {
+      pageId: "careers",
+      pageName: "Careers & Hiring",
+      urlPath: "/#/careers",
+      title: "Careers at Cool Technologies | HVAC Engineering Jobs in UAE",
+      description: "Join the region's fastest growing climate control team. Explore career opportunities for HVAC engineers, project supervisors, and sales specialists.",
+      imageUrl: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80",
+      isActive: true
+    }
+  ]
 };
 
 export const DEFAULT_EMAIL_SETTINGS: EmailIntegrationSettings = {
@@ -448,6 +529,7 @@ export const DEFAULT_SETTINGS: GeneralSiteSettings = {
   socialLinks: DEFAULT_SOCIAL_LINKS,
   whatsappSettings: DEFAULT_WHATSAPP_SETTINGS,
   departmentHotlines: DEFAULT_DEPARTMENT_HOTLINES,
+  socialSeoSettings: DEFAULT_SOCIAL_SEO_SETTINGS,
   updatedAt: new Date().toISOString()
 };
 
@@ -497,6 +579,15 @@ export function getGeneralSettings(): GeneralSiteSettings {
         departmentHotlines: parsed.departmentHotlines
           ? { ...DEFAULT_DEPARTMENT_HOTLINES, ...parsed.departmentHotlines }
           : DEFAULT_DEPARTMENT_HOTLINES,
+        socialSeoSettings: parsed.socialSeoSettings
+          ? {
+              ...DEFAULT_SOCIAL_SEO_SETTINGS,
+              ...parsed.socialSeoSettings,
+              pagePreviews: parsed.socialSeoSettings.pagePreviews && Array.isArray(parsed.socialSeoSettings.pagePreviews) && parsed.socialSeoSettings.pagePreviews.length > 0
+                ? parsed.socialSeoSettings.pagePreviews
+                : DEFAULT_SOCIAL_SEO_SETTINGS.pagePreviews
+            }
+          : DEFAULT_SOCIAL_SEO_SETTINGS,
         emailIntegration: parsed.emailIntegration
           ? {
               ...DEFAULT_EMAIL_SETTINGS,
@@ -515,6 +606,29 @@ export function getGeneralSettings(): GeneralSiteSettings {
     console.warn("[GeneralSettingsService] Error reading settings from localStorage:", err);
   }
   return DEFAULT_SETTINGS;
+}
+
+/**
+ * Get Social SEO Preview Settings
+ */
+export function getSocialSeoSettings(): SocialSeoPreviewSettings {
+  const settings = getGeneralSettings();
+  return settings.socialSeoSettings || DEFAULT_SOCIAL_SEO_SETTINGS;
+}
+
+/**
+ * Save Social SEO Preview Settings
+ */
+export function saveSocialSeoSettings(newSettings: Partial<SocialSeoPreviewSettings>): SocialSeoPreviewSettings {
+  const current = getGeneralSettings();
+  const updated: SocialSeoPreviewSettings = {
+    ...(current.socialSeoSettings || DEFAULT_SOCIAL_SEO_SETTINGS),
+    ...newSettings
+  };
+  saveGeneralSettings({
+    socialSeoSettings: updated
+  });
+  return updated;
 }
 
 /**

@@ -1,4 +1,5 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { getSocialSeoSettings } from "../../services/generalSettingsService";
 
 interface SEOHeadProps {
   title?: string;
@@ -10,16 +11,43 @@ interface SEOHeadProps {
 }
 
 export default function SEOHead({
-  title = "Cool Technologies | Direct Wholesale HVAC & Commercial Cooling UAE",
-  description = "Cool Technologies is the leading B2B HVAC & cooling equipment supplier in UAE. Air conditioning systems, chillers, AHUs, water coolers & commercial refrigeration with direct wholesale rates.",
+  title,
+  description,
   canonicalUrl = "https://cooltechnologies.ae/",
-  ogImage = "https://images.unsplash.com/photo-1581094288338-2314dddb7ece?auto=format&fit=crop&w=1200&q=80",
+  ogImage,
   type = "website",
   structuredData,
 }: SEOHeadProps) {
+  const [seoConfig, setSeoConfig] = useState(() => getSocialSeoSettings());
+  const [currentHash, setCurrentHash] = useState(() => (typeof window !== "undefined" ? window.location.hash : ""));
+
+  useEffect(() => {
+    const handleUpdate = () => setSeoConfig(getSocialSeoSettings());
+    const handleHash = () => setCurrentHash(window.location.hash);
+    window.addEventListener("cooltech_settings_updated", handleUpdate);
+    window.addEventListener("hashchange", handleHash);
+    window.addEventListener("popstate", handleHash);
+    return () => {
+      window.removeEventListener("cooltech_settings_updated", handleUpdate);
+      window.removeEventListener("hashchange", handleHash);
+      window.removeEventListener("popstate", handleHash);
+    };
+  }, []);
+
+  // Determine normalized path from hash
+  const rawPath = currentHash.replace(/^#\/?/, "").split("?")[0].toLowerCase();
+  const normalizedPath = rawPath === "" || rawPath === "home" ? "/" : `/${rawPath}`;
+  const matchedPage = seoConfig.pages?.find((p) => p.path.toLowerCase() === normalizedPath || p.path.toLowerCase() === `/${rawPath.split("/")[0]}`);
+
+  const activeTitle = title || matchedPage?.ogTitle || seoConfig.defaultOgTitle || "Cool Technologies | Direct Wholesale HVAC & Commercial Cooling UAE";
+  const activeDescription = description || matchedPage?.ogDescription || seoConfig.defaultOgDescription || "Cool Technologies is the leading B2B HVAC & cooling equipment supplier in UAE.";
+  const activeImage = ogImage || matchedPage?.ogImage || seoConfig.defaultOgImage || "https://images.unsplash.com/photo-1581094288338-2314dddb7ece?auto=format&fit=crop&w=1200&q=80";
+  const siteName = seoConfig.siteName || "Cool Technologies";
+  const twitterHandle = seoConfig.twitterHandle || "@cooltechuae";
+
   useEffect(() => {
     // 1. Update Title
-    document.title = title;
+    document.title = activeTitle;
 
     // 2. Helper to set or create meta tag
     const setMeta = (nameOrProperty: string, value: string, isProperty = false) => {
@@ -35,25 +63,28 @@ export default function SEOHead({
     };
 
     // Standard Meta Tags
-    setMeta("description", description);
+    setMeta("description", activeDescription);
     setMeta("viewport", "width=device-width, initial-scale=1.0, maximum-scale=5.0");
     setMeta("robots", "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1");
     setMeta("author", "Cool Technologies UAE");
 
     // OpenGraph Meta Tags
-    setMeta("og:title", title, true);
-    setMeta("og:description", description, true);
+    setMeta("og:title", activeTitle, true);
+    setMeta("og:description", activeDescription, true);
     setMeta("og:type", type, true);
     setMeta("og:url", canonicalUrl, true);
-    setMeta("og:image", ogImage, true);
-    setMeta("og:site_name", "Cool Technologies", true);
+    setMeta("og:image", activeImage, true);
+    setMeta("og:site_name", siteName, true);
     setMeta("og:locale", "en_AE", true);
 
     // Twitter Cards
     setMeta("twitter:card", "summary_large_image");
-    setMeta("twitter:title", title);
-    setMeta("twitter:description", description);
-    setMeta("twitter:image", ogImage);
+    setMeta("twitter:title", activeTitle);
+    setMeta("twitter:description", activeDescription);
+    setMeta("twitter:image", activeImage);
+    if (twitterHandle) {
+      setMeta("twitter:site", twitterHandle);
+    }
 
     // 3. Canonical Tag
     let canonical = document.querySelector("link[rel='canonical']") as HTMLLinkElement | null;
@@ -111,7 +142,7 @@ export default function SEOHead({
       document.head.appendChild(scriptEl);
     }
     scriptEl.textContent = JSON.stringify(finalSchema);
-  }, [title, description, canonicalUrl, ogImage, type, structuredData]);
+  }, [activeTitle, activeDescription, canonicalUrl, activeImage, siteName, twitterHandle, type, structuredData]);
 
   return null;
 }

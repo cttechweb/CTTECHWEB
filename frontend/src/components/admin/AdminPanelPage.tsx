@@ -1019,6 +1019,7 @@ export default function AdminPanelPage({
             <AdminSeoSuite
               products={products}
               blogs={blogs}
+              services={services}
               onShowToast={onShowToast}
             />
           )}
