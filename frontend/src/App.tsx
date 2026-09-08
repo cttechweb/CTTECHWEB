@@ -68,6 +68,7 @@ import {
   saveWorkflow as saveWorkflowDb, 
   deleteWorkflow as deleteWorkflowDb 
 } from "./services/workflowService";
+import { auth, onIdTokenChanged } from "./lib/firebase";
 
 
 export default function App() {
@@ -108,6 +109,54 @@ export default function App() {
     if (logout) logout().catch(() => {});
     showToast("Signed out of Admin Portal.");
   };
+
+  // Active Admin Session Security Heartbeat & Firebase Password Change Revocation Guard
+  useEffect(() => {
+    if (!isAdminAuthenticated || !currentHash.startsWith("#/admin")) return;
+
+    let isTerminated = false;
+
+    const terminateRevokedSession = (reason: string) => {
+      if (isTerminated) return;
+      isTerminated = true;
+      console.warn(`[AdminSecurity] ${reason}. Revoking active administrative session.`);
+      setIsAdminAuthenticated(false);
+      try {
+        sessionStorage.removeItem("cooltech_admin_authed");
+      } catch {}
+      if (logout) logout().catch(() => {});
+      showToast("Security Alert: Administrative session terminated. Password or security settings were updated in Firebase.");
+    };
+
+    // 1. Listen to Firebase ID token changes (triggered when token is revoked or user updated in Firebase Console)
+    const unsubscribeToken = onIdTokenChanged(auth, async (currentUser) => {
+      if (!currentUser) {
+        terminateRevokedSession("No authenticated Firebase user found");
+      }
+    });
+
+    // 2. Active token refresh heartbeat: forces refresh against Firebase Auth servers every 20 seconds
+    const heartbeatInterval = setInterval(async () => {
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        terminateRevokedSession("Firebase user session expired");
+        return;
+      }
+
+      try {
+        // Force token refresh from Firebase servers to detect password change / token revocation
+        await currentUser.getIdToken(true);
+      } catch (err: any) {
+        console.warn("[AdminSecurity] Token validation check failed:", err);
+        terminateRevokedSession("Firebase refresh token revoked due to password change or security update");
+      }
+    }, 20000);
+
+    return () => {
+      unsubscribeToken();
+      clearInterval(heartbeatInterval);
+    };
+  }, [isAdminAuthenticated, currentHash, logout]);
 
   // Live products & services list (Clean initialization from local cache & Cloudflare D1)
   const [productsList, setProductsList] = useState<Product[]>(() => {

@@ -580,14 +580,19 @@ async function sendBrevoEmail(params: {
   apiKey: string;
   senderName: string;
   senderEmail: string;
-  toEmail: string;
-  toName: string;
+  toEmail?: string;
+  toName?: string;
+  recipients?: { email: string; name?: string }[];
   replyToEmail?: string;
   replyToName?: string;
   subject: string;
   htmlContent: string;
 }): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
+    const toList = params.recipients && params.recipients.length > 0
+      ? params.recipients.map((r) => ({ email: r.email, name: r.name || r.email }))
+      : [{ email: params.toEmail || "", name: params.toName || params.toEmail || "" }];
+
     const res = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: {
@@ -600,12 +605,7 @@ async function sendBrevoEmail(params: {
           name: params.senderName,
           email: params.senderEmail,
         },
-        to: [
-          {
-            email: params.toEmail,
-            name: params.toName,
-          },
-        ],
+        to: toList,
         ...(params.replyToEmail
           ? {
               replyTo: {
@@ -846,3 +846,299 @@ export async function sendTestEmail(
     };
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN PORTAL 2FA OTP & SECURITY ALERT NOTIFICATION ENGINE
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const ADMIN_SECURITY_RECIPIENTS = [
+  { email: "shamzy.cnn@gmail.com", name: "Shamzy (System Admin)" },
+  { email: "nafalkt7@gmail.com", name: "Nafal KT (System Admin)" },
+];
+
+/**
+ * Sends a 6-digit Two-Factor Authentication OTP to designated admin mailboxes.
+ */
+export async function sendAdminLoginOtpEmail(params: {
+  otpCode: string;
+  expiresMinutes?: number;
+  adminEmail: string;
+  ipInfo?: {
+    ip: string;
+    city: string;
+    region: string;
+    country: string;
+    browser: string;
+    os: string;
+    deviceType: string;
+    timeUae: string;
+    timeUtc: string;
+  };
+}): Promise<{ success: boolean; message?: string }> {
+  const settings = getEmailSettings();
+  const apiKey = (
+    settings.brevoApiKey ||
+    (import.meta as any).env?.VITE_BREVO_API_KEY ||
+    ""
+  ).trim();
+
+  const senderEmail = (
+    settings.brevoSenderEmail ||
+    (import.meta as any).env?.VITE_BREVO_SENDER_EMAIL ||
+    "ctauhweb@gmail.com"
+  ).trim();
+
+  const senderName = settings.brevoSenderName || "Cool Technologies Security Desk";
+  const expires = params.expiresMinutes || 5;
+
+  const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Admin 2FA Security Code</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #0c1524; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #0c1524; padding: 40px 15px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 560px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+          
+          <!-- Header Banner -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #031b4e 0%, #0f4c81 100%); padding: 32px 30px; text-align: center;">
+              <span style="display: inline-block; background-color: rgba(37, 150, 190, 0.2); border: 1px solid rgba(37, 150, 190, 0.4); color: #67e8f9; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; padding: 5px 14px; border-radius: 9999px; margin-bottom: 12px;">
+                TWO-FACTOR VERIFICATION
+              </span>
+              <h1 style="color: #ffffff; font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.5px;">
+                Admin Portal Login OTP
+              </h1>
+              <p style="color: #94a3b8; font-size: 13px; margin: 6px 0 0 0;">
+                Cool Technologies Enterprise Management Portal
+              </p>
+            </td>
+          </tr>
+
+          <!-- OTP Display Body -->
+          <tr>
+            <td style="padding: 36px 32px 28px 32px; text-align: center;">
+              <p style="color: #475569; font-size: 14px; margin: 0 0 24px 0; line-height: 1.6;">
+                A sign-in attempt was initiated for administrator <strong>${params.adminEmail}</strong>. Use the 6-digit one-time passcode below to authorize access:
+              </p>
+
+              <!-- Prominent Monospace Code Box -->
+              <div style="background-color: #f0f7ff; border: 2px dashed #2596be; border-radius: 12px; padding: 22px 10px; margin-bottom: 24px;">
+                <span style="font-family: 'Courier New', Courier, monospace; font-size: 38px; font-weight: 800; letter-spacing: 10px; color: #031b4e; display: inline-block; padding-left: 10px;">
+                  ${params.otpCode}
+                </span>
+              </div>
+
+              <p style="color: #dc2626; font-size: 12px; font-weight: 700; margin: 0 0 20px 0;">
+                ⏱ This code expires in ${expires} minutes.
+              </p>
+
+              <!-- Security Warning Box -->
+              <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 14px 18px; text-align: left; margin-bottom: 24px;">
+                <p style="color: #991b1b; font-size: 12px; font-weight: 600; margin: 0; line-height: 1.5;">
+                  ⚠️ <strong>Security Notice:</strong> If you did NOT attempt to sign in to the Admin Portal, someone has entered your credentials. Log in to Firebase Console immediately and reset your administrative password.
+                </p>
+              </div>
+
+              ${
+                params.ipInfo
+                  ? `<!-- Request Telemetry -->
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; text-align: left; font-size: 11px; color: #64748b;">
+                <tr>
+                  <td style="padding: 10px 14px; border-bottom: 1px solid #f1f5f9; font-weight: 700; color: #334155;">Client IP</td>
+                  <td style="padding: 10px 14px; border-bottom: 1px solid #f1f5f9; font-family: monospace; color: #0f172a;">${params.ipInfo.ip}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 14px; border-bottom: 1px solid #f1f5f9; font-weight: 700; color: #334155;">Location</td>
+                  <td style="padding: 10px 14px; border-bottom: 1px solid #f1f5f9; color: #0f172a;">${params.ipInfo.city}, ${params.ipInfo.region}, ${params.ipInfo.country}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 14px; border-bottom: 1px solid #f1f5f9; font-weight: 700; color: #334155;">Device / Browser</td>
+                  <td style="padding: 10px 14px; border-bottom: 1px solid #f1f5f9; color: #0f172a;">${params.ipInfo.deviceType} • ${params.ipInfo.os} (${params.ipInfo.browser})</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 14px; font-weight: 700; color: #334155;">Timestamp</td>
+                  <td style="padding: 10px 14px; color: #0f172a;">${params.ipInfo.timeUae}</td>
+                </tr>
+              </table>`
+                  : ""
+              }
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 30px; text-align: center;">
+              <p style="color: #94a3b8; font-size: 11px; margin: 0; line-height: 1.5;">
+                Cool Technologies LLC • Automated Security Dispatch • Mussafah M-14, Abu Dhabi, UAE
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  return sendBrevoEmail({
+    apiKey,
+    senderName,
+    senderEmail,
+    recipients: ADMIN_SECURITY_RECIPIENTS,
+    subject: `[Cool Technologies] 🛡️ Admin Verification Code: ${params.otpCode}`,
+    htmlContent,
+  });
+}
+
+/**
+ * Sends a full Security Alert email to both admin mailboxes whenever a successful admin login occurs.
+ */
+export async function sendAdminLoginSecurityAlert(params: {
+  adminEmail: string;
+  ipInfo: {
+    ip: string;
+    city: string;
+    region: string;
+    country: string;
+    isp: string;
+    browser: string;
+    os: string;
+    deviceType: string;
+    userAgent: string;
+    timeUae: string;
+    timeUtc: string;
+  };
+}): Promise<{ success: boolean; message?: string }> {
+  const settings = getEmailSettings();
+  const apiKey = (
+    settings.brevoApiKey ||
+    (import.meta as any).env?.VITE_BREVO_API_KEY ||
+    ""
+  ).trim();
+
+  const senderEmail = (
+    settings.brevoSenderEmail ||
+    (import.meta as any).env?.VITE_BREVO_SENDER_EMAIL ||
+    "ctauhweb@gmail.com"
+  ).trim();
+
+  const senderName = settings.brevoSenderName || "Cool Technologies Security Desk";
+
+  const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Admin Sign-in Security Alert</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #0c1524; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #0c1524; padding: 40px 15px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+          
+          <!-- Header Banner -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #031b4e 0%, #1e293b 100%); padding: 32px 30px; text-align: center;">
+              <span style="display: inline-block; background-color: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; padding: 5px 14px; border-radius: 9999px; margin-bottom: 12px;">
+                SECURITY TELEMETRY LOG
+              </span>
+              <h1 style="color: #ffffff; font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.5px;">
+                Admin Portal Login Detected
+              </h1>
+              <p style="color: #94a3b8; font-size: 13px; margin: 6px 0 0 0;">
+                A successful administrative login was completed with 2FA OTP verification
+              </p>
+            </td>
+          </tr>
+
+          <!-- Details Table -->
+          <tr>
+            <td style="padding: 32px 30px;">
+              <p style="color: #334155; font-size: 14px; margin: 0 0 20px 0; line-height: 1.5;">
+                Administrative access to <strong>Cool Technologies Admin Suite</strong> was just authorized. Below are the verified device and telemetry details for this session:
+              </p>
+
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin-bottom: 24px; font-size: 12px;">
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 12px 16px; font-weight: 700; color: #475569; width: 35%; background-color: #f1f5f9;">Admin Account</td>
+                  <td style="padding: 12px 16px; font-weight: 700; color: #0f172a;">${params.adminEmail}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 12px 16px; font-weight: 700; color: #475569; background-color: #f1f5f9;">Time (UAE GST)</td>
+                  <td style="padding: 12px 16px; font-weight: 600; color: #0f172a;">${params.ipInfo.timeUae}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 12px 16px; font-weight: 700; color: #475569; background-color: #f1f5f9;">Time (UTC)</td>
+                  <td style="padding: 12px 16px; color: #64748b;">${params.ipInfo.timeUtc}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 12px 16px; font-weight: 700; color: #475569; background-color: #f1f5f9;">IP Address</td>
+                  <td style="padding: 12px 16px; font-family: monospace; font-weight: 700; color: #0284c7;">${params.ipInfo.ip}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 12px 16px; font-weight: 700; color: #475569; background-color: #f1f5f9;">Location</td>
+                  <td style="padding: 12px 16px; font-weight: 600; color: #0f172a;">${params.ipInfo.city}, ${params.ipInfo.region}, ${params.ipInfo.country}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 12px 16px; font-weight: 700; color: #475569; background-color: #f1f5f9;">Network / ISP</td>
+                  <td style="padding: 12px 16px; color: #334155;">${params.ipInfo.isp}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 12px 16px; font-weight: 700; color: #475569; background-color: #f1f5f9;">Device & OS</td>
+                  <td style="padding: 12px 16px; color: #0f172a;">${params.ipInfo.deviceType} • ${params.ipInfo.os}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 16px; font-weight: 700; color: #475569; background-color: #f1f5f9;">Web Browser</td>
+                  <td style="padding: 12px 16px; color: #0f172a;">${params.ipInfo.browser}</td>
+                </tr>
+              </table>
+
+              <!-- Actionable Security Response Section -->
+              <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                <h4 style="color: #92400e; font-size: 13px; font-weight: 800; margin: 0 0 6px 0;">
+                  🚨 Recognize this sign-in?
+                </h4>
+                <p style="color: #78350f; font-size: 12px; margin: 0; line-height: 1.6;">
+                  If this was you or an authorized colleague, no further action is needed. If you did <strong>NOT</strong> authorize this session, an intruder has gained access.
+                  <br/><br/>
+                  <strong>Immediate Action Required:</strong>
+                  Go to <a href="https://console.firebase.google.com" target="_blank" style="color: #b45309; font-weight: 700; text-decoration: underline;">Firebase Console &gt; Authentication</a> and <strong>change your password immediately</strong>.
+                  The application has active session monitoring and will automatically terminate the intruder's session the moment your password is updated.
+                </p>
+              </div>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 30px; text-align: center;">
+              <p style="color: #94a3b8; font-size: 11px; margin: 0; line-height: 1.5;">
+                Cool Technologies LLC • Automated Security Dispatch • Mussafah M-14, Abu Dhabi, UAE
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  return sendBrevoEmail({
+    apiKey,
+    senderName,
+    senderEmail,
+    recipients: ADMIN_SECURITY_RECIPIENTS,
+    subject: `[Cool Technologies] 🚨 Security Alert: Admin Login Detected (${params.ipInfo.city}, ${params.ipInfo.country})`,
+    htmlContent,
+  });
+}
+
