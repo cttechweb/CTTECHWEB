@@ -1,5 +1,5 @@
-import React from "react";
-import { ClipboardList, Eye, Heart, Sparkles, Flame, Star } from "lucide-react";
+import React, { useState } from "react";
+import { ClipboardList, Eye, Heart, Sparkles, Flame, Star, Share2, Check } from "lucide-react";
 import { Product } from "../types";
 import { useWishlist } from "../context/WishlistContext";
 
@@ -19,6 +19,29 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   showStockBadge = true,
 }) => {
   const { isInWishlist, toggleWishlist } = useWishlist();
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleShareClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const shareUrl = `${window.location.origin}${window.location.pathname}#/product/${product.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${product.name} | Cool Technologies`,
+          text: `Check out ${product.name} on Cool Technologies UAE: ${shareUrl}`,
+          url: shareUrl,
+        });
+        return;
+      } catch (err: any) {
+        if (err.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch {}
+  };
 
   const handleCardClick = () => {
     onOpenProductDetail(product);
@@ -127,26 +150,44 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             )}
           </div>
 
-          {/* Wishlist Like Button */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleWishlist({ type: "product", product });
-            }}
-            className={`absolute top-2 right-2 p-1.5 rounded-full z-10 transition-all cursor-pointer shadow-xs ${
-              isInWishlist(product.id)
-                ? "bg-rose-50 text-rose-600 hover:bg-rose-100 scale-105"
-                : "bg-white/90 hover:bg-white text-slate-400 hover:text-rose-600 backdrop-blur-xs"
-            }`}
-            title={isInWishlist(product.id) ? "Remove from Wishlist" : "Save to Wishlist"}
-            aria-label="Save to Wishlist"
-          >
-            <Heart
-              size={14}
-              className={isInWishlist(product.id) ? "fill-rose-500 text-rose-500" : ""}
-            />
-          </button>
+          {/* Floating Top-Right Actions: Wishlist Heart & Share Icon below it */}
+          <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
+            {/* Wishlist Like Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleWishlist({ type: "product", product });
+              }}
+              className={`p-1.5 rounded-full transition-all cursor-pointer shadow-xs ${
+                isInWishlist(product.id)
+                  ? "bg-rose-50 text-rose-600 hover:bg-rose-100 scale-105"
+                  : "bg-white/90 hover:bg-white text-slate-400 hover:text-rose-600 backdrop-blur-xs"
+              }`}
+              title={isInWishlist(product.id) ? "Remove from Wishlist" : "Save to Wishlist"}
+              aria-label="Save to Wishlist"
+            >
+              <Heart
+                size={14}
+                className={isInWishlist(product.id) ? "fill-rose-500 text-rose-500" : ""}
+              />
+            </button>
+
+            {/* Share Product Icon Button */}
+            <button
+              type="button"
+              onClick={handleShareClick}
+              className={`p-1.5 rounded-full transition-all cursor-pointer shadow-xs backdrop-blur-xs ${
+                isCopied
+                  ? "bg-emerald-50 text-emerald-600 border border-emerald-200 scale-105"
+                  : "bg-white/90 hover:bg-white text-slate-400 hover:text-[#2596be] hover:scale-105"
+              }`}
+              title={isCopied ? "Link Copied!" : "Share Product"}
+              aria-label="Share Product"
+            >
+              {isCopied ? <Check size={14} className="text-emerald-600 stroke-[3]" /> : <Share2 size={14} />}
+            </button>
+          </div>
         </div>
 
         {/* Content Area */}

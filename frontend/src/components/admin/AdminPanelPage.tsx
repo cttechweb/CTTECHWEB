@@ -645,6 +645,20 @@ export default function AdminPanelPage({
                 <span>Add Service</span>
               </button>
             )}
+
+            {/* Top Header Manual Sign Out Button */}
+            <div className="pl-3 border-l border-slate-200">
+              <button
+                type="button"
+                onClick={onLogout}
+                className="px-3.5 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
+                title="Sign out of Admin Portal"
+                id="admin-header-logout-btn"
+              >
+                <LogOut size={13} />
+                <span>Sign Out</span>
+              </button>
+            </div>
           </div>
         </header>
 

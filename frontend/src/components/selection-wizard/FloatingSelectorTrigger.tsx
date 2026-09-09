@@ -99,9 +99,9 @@ export default function FloatingSelectorTrigger({ onOpenWizard, currentHash }: F
       {/* ── CONTINUOUS FLOATING CONTAINER (Always bobbing everywhere) ── */}
       <div className="animate-[bounce_3.5s_infinite_ease-in-out] flex flex-col items-start relative">
         
-        {/* ── BOXY MESSAGE CARD ON TOP (Respects manual close X & completion) ── */}
+        {/* ── BOXY MESSAGE CARD ON TOP (Hidden on mobile to preserve screen space) ── */}
         {isBoxOpen && !isDismissedOnPage && (
-          <div className="absolute bottom-full mb-3 left-0 w-72 sm:w-80 bg-white text-slate-900 border border-slate-200 shadow-2xl rounded-2xl p-4 animate-in fade-in zoom-in-95 duration-200 z-50">
+          <div className="hidden sm:block absolute bottom-full mb-3 left-0 w-72 sm:w-80 bg-white text-slate-900 border border-slate-200 shadow-2xl rounded-2xl p-4 animate-in fade-in zoom-in-95 duration-200 z-50">
             {/* Pointer arrow pointing down at the button */}
             <div className="absolute -bottom-2 left-5 w-4 h-4 bg-white border-b border-r border-slate-200 rotate-45" />
 

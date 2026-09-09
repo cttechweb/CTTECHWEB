@@ -68,7 +68,6 @@ import {
   saveWorkflow as saveWorkflowDb, 
   deleteWorkflow as deleteWorkflowDb 
 } from "./services/workflowService";
-import { auth, onIdTokenChanged } from "./lib/firebase";
 import { isAdminRoute, PRIMARY_ADMIN_ROUTE } from "./utils/adminRoute";
 
 
@@ -85,10 +84,12 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [toasts, setToasts] = useState<{ id: string; message: string }[]>([]);
 
-  // Admin Authentication State
+  // Admin Authentication State: Persistent across all tabs, browser refreshes, and window switches.
+  // ONLY logs out when the administrator manually clicks the logout button.
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     try {
-      return sessionStorage.getItem("cooltech_admin_authed") === "true";
+      return localStorage.getItem("cooltech_admin_authed") === "true" ||
+             sessionStorage.getItem("cooltech_admin_authed") === "true";
     } catch {
       return false;
     }
@@ -97,6 +98,7 @@ export default function App() {
   const handleAdminLoginSuccess = () => {
     setIsAdminAuthenticated(true);
     try {
+      localStorage.setItem("cooltech_admin_authed", "true");
       sessionStorage.setItem("cooltech_admin_authed", "true");
     } catch {}
     showToast("Authenticated as Enterprise System Admin.");
@@ -105,6 +107,7 @@ export default function App() {
   const handleAdminLogout = () => {
     setIsAdminAuthenticated(false);
     try {
+      localStorage.removeItem("cooltech_admin_authed");
       sessionStorage.removeItem("cooltech_admin_authed");
     } catch {}
     if (logout) logout().catch(() => {});
@@ -117,54 +120,6 @@ export default function App() {
       window.location.hash = "#/";
     }
   }, [currentHash]);
-
-  // Active Admin Session Security Heartbeat & Firebase Password Change Revocation Guard
-  useEffect(() => {
-    if (!isAdminAuthenticated || !isAdminRoute(currentHash)) return;
-
-    let isTerminated = false;
-
-    const terminateRevokedSession = (reason: string) => {
-      if (isTerminated) return;
-      isTerminated = true;
-      console.warn(`[AdminSecurity] ${reason}. Revoking active administrative session.`);
-      setIsAdminAuthenticated(false);
-      try {
-        sessionStorage.removeItem("cooltech_admin_authed");
-      } catch {}
-      if (logout) logout().catch(() => {});
-      showToast("Security Alert: Administrative session terminated. Password or security settings were updated in Firebase.");
-    };
-
-    // 1. Listen to Firebase ID token changes (triggered when token is revoked or user updated in Firebase Console)
-    const unsubscribeToken = onIdTokenChanged(auth, async (currentUser) => {
-      if (!currentUser) {
-        terminateRevokedSession("No authenticated Firebase user found");
-      }
-    });
-
-    // 2. Active token refresh heartbeat: forces refresh against Firebase Auth servers every 20 seconds
-    const heartbeatInterval = setInterval(async () => {
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        terminateRevokedSession("Firebase user session expired");
-        return;
-      }
-
-      try {
-        // Force token refresh from Firebase servers to detect password change / token revocation
-        await currentUser.getIdToken(true);
-      } catch (err: any) {
-        console.warn("[AdminSecurity] Token validation check failed:", err);
-        terminateRevokedSession("Firebase refresh token revoked due to password change or security update");
-      }
-    }, 20000);
-
-    return () => {
-      unsubscribeToken();
-      clearInterval(heartbeatInterval);
-    };
-  }, [isAdminAuthenticated, currentHash, logout]);
 
   // Live products & services list (Clean initialization from local cache & Cloudflare D1)
   const [productsList, setProductsList] = useState<Product[]>(() => {

@@ -41,6 +41,7 @@ import { PRODUCTS } from "../data";
 import { ProductCard } from "./ProductCard";
 import { openProductWhatsAppOrder } from "../utils/whatsappOrder";
 import { getSocialSeoSettings } from "../services/generalSettingsService";
+import { useWishlist } from "../context/WishlistContext";
 
 interface ProductDetailPageProps {
   productId: string;
@@ -60,6 +61,7 @@ export default function ProductDetailPage({
   onOpenQuoteWithProduct,
   b2bDiscountRate
 }: ProductDetailPageProps) {
+  const { isInWishlist, toggleWishlist } = useWishlist();
   const activeProducts = products || PRODUCTS;
   // Find primary product
   const cleanId = (productId || "").split("?")[0].replace(/\/$/, "");
@@ -231,6 +233,46 @@ export default function ProductDetailPage({
                   (e.currentTarget as HTMLImageElement).src = "/src/assets/images/hvac_air_conditioner_1784350824930.jpg";
                 }}
               />
+
+              {/* Floating Top-Right Controls: Heart Wishlist + Share Icon directly below it */}
+              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex flex-col gap-2 z-20">
+                {/* Wishlist Heart Button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleWishlist({ type: "product", product });
+                  }}
+                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-md backdrop-blur-xs ${
+                    isInWishlist(product.id)
+                      ? "bg-rose-50 text-rose-600 hover:bg-rose-100 scale-105 border border-rose-200"
+                      : "bg-white/95 hover:bg-white text-slate-500 hover:text-rose-600 border border-slate-200/80 hover:scale-105"
+                  }`}
+                  title={isInWishlist(product.id) ? "Remove from Wishlist" : "Save to Wishlist"}
+                  aria-label="Save to Wishlist"
+                  id="detail-wishlist-toggle-btn"
+                >
+                  <Heart
+                    size={18}
+                    className={isInWishlist(product.id) ? "fill-rose-500 text-rose-500" : ""}
+                  />
+                </button>
+
+                {/* Share Icon Button (Placed below Heart) */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsShareModalOpen(true);
+                  }}
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-white/95 hover:bg-white text-slate-500 hover:text-[#2596be] border border-slate-200/80 hover:scale-105 transition-all cursor-pointer shadow-md backdrop-blur-xs"
+                  title="Share product with image preview"
+                  aria-label="Share Product"
+                  id="detail-share-product-icon-btn"
+                >
+                  <Share2 size={17} />
+                </button>
+              </div>
               
               {/* Previous Arrow */}
               <button 
@@ -386,16 +428,28 @@ export default function ProductDetailPage({
             </div>
 
             {/* Procurement / Cart and RFQ Actions Container */}
-            <div className="flex flex-col sm:flex-row items-stretch gap-4 border-t border-slate-100 pt-6">
+            <div className="flex flex-col sm:flex-row items-stretch gap-3 border-t border-slate-100 pt-5 sm:pt-6">
               
               {/* Add to Procurement Button */}
               <button
                 onClick={() => onAddToCart(product, quantity)}
-                className="flex-1 h-12 bg-[#2596be] hover:bg-[#1c7e9f] text-white rounded-lg text-xs font-black tracking-wider uppercase shadow-md hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full sm:flex-1 h-12 min-h-[48px] shrink-0 bg-[#2596be] hover:bg-[#1c7e9f] text-white rounded-xl text-xs font-black tracking-wider uppercase shadow-md hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
                 id="detail-add-to-cart-btn"
               >
-                <ShoppingCart size={15} />
+                <ShoppingCart size={16} />
                 <span>Product Enquiry</span>
+              </button>
+
+              {/* Direct WhatsApp Order */}
+              <button
+                type="button"
+                onClick={() => openProductWhatsAppOrder(product, quantity)}
+                className="w-full sm:w-auto sm:px-6 h-12 min-h-[48px] shrink-0 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl text-xs font-black tracking-wider uppercase transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                id="detail-whatsapp-order-btn"
+                title="Order or Inquire directly via WhatsApp"
+              >
+                <img src="/whatsapp-official.png" alt="WhatsApp" className="w-4 h-4 object-contain shrink-0" />
+                <span>Order via WhatsApp</span>
               </button>
 
               {/* Download Brochure Button */}
@@ -404,35 +458,11 @@ export default function ProductDetailPage({
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);
                 }}
-                className="px-5 h-12 border border-slate-200 hover:border-[#2596be] hover:text-[#2596be] text-slate-600 rounded-lg text-xs font-black tracking-wider uppercase transition-all flex items-center justify-center gap-2 bg-white cursor-pointer"
+                className="w-full sm:w-auto sm:px-5 h-12 min-h-[48px] shrink-0 border border-slate-200 hover:border-[#2596be] hover:text-[#2596be] text-slate-600 rounded-xl text-xs font-black tracking-wider uppercase transition-all flex items-center justify-center gap-2 bg-white cursor-pointer active:scale-95"
                 id="detail-download-brochure-btn"
               >
                 <Download size={15} />
                 <span>{copied ? "Brochure Saved" : "Download Brochure"}</span>
-              </button>
-
-              {/* Direct WhatsApp Order */}
-              <button
-                type="button"
-                onClick={() => openProductWhatsAppOrder(product, quantity)}
-                className="px-5 h-12 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-lg text-xs font-black tracking-wider uppercase transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-                id="detail-whatsapp-order-btn"
-                title="Order or Inquire directly via WhatsApp"
-              >
-                <img src="/whatsapp-official.png" alt="WhatsApp" className="w-4 h-4 object-contain shrink-0" />
-                <span>Order via WhatsApp</span>
-              </button>
-
-              {/* Share Product */}
-              <button
-                type="button"
-                onClick={() => setIsShareModalOpen(true)}
-                className="px-4 h-12 border border-slate-200 hover:border-[#2596be] hover:text-[#2596be] text-slate-600 rounded-lg text-xs font-black tracking-wider uppercase transition-all flex items-center justify-center gap-2 bg-white cursor-pointer active:scale-95"
-                id="detail-share-product-btn"
-                title="Share this product link & preview"
-              >
-                <Share2 size={15} />
-                <span>Share</span>
               </button>
 
             </div>
