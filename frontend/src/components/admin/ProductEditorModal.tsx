@@ -7,6 +7,7 @@ import {
 import { Product, Category } from "../../types";
 import { uploadProductImage, uploadDocumentFile } from "../../services/storageService";
 import { getLocalCategories, getCategories } from "../../services/categoryService";
+import DirhamSymbol from "../common/DirhamSymbol";
 
 interface ProductEditorModalProps {
   isOpen: boolean;
@@ -15,12 +16,51 @@ interface ProductEditorModalProps {
   editingProduct?: Product | null;
 }
 
-const BRAND_OPTIONS = [
+const DEFAULT_BRAND_OPTIONS = [
   "Daikin", "Midea", "Carrier", "Mitsubishi Heavy Industries",
   "Panasonic", "LG", "Samsung", "York", "Trane", "Blue Star",
   "Clivet", "Hisense", "TCL HVAC", "Gree", "Super General",
   "Brema", "Copeland", "Danfoss", "Honeywell", "COOLTECH"
 ];
+
+const BRANDS_STORAGE_KEY = "cooltech_managed_brands_v1";
+
+const getSavedBrands = (): string[] => {
+  try {
+    const saved = localStorage.getItem(BRANDS_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.error("Failed to load saved brands:", e);
+  }
+  return DEFAULT_BRAND_OPTIONS;
+};
+
+const DEFAULT_STOCK_STATUS_OPTIONS = [
+  "In Stock & Ready to Ship",
+  "Lead Time Required",
+  "Available on Backorder",
+  "Pre-Order (1-2 Weeks)",
+  "Factory Direct Dispatch",
+  "Stock Out / Out of Stock"
+];
+
+const STOCK_STATUS_STORAGE_KEY = "cooltech_stock_status_labels_v1";
+
+const getSavedStockStatuses = (): string[] => {
+  try {
+    const saved = localStorage.getItem(STOCK_STATUS_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.error("Failed to load saved stock statuses:", e);
+  }
+  return DEFAULT_STOCK_STATUS_OPTIONS;
+};
 
 export default function ProductEditorModal({
   isOpen,
@@ -35,11 +75,16 @@ export default function ProductEditorModal({
   useEffect(() => {
     const loadCats = async () => {
       const list = await getCategories();
-      setAvailableCategories(list);
+      if (Array.isArray(list) && list.length > 0) {
+        setAvailableCategories(list);
+        if (!editingProduct && (!category || category === "Air Conditioners")) {
+          setCategory(list[0].name);
+        }
+      }
     };
     loadCats();
     const handleCatUpdate = (e: any) => {
-      if (e.detail) {
+      if (e.detail && Array.isArray(e.detail) && e.detail.length > 0) {
         setAvailableCategories(e.detail);
       } else {
         setAvailableCategories(getLocalCategories());
@@ -47,16 +92,132 @@ export default function ProductEditorModal({
     };
     window.addEventListener("cooltech_categories_updated", handleCatUpdate);
     return () => window.removeEventListener("cooltech_categories_updated", handleCatUpdate);
-  }, []);
+  }, [editingProduct]);
 
   // Core basic fields
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("Air Conditioners");
-  const [brand, setBrand] = useState("Daikin");
+  const [category, setCategory] = useState<string>(() => {
+    const initialList = getLocalCategories();
+    return initialList.length > 0 ? initialList[0].name : "Window A/C";
+  });
+  const [availableBrands, setAvailableBrands] = useState<string[]>(getSavedBrands);
+  const [brand, setBrand] = useState(() => {
+    const saved = getSavedBrands();
+    return saved.length > 0 ? saved[0] : "Daikin";
+  });
+  const [isAddingBrand, setIsAddingBrand] = useState(false);
+  const [newBrandInput, setNewBrandInput] = useState("");
+
+  // Stock status dynamic options
+  const [availableStockStatuses, setAvailableStockStatuses] = useState<string[]>(getSavedStockStatuses);
+  const [stockStatus, setStockStatus] = useState<string>("In Stock & Ready to Ship");
+  const [isAddingStockStatus, setIsAddingStockStatus] = useState(false);
+  const [newStockStatusInput, setNewStockStatusInput] = useState("");
+  const [showMinOrderQty, setShowMinOrderQty] = useState(true);
+
+  // Ensure editing product's brand is present in availableBrands
+  useEffect(() => {
+    if (editingProduct?.brand) {
+      setAvailableBrands((prev) => {
+        if (prev.includes(editingProduct.brand)) return prev;
+        const updated = [editingProduct.brand, ...prev];
+        try {
+          localStorage.setItem(BRANDS_STORAGE_KEY, JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
+    }
+  }, [editingProduct]);
+
+  const handleAddNewBrand = (brandNameToAdd?: string) => {
+    const target = (brandNameToAdd || newBrandInput).trim();
+    if (!target) return;
+    const existing = availableBrands.find((b) => b.toLowerCase() === target.toLowerCase());
+    if (existing) {
+      setBrand(existing);
+      setNewBrandInput("");
+      setIsAddingBrand(false);
+      return;
+    }
+    const updated = [...availableBrands, target];
+    setAvailableBrands(updated);
+    setBrand(target);
+    try {
+      localStorage.setItem(BRANDS_STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+    setNewBrandInput("");
+    setIsAddingBrand(false);
+  };
+
+  const handleDeleteBrand = (brandToDelete: string) => {
+    if (availableBrands.length <= 1) {
+      alert("At least one brand option must remain.");
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to remove "${brandToDelete}" from the brand list?`)) {
+      return;
+    }
+    const updated = availableBrands.filter((b) => b !== brandToDelete);
+    setAvailableBrands(updated);
+    try {
+      localStorage.setItem(BRANDS_STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+    if (brand === brandToDelete) {
+      setBrand(updated[0] || "");
+    }
+  };
+
+  const handleAddNewStockStatus = (statusToAdd?: string) => {
+    const target = (statusToAdd || newStockStatusInput).trim();
+    if (!target) return;
+    const existing = availableStockStatuses.find((s) => s.toLowerCase() === target.toLowerCase());
+    if (existing) {
+      setStockStatus(existing);
+      setNewStockStatusInput("");
+      setIsAddingStockStatus(false);
+      return;
+    }
+    const updated = [...availableStockStatuses, target];
+    setAvailableStockStatuses(updated);
+    setStockStatus(target);
+    try {
+      localStorage.setItem(STOCK_STATUS_STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+    setNewStockStatusInput("");
+    setIsAddingStockStatus(false);
+  };
+
+  const handleDeleteStockStatus = (statusToDelete: string) => {
+    if (availableStockStatuses.length <= 1) {
+      alert("At least one stock status option must remain.");
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to remove "${statusToDelete}" from the stock status list?`)) {
+      return;
+    }
+    const updated = availableStockStatuses.filter((s) => s !== statusToDelete);
+    setAvailableStockStatuses(updated);
+    try {
+      localStorage.setItem(STOCK_STATUS_STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+    if (stockStatus === statusToDelete) {
+      setStockStatus(updated[0] || "In Stock & Ready to Ship");
+    }
+  };
   const [price, setPrice] = useState(1200);
   const [hidePrice, setHidePrice] = useState(false);
   const [rating, setRating] = useState(4.9);
   const [image, setImage] = useState("");
+  const [images, setImages] = useState<string[]>([]);
+  const [directUrlInput, setDirectUrlInput] = useState("");
   const [description, setDescription] = useState("");
   const [inStock, setInStock] = useState(true);
   const [minOrderQty, setMinOrderQty] = useState(1);
@@ -117,10 +278,37 @@ export default function ProductEditorModal({
       setPrice(editingProduct.price);
       setHidePrice(Boolean(editingProduct.hidePrice));
       setRating(editingProduct.rating || 4.9);
-      setImage(editingProduct.image);
+      
+      const loadedImages: string[] = [];
+      if (editingProduct.image && editingProduct.image.trim()) {
+        loadedImages.push(editingProduct.image.trim());
+      }
+      if (Array.isArray(editingProduct.images)) {
+        editingProduct.images.forEach((img) => {
+          if (img && typeof img === "string" && img.trim() && !loadedImages.includes(img.trim())) {
+            loadedImages.push(img.trim());
+          }
+        });
+      }
+      setImages(loadedImages);
+      setImage(loadedImages[0] || editingProduct.image || "");
+      
       setDescription(editingProduct.description);
       setInStock(editingProduct.inStock);
       setMinOrderQty(editingProduct.minOrderQty || 1);
+      setShowMinOrderQty(editingProduct.showMinOrderQty ?? (editingProduct.minOrderQty !== undefined && editingProduct.minOrderQty !== null && editingProduct.minOrderQty > 0));
+      const initialStockStatus = editingProduct.stockStatus || (editingProduct.inStock ? "In Stock & Ready to Ship" : "Lead Time Required");
+      setStockStatus(initialStockStatus);
+      if (initialStockStatus) {
+        setAvailableStockStatuses((prev) => {
+          if (prev.includes(initialStockStatus)) return prev;
+          const updated = [...prev, initialStockStatus];
+          try {
+            localStorage.setItem(STOCK_STATUS_STORAGE_KEY, JSON.stringify(updated));
+          } catch (e) {}
+          return updated;
+        });
+      }
       setBadge(editingProduct.badge || (editingProduct.isFeatured ? "Featured" : ""));
 
       setModelId(editingProduct.modelId || `DAI-${editingProduct.id.toUpperCase()}`);
@@ -137,7 +325,9 @@ export default function ProductEditorModal({
 
       if (editingProduct.specifications) {
         setSpecs(
-          Object.entries(editingProduct.specifications).map(([key, value]) => ({ key, value }))
+          Object.entries(editingProduct.specifications)
+            .filter(([key]) => !key.startsWith("_"))
+            .map(([key, value]) => ({ key, value }))
         );
       }
       if (editingProduct.features) {
@@ -145,15 +335,20 @@ export default function ProductEditorModal({
       }
     } else {
       setName("");
-      setCategory("Air Conditioners");
+      const initialCat = availableCategories.length > 0 ? availableCategories[0].name : "Window A/C";
+      setCategory(initialCat);
       setBrand("Daikin");
       setPrice(1500);
       setHidePrice(false);
       setRating(4.9);
-      setImage("https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=800&auto=format&fit=crop");
+      const defaultImg = "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=800&auto=format&fit=crop";
+      setImage(defaultImg);
+      setImages([defaultImg]);
       setDescription("The Daikin Fit Slim VRF Outdoor Unit (5-Ton) represents the next generation in commercial climate performance. Engineered to satisfy rigorous efficiency parameters in tropical climates.");
       setInStock(true);
       setMinOrderQty(1);
+      setShowMinOrderQty(true);
+      setStockStatus("In Stock & Ready to Ship");
       setBadge("");
 
       setModelId(`DAI-PROD-${Math.floor(1000 + Math.random() * 9000)}`);
@@ -184,26 +379,45 @@ export default function ProductEditorModal({
 
   const currentSeoScore = calculateSeoScore();
 
-  // Cloud Image Upload Handler
+  // Cloud Multi-Image Upload Handler
   const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     try {
       setIsUploadingImage(true);
       setUploadProgress(10);
-      setUploadStatus("Connecting to Cloud Storage...");
+      setUploadStatus(`Uploading ${files.length} image(s)...`);
 
-      const result = await uploadProductImage(file, "products", (progress) => {
-        setUploadProgress(progress);
-        setUploadStatus(`Uploading image (${progress}%)...`);
+      const uploadedUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const result = await uploadProductImage(file, "products", (progress) => {
+          const overall = Math.round(((i + progress / 100) / files.length) * 100);
+          setUploadProgress(overall);
+          setUploadStatus(`Uploading image ${i + 1} of ${files.length} (${overall}%)...`);
+        });
+        if (result?.url) {
+          uploadedUrls.push(result.url);
+        }
+      }
+
+      setImages((prev) => {
+        const combined = [...prev];
+        uploadedUrls.forEach((url) => {
+          if (!combined.includes(url)) combined.push(url);
+        });
+        return combined;
       });
 
-      setImage(result.url);
-      setUploadStatus(result.isCloud ? "Uploaded to Firebase Cloud Storage!" : "Image loaded successfully!");
+      if (!image && uploadedUrls.length > 0) {
+        setImage(uploadedUrls[0]);
+      }
+
+      setUploadStatus(`${uploadedUrls.length} image(s) added successfully!`);
       setTimeout(() => setUploadStatus(null), 3000);
     } catch (err: any) {
-      alert(err?.message || "Failed to process image file.");
+      alert(err?.message || "Failed to process image file(s).");
       setUploadStatus(null);
     } finally {
       setIsUploadingImage(false);
@@ -213,9 +427,36 @@ export default function ProductEditorModal({
     }
   };
 
-  const handleRemoveImage = () => {
-    setImage("");
-    setUploadStatus(null);
+  const handleAddDirectUrl = () => {
+    if (!directUrlInput.trim()) return;
+    const url = directUrlInput.trim();
+    setImages((prev) => {
+      if (prev.includes(url)) return prev;
+      return [...prev, url];
+    });
+    if (!image) {
+      setImage(url);
+    }
+    setDirectUrlInput("");
+  };
+
+  const handleRemoveImageByIndex = (indexToRemove: number) => {
+    setImages((prev) => {
+      const removed = prev[indexToRemove];
+      const next = prev.filter((_, i) => i !== indexToRemove);
+      if (image === removed) {
+        setImage(next[0] || "");
+      }
+      return next;
+    });
+  };
+
+  const handleSetPrimaryImage = (targetUrl: string) => {
+    setImage(targetUrl);
+    setImages((prev) => {
+      const remaining = prev.filter((u) => u !== targetUrl);
+      return [targetUrl, ...remaining];
+    });
   };
 
   const handleAddSpec = () => {
@@ -296,27 +537,33 @@ export default function ProductEditorModal({
       );
     }
 
+    const matchedCategory = availableCategories.find(
+      (c) => c.name.toLowerCase() === category.toLowerCase()
+    );
+
+    const finalPrimaryImage = image.trim() || (images.length > 0 ? images[0] : "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=800&auto=format&fit=crop");
+    const finalImagesList = images.length > 0 ? images : [finalPrimaryImage];
+
     const savedProduct: Product = {
       id: editingProduct ? editingProduct.id : `prod-${Date.now()}`,
       name: name.trim(),
       category,
+      categoryId: matchedCategory?.id || editingProduct?.categoryId,
       brand,
       price: Number(price),
       hidePrice: Boolean(hidePrice),
       rating: Number(rating),
-      image: image.trim() || "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=800&auto=format&fit=crop",
+      image: finalPrimaryImage,
+      images: finalImagesList,
       description: description.trim(),
-      inStock,
-      minOrderQty: Number(minOrderQty),
+      inStock: !stockStatus.toLowerCase().includes("out of stock") && !stockStatus.toLowerCase().includes("stock out"),
+      stockStatus: stockStatus.trim(),
+      minOrderQty: showMinOrderQty ? Number(minOrderQty || 1) : 0,
+      showMinOrderQty: Boolean(showMinOrderQty),
       badge: badge || undefined,
       isFeatured: badge === "Featured",
       tags: updatedTags,
-      specifications: {
-        ...specificationsObj,
-        _badge: badge || "",
-        _isFeatured: badge === "Featured" ? "true" : "false",
-        _hidePrice: hidePrice ? "true" : "false",
-      },
+      specifications: specificationsObj,
       features,
       modelId: modelId.trim() || `MOD-${Date.now()}`,
       series: series.trim() || "STANDARD",
@@ -455,23 +702,114 @@ export default function ProductEditorModal({
                     onChange={(e) => setCategory(e.target.value)}
                     className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 bg-slate-50"
                   >
-                    {availableCategories.map((c) => (
-                      <option key={c.id} value={c.name}>{c.name}</option>
+                    {category && !availableCategories.some((c) => c.name === category) && (
+                      <option value={category}>{category}</option>
+                    )}
+                    {Array.from(
+                      availableCategories.reduce((map, cat) => {
+                        const groupName = cat.tag?.trim() || "General Equipment";
+                        if (!map.has(groupName)) map.set(groupName, []);
+                        map.get(groupName)!.push(cat);
+                        return map;
+                      }, new Map<string, Category[]>())
+                    ).map(([groupName, cats]) => (
+                      <optgroup key={groupName} label={groupName}>
+                        {cats.map((c) => (
+                          <option key={c.id} value={c.name}>{c.name}</option>
+                        ))}
+                      </optgroup>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700">Manufacturer / OEM Brand *</label>
-                  <select
-                    value={brand}
-                    onChange={(e) => setBrand(e.target.value)}
-                    className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 bg-slate-50"
-                  >
-                    {BRAND_OPTIONS.map((b) => (
-                      <option key={b} value={b}>{b}</option>
-                    ))}
-                  </select>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-700">Manufacturer / OEM Brand *</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingBrand(!isAddingBrand);
+                        setNewBrandInput("");
+                      }}
+                      className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <Plus size={12} />
+                      <span>{isAddingBrand ? "Cancel" : "Add Brand"}</span>
+                    </button>
+                  </div>
+
+                  {isAddingBrand ? (
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={newBrandInput}
+                        onChange={(e) => setNewBrandInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddNewBrand();
+                          } else if (e.key === "Escape") {
+                            setIsAddingBrand(false);
+                          }
+                        }}
+                        placeholder="New brand name (e.g. O General)..."
+                        autoFocus
+                        className="flex-1 px-3 py-2 border border-blue-400 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleAddNewBrand()}
+                        className="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition cursor-pointer"
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAddingBrand(false);
+                          setNewBrandInput("");
+                        }}
+                        className="p-2 border border-slate-300 rounded-lg text-slate-500 hover:bg-slate-100 transition cursor-pointer"
+                        title="Cancel"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <select
+                        value={brand}
+                        onChange={(e) => {
+                          if (e.target.value === "__NEW_BRAND__") {
+                            setIsAddingBrand(true);
+                          } else {
+                            setBrand(e.target.value);
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 bg-slate-50"
+                      >
+                        {brand && !availableBrands.includes(brand) && (
+                          <option value={brand}>{brand}</option>
+                        )}
+                        {availableBrands.map((b) => (
+                          <option key={b} value={b}>{b}</option>
+                        ))}
+                        <option value="__NEW_BRAND__" className="text-blue-600 font-bold">
+                          + Add New Brand...
+                        </option>
+                      </select>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteBrand(brand)}
+                        disabled={availableBrands.length <= 1}
+                        className="p-2 border border-slate-300 hover:border-red-300 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        title={`Delete brand "${brand}" from options`}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Product Promotion Tag / Badge Selector */}
@@ -530,7 +868,10 @@ export default function ProductEditorModal({
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600">Unit Price ($ USD)</label>
+                      <label className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
+                        <DirhamSymbol className="h-3 w-auto" />
+                        <span>Unit Price (AED)</span>
+                      </label>
                       <input
                         type="number"
                         disabled={hidePrice}
@@ -543,13 +884,28 @@ export default function ProductEditorModal({
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600">Minimum Order Qty (B2B)</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-bold text-slate-600">Min. Bulk Order</label>
+                        <label className="inline-flex items-center gap-1 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={showMinOrderQty}
+                            onChange={(e) => setShowMinOrderQty(e.target.checked)}
+                            className="w-3.5 h-3.5 text-blue-600 rounded cursor-pointer"
+                          />
+                          <span className="text-[10px] text-blue-700 font-bold">Show MOQ</span>
+                        </label>
+                      </div>
                       <input
                         type="number"
                         min="1"
-                        value={minOrderQty}
-                        onChange={(e) => setMinOrderQty(Number(e.target.value))}
-                        className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold bg-white"
+                        disabled={!showMinOrderQty}
+                        placeholder={showMinOrderQty ? "1" : "Hidden"}
+                        value={showMinOrderQty ? minOrderQty : ""}
+                        onChange={(e) => setMinOrderQty(e.target.value === "" ? 1 : Number(e.target.value))}
+                        className={`w-full px-3 py-2 border rounded-lg text-xs font-bold ${
+                          !showMinOrderQty ? "bg-slate-200 text-slate-400 border-slate-300" : "bg-white border-slate-300 focus:border-blue-600 text-slate-900"
+                        }`}
                       />
                     </div>
 
@@ -574,16 +930,16 @@ export default function ProductEditorModal({
                   )}
                 </div>
 
-                {/* CLOUD STORAGE IMAGE UPLOADER & PREVIEW */}
-                <div className="sm:col-span-2 space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <div className="flex items-center justify-between">
+                {/* CLOUD STORAGE MULTI-IMAGE UPLOADER & GALLERY */}
+                <div className="sm:col-span-2 space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <label className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
                         <Image size={14} className="text-blue-600" />
-                        <span>Product Visual Specification Asset</span>
+                        <span>Product Visual Assets ({images.length} Photos)</span>
                       </label>
                       <p className="text-[11px] text-slate-500">
-                        Upload high-resolution commercial HVAC equipment photography or link via direct URL.
+                        Add multiple commercial photos. Click "Set Primary" on any photo to set it as the cover image.
                       </p>
                     </div>
 
@@ -597,7 +953,7 @@ export default function ProductEditorModal({
                         }`}
                       >
                         <Upload size={12} />
-                        <span>Upload Image</span>
+                        <span>Upload Photos</span>
                       </button>
                       <button
                         type="button"
@@ -607,138 +963,176 @@ export default function ProductEditorModal({
                         }`}
                       >
                         <Link2 size={12} />
-                        <span>Direct URL</span>
+                        <span>Add via URL</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* Hidden File Input */}
+                  {/* Hidden File Input supporting multiple files */}
                   <input
                     type="file"
                     ref={fileInputRef}
                     onChange={handleImageFileChange}
                     accept="image/*"
+                    multiple
                     className="hidden"
                   />
 
-                  {/* Upload Dropzone / Button */}
+                  {/* Upload Dropzone / Button or URL adder */}
                   {imageInputMode === "upload" ? (
-                    <div className="space-y-3">
-                      {!image ? (
-                        <div
-                          onClick={() => fileInputRef.current?.click()}
-                          className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
-                            isUploadingImage
-                              ? "border-blue-400 bg-blue-50/50 cursor-wait"
-                              : "border-slate-300 hover:border-blue-500 bg-white hover:bg-blue-50/20"
-                          }`}
-                        >
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <div className="w-11 h-11 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shadow-2xs">
-                              {isUploadingImage ? (
-                                <Loader2 size={20} className="animate-spin text-blue-600" />
-                              ) : (
-                                <Upload size={20} />
-                              )}
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold text-slate-800">
-                                {isUploadingImage ? "Uploading image..." : "Click or Drag to Upload Product Image"}
-                              </p>
-                              <p className="text-[10px] text-slate-400 mt-0.5">
-                                Supports PNG, JPG, WebP, SVG up to 10MB
-                              </p>
-                            </div>
-                          </div>
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all ${
+                        isUploadingImage
+                          ? "border-blue-400 bg-blue-50/50 cursor-wait"
+                          : "border-slate-300 hover:border-blue-500 bg-white hover:bg-blue-50/20"
+                      }`}
+                    >
+                      <div className="flex flex-col items-center justify-center gap-1.5">
+                        <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shadow-2xs">
+                          {isUploadingImage ? (
+                            <Loader2 size={18} className="animate-spin text-blue-600" />
+                          ) : (
+                            <Upload size={18} />
+                          )}
                         </div>
-                      ) : (
-                        /* Image Preview Card */
-                        <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
-                          <div className="w-24 h-24 rounded-lg bg-slate-900/5 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 p-1">
-                            <img
-                              src={image}
-                              alt="Product Preview"
-                              className="max-h-full max-w-full object-contain rounded"
-                            />
-                          </div>
-
-                          <div className="flex-1 min-w-0 space-y-1.5">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-slate-900">Current Product Image</span>
-                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                                <CheckCircle size={10} />
-                                <span>Ready</span>
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-slate-500 font-mono truncate bg-slate-50 p-1.5 rounded border border-slate-200">
-                              {image}
-                            </p>
-
-                            <div className="flex items-center gap-2 pt-1">
-                              <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={isUploadingImage}
-                                className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
-                              >
-                                <RefreshCw size={12} className={isUploadingImage ? "animate-spin" : ""} />
-                                <span>Replace Image</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleRemoveImage}
-                                className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
-                              >
-                                <Trash2 size={12} />
-                                <span>Remove</span>
-                              </button>
-                            </div>
-                          </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-800">
+                            {isUploadingImage ? "Uploading photos..." : "Click or Drag to Upload Product Photos (Multiple allowed)"}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            Select one or multiple PNG, JPG, WebP photos up to 10MB each
+                          </p>
                         </div>
-                      )}
-
-                      {/* Upload Progress Bar */}
-                      {isUploadingImage && (
-                        <div className="space-y-1 bg-white p-3 rounded-lg border border-blue-200">
-                          <div className="flex items-center justify-between text-[11px] font-bold text-blue-900">
-                            <span className="flex items-center gap-1.5">
-                              <Loader2 size={12} className="animate-spin text-blue-600" />
-                              <span>{uploadStatus || "Uploading image..."}</span>
-                            </span>
-                            <span className="font-mono">{uploadProgress}%</span>
-                          </div>
-                          <div className="w-full bg-blue-100 rounded-full h-1.5 overflow-hidden">
-                            <div
-                              className="bg-blue-600 h-1.5 rounded-full transition-all duration-200"
-                              style={{ width: `${uploadProgress}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {uploadStatus && !isUploadingImage && (
-                        <p className="text-[11px] font-bold text-emerald-700 bg-emerald-50 p-2 rounded-lg border border-emerald-200 flex items-center gap-1.5">
-                          <CheckCircle size={12} />
-                          <span>{uploadStatus}</span>
-                        </p>
-                      )}
+                      </div>
                     </div>
                   ) : (
-                    /* Manual Direct URL Input */
-                    <div>
+                    <div className="flex items-center gap-2">
                       <input
                         type="url"
-                        placeholder="https://images.unsplash.com/... or https://firebasestorage.googleapis.com/..."
-                        value={image}
-                        onChange={(e) => setImage(e.target.value)}
-                        className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-xs font-mono bg-white focus:outline-none focus:border-blue-600"
+                        placeholder="Paste image URL (e.g. https://images.unsplash.com/...)"
+                        value={directUrlInput}
+                        onChange={(e) => setDirectUrlInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddDirectUrl();
+                          }
+                        }}
+                        className="flex-1 px-3.5 py-2 border border-slate-300 rounded-lg text-xs font-mono bg-white focus:outline-none focus:border-blue-600"
                       />
-                      {image && (
-                        <div className="mt-2.5 flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-200">
-                          <img src={image} alt="Preview" className="w-10 h-10 object-contain rounded border border-slate-100 bg-slate-50" />
-                          <span className="text-xs text-slate-600 truncate font-mono">{image}</span>
-                        </div>
-                      )}
+                      <button
+                        type="button"
+                        onClick={handleAddDirectUrl}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors shrink-0 cursor-pointer shadow-2xs flex items-center gap-1.5"
+                      >
+                        <Plus size={14} />
+                        <span>Add Photo</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Upload Progress Bar */}
+                  {isUploadingImage && (
+                    <div className="space-y-1 bg-white p-3 rounded-lg border border-blue-200">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-blue-900">
+                        <span className="flex items-center gap-1.5">
+                          <Loader2 size={12} className="animate-spin text-blue-600" />
+                          <span>{uploadStatus || "Uploading images..."}</span>
+                        </span>
+                        <span className="font-mono">{uploadProgress}%</span>
+                      </div>
+                      <div className="w-full bg-blue-100 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-blue-600 h-1.5 rounded-full transition-all duration-200"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {uploadStatus && !isUploadingImage && (
+                    <p className="text-[11px] font-bold text-emerald-700 bg-emerald-50 p-2 rounded-lg border border-emerald-200 flex items-center gap-1.5">
+                      <CheckCircle size={12} />
+                      <span>{uploadStatus}</span>
+                    </p>
+                  )}
+
+                  {/* Configured Photos Gallery Grid */}
+                  {images.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t border-slate-200">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600">
+                          Configured Photos ({images.length})
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus size={12} />
+                          <span>Add More</span>
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {images.map((imgUrl, idx) => {
+                          const isPrimary = image === imgUrl || (!image && idx === 0);
+                          return (
+                            <div
+                              key={idx}
+                              className={`relative group bg-white border rounded-xl overflow-hidden shadow-2xs transition-all flex flex-col justify-between ${
+                                isPrimary
+                                  ? "border-blue-500 ring-2 ring-blue-100"
+                                  : "border-slate-200 hover:border-slate-300"
+                              }`}
+                            >
+                              <div className="aspect-square bg-[#f8fafc] flex items-center justify-center p-2 relative overflow-hidden">
+                                <img
+                                  src={imgUrl}
+                                  alt={`Product Asset ${idx + 1}`}
+                                  className="max-h-full max-w-full object-contain rounded"
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).src = "/src/assets/images/hvac_air_conditioner_1784350824930.jpg";
+                                  }}
+                                />
+                                {isPrimary && (
+                                  <span className="absolute top-1.5 left-1.5 px-2 py-0.5 bg-[#031b4e] text-white rounded text-[9px] font-black uppercase tracking-wider shadow-xs flex items-center gap-1">
+                                    <Sparkles size={9} className="text-amber-400" />
+                                    <span>Cover</span>
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="p-2 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between gap-1">
+                                {!isPrimary ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSetPrimaryImage(imgUrl)}
+                                    className="text-[10px] font-bold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
+                                  >
+                                    Set Cover
+                                  </button>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-slate-500">
+                                    Primary Cover
+                                  </span>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveImageByIndex(idx)}
+                                  className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                                  title="Remove photo"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -760,9 +1154,9 @@ export default function ProductEditorModal({
           {activeTab === "specs" && (
             <div className="space-y-5 animate-in fade-in duration-150">
               <div className="bg-blue-50/70 p-4 rounded-xl border border-blue-200 space-y-3">
-                <h4 className="text-xs font-black text-blue-900 uppercase tracking-wider">Commercial Sourcing & Regional Compliance</h4>
+                <h4 className="text-xs font-black text-blue-900 uppercase tracking-wider">Commercial Identification & Target Applications</h4>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-[11px] font-bold text-slate-700">Model ID / SKU</label>
                     <input
@@ -775,58 +1169,167 @@ export default function ProductEditorModal({
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold text-slate-700">Equipment Series</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. DAI-AIR"
-                      value={series}
-                      onChange={(e) => setSeries(e.target.value)}
-                      className="w-full mt-1 px-3 py-1.5 border border-slate-300 rounded text-xs font-bold bg-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700">Sourcing Channel</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. DIRECT OEM WHOLESALE"
-                      value={sourcingChannel}
-                      onChange={(e) => setSourcingChannel(e.target.value)}
-                      className="w-full mt-1 px-3 py-1.5 border border-slate-300 rounded text-xs font-bold bg-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700">Certification</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. CE / AHRI CERTIFIED"
-                      value={certification}
-                      onChange={(e) => setCertification(e.target.value)}
-                      className="w-full mt-1 px-3 py-1.5 border border-slate-300 rounded text-xs font-bold bg-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700">Primary Market Region</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. GCC & UAE MARKET"
-                      value={primaryRegion}
-                      onChange={(e) => setPrimaryRegion(e.target.value)}
-                      className="w-full mt-1 px-3 py-1.5 border border-slate-300 rounded text-xs font-bold bg-white"
-                    />
-                  </div>
-
-                  <div>
                     <label className="text-[11px] font-bold text-slate-700">Target Applications (Comma-separated)</label>
                     <input
                       type="text"
-                      placeholder="Commercial Complexes, Data Centers, Healthcare"
+                      placeholder="Bedrooms, Offices, Apartments, Retail Spaces"
                       value={applicationsText}
                       onChange={(e) => setApplicationsText(e.target.value)}
                       className="w-full mt-1 px-3 py-1.5 border border-slate-300 rounded text-xs bg-white"
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* Inventory Stock Status & Minimum Order Rules */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Package size={14} className="text-blue-600" />
+                    <span>Inventory Availability & Minimum Order Rules</span>
+                  </h4>
+
+                  {/* Stock Status Badge Live Preview */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Preview:</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                      stockStatus.toLowerCase().includes("out of stock") || stockStatus.toLowerCase().includes("stock out")
+                        ? "bg-rose-50 text-rose-700 border-rose-200"
+                        : stockStatus.toLowerCase().includes("in stock") || stockStatus.toLowerCase().includes("ready") || stockStatus.toLowerCase().includes("factory direct")
+                        ? "bg-green-50 text-green-700 border-green-200"
+                        : "bg-amber-50 text-amber-700 border-amber-200"
+                    }`}>
+                      ● {stockStatus}
+                    </span>
+                    {showMinOrderQty && minOrderQty > 0 && (
+                      <span className="text-[10px] text-slate-500 font-bold">
+                        Min: {minOrderQty} unit(s)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                  {/* Stock Status Selector + Add / Delete */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-bold text-slate-700">Stock Availability Status *</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAddingStockStatus(!isAddingStockStatus);
+                          setNewStockStatusInput("");
+                        }}
+                        className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 cursor-pointer"
+                      >
+                        <Plus size={12} />
+                        <span>{isAddingStockStatus ? "Cancel" : "Add Status"}</span>
+                      </button>
+                    </div>
+
+                    {isAddingStockStatus ? (
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={newStockStatusInput}
+                          onChange={(e) => setNewStockStatusInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleAddNewStockStatus();
+                            } else if (e.key === "Escape") {
+                              setIsAddingStockStatus(false);
+                            }
+                          }}
+                          placeholder="e.g. In Transit (Arriving 3 Days)..."
+                          autoFocus
+                          className="flex-1 px-3 py-1.5 border border-blue-400 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleAddNewStockStatus()}
+                          className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition cursor-pointer"
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAddingStockStatus(false);
+                            setNewStockStatusInput("");
+                          }}
+                          className="p-1.5 border border-slate-300 rounded-lg text-slate-500 hover:bg-slate-100 transition cursor-pointer"
+                          title="Cancel"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <select
+                          value={stockStatus}
+                          onChange={(e) => {
+                            if (e.target.value === "__NEW_STOCK_STATUS__") {
+                              setIsAddingStockStatus(true);
+                            } else {
+                              setStockStatus(e.target.value);
+                            }
+                          }}
+                          className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 bg-white"
+                        >
+                          {stockStatus && !availableStockStatuses.includes(stockStatus) && (
+                            <option value={stockStatus}>{stockStatus}</option>
+                          )}
+                          {availableStockStatuses.map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                          <option value="__NEW_STOCK_STATUS__" className="text-blue-600 font-bold">
+                            + Add Custom Status...
+                          </option>
+                        </select>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteStockStatus(stockStatus)}
+                          disabled={availableStockStatuses.length <= 1}
+                          className="p-1.5 border border-slate-300 hover:border-red-300 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                          title={`Delete "${stockStatus}" from status options`}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* MOQ Visibility & Value */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-bold text-slate-700">Minimum Bulk Order Requirement</label>
+                      <label className="inline-flex items-center gap-1 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={showMinOrderQty}
+                          onChange={(e) => setShowMinOrderQty(e.target.checked)}
+                          className="w-3.5 h-3.5 text-blue-600 rounded cursor-pointer"
+                        />
+                        <span className="text-[10px] text-blue-600 font-bold">Display MOQ Badge</span>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        disabled={!showMinOrderQty}
+                        placeholder={showMinOrderQty ? "e.g. 1" : "MOQ Hidden on Product Page"}
+                        value={showMinOrderQty ? minOrderQty : ""}
+                        onChange={(e) => setMinOrderQty(e.target.value === "" ? 1 : Number(e.target.value))}
+                        className={`flex-1 px-3 py-1.5 border rounded-lg text-xs font-bold ${
+                          !showMinOrderQty ? "bg-slate-200 text-slate-400 border-slate-300" : "bg-white border-slate-300 focus:border-blue-600 text-slate-900"
+                        }`}
+                      />
+                      <span className="text-[11px] text-slate-500 font-semibold shrink-0">units minimum</span>
+                    </div>
                   </div>
                 </div>
               </div>

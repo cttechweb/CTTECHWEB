@@ -6,6 +6,7 @@ import { createOrderRequest } from "../services/orderService";
 import { getOrCreateCompany } from "../services/companyService";
 import { sendEmailNotification, EmailOrderItem } from "../services/emailService";
 import { openCartWhatsAppOrder } from "../utils/whatsappOrder";
+import DirhamSymbol from "./common/DirhamSymbol";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -283,8 +284,15 @@ export default function CartDrawer({
                                   Quote on Request
                                 </span>
                               ) : (
-                                <span className="text-slate-900 font-extrabold text-xs">
-                                  ${item.product.price ? item.product.price.toLocaleString() : "Custom"}
+                                <span className="text-slate-900 font-extrabold text-xs inline-flex items-center gap-1">
+                                  {item.product.price ? (
+                                    <>
+                                      <DirhamSymbol className="h-3 w-auto" />
+                                      <span>AED {item.product.price.toLocaleString()}</span>
+                                    </>
+                                  ) : (
+                                    "Custom"
+                                  )}
                                 </span>
                               )}
                               <span className="text-[10px] text-gray-400 font-medium">

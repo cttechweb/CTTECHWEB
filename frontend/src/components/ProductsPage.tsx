@@ -16,6 +16,109 @@ interface ProductsPageProps {
   b2bDiscountRate: number;
 }
 
+export interface BtuRange {
+  id: string;
+  label: string;
+  min: number;
+  max: number;
+}
+
+export const BTU_RANGES: BtuRange[] = [
+  { id: "9000-12000", label: "9000-12000 BTUs", min: 9000, max: 12000 },
+  { id: "12000-18000", label: "12000-18000 BTUs", min: 12001, max: 18000 },
+  { id: "18000-24000", label: "18000-24000 BTUs", min: 18001, max: 24000 },
+  { id: "24000-30000", label: "24000-30000 BTUs", min: 24001, max: 30000 },
+  { id: "30000-36000", label: "30000-36000 BTUs", min: 30001, max: 36000 },
+  { id: "36000-48000", label: "36000-48000 BTUs", min: 36001, max: 48000 },
+  { id: "48000-60000", label: "48000-60000 BTUs", min: 48001, max: 60000 },
+  { id: "70000-above", label: "70000 BTUs & above", min: 60001, max: Infinity },
+];
+
+export function extractProductBtu(product: Product): number | null {
+  const specs = product.specifications || {};
+  const candidateValues: string[] = [];
+
+  for (const [key, val] of Object.entries(specs)) {
+    if (typeof val !== "string") continue;
+    const lk = key.toLowerCase();
+    if (
+      lk.includes("capacity") ||
+      lk.includes("btu") ||
+      lk.includes("ton") ||
+      lk.includes("cooling") ||
+      lk.includes("tr")
+    ) {
+      candidateValues.push(val);
+    }
+  }
+
+  if (product.capacity && typeof product.capacity === "string") {
+    candidateValues.unshift(product.capacity);
+  }
+
+  candidateValues.push(product.name || "");
+  candidateValues.push(product.description || "");
+
+  for (const text of candidateValues) {
+    if (!text) continue;
+
+    // Explicit BTU numbers: e.g. "18,000 BTU", "60000 BTU/h", "18000", "24,000"
+    const btuMatch = text.match(/(\d{1,3}(?:,\d{3})+|\d{4,6})\s*(?:btu(?:\/h)?|btus)?/i);
+    if (btuMatch) {
+      const num = parseInt(btuMatch[1].replace(/,/g, ""), 10);
+      if (num >= 5000 && num <= 500000) {
+        return num;
+      }
+    }
+
+    // "k btu": e.g. "18k BTU", "24k"
+    const kBtuMatch = text.match(/(\d+(?:\.\d+)?)\s*k\s*btu/i);
+    if (kBtuMatch) {
+      const num = Math.round(parseFloat(kBtuMatch[1]) * 1000);
+      if (num >= 5000 && num <= 500000) return num;
+    }
+
+    // TR / Ton: e.g. "1.5 TR", "1.5TR", "1.5 Ton", "1.5Ton", "2.0 TR", "5 Ton"
+    const trMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:tr|ton|tons)\b/i);
+    if (trMatch) {
+      const tons = parseFloat(trMatch[1]);
+      if (tons > 0 && tons <= 50) {
+        return Math.round(tons * 12000);
+      }
+    }
+  }
+
+  return null;
+}
+
+export function extractProductCompressorTypes(product: Product): string[] {
+  const specs = product.specifications || {};
+  const found = new Set<string>();
+
+  const candidateTexts: string[] = [];
+  for (const [key, val] of Object.entries(specs)) {
+    if (typeof val !== "string") continue;
+    const lk = key.toLowerCase();
+    if (lk.includes("compressor") || lk.includes("motor") || lk.includes("technology") || lk.includes("drive")) {
+      candidateTexts.push(val);
+    }
+  }
+
+  candidateTexts.push(product.name || "");
+  candidateTexts.push(product.description || "");
+
+  const fullText = candidateTexts.join(" ").toLowerCase();
+
+  if (fullText.includes("rotary")) found.add("Rotary");
+  if (fullText.includes("inverter")) found.add("Inverter");
+  if (fullText.includes("scroll")) found.add("Scroll");
+  if (fullText.includes("reciprocating") || fullText.includes("piston")) found.add("Reciprocating");
+  if (fullText.includes("screw")) found.add("Screw");
+  if (fullText.includes("centrifugal")) found.add("Centrifugal");
+
+  return Array.from(found);
+}
+
 export default function ProductsPage({
   products,
   onAddToCart,
@@ -47,7 +150,21 @@ export default function ProductsPage({
   const [selectedCategory, setSelectedCategory] = useState<string>(getInitialCategoryFromHash);
   const [activeMainGroup, setActiveMainGroup] = useState<string | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<string>("All");
+  const [selectedBtuRanges, setSelectedBtuRanges] = useState<string[]>([]);
+  const [selectedCompressorTypes, setSelectedCompressorTypes] = useState<string[]>([]);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState<boolean>(false);
+
+  const toggleBtuRange = (rangeId: string) => {
+    setSelectedBtuRanges((prev) =>
+      prev.includes(rangeId) ? prev.filter((id) => id !== rangeId) : [...prev, rangeId]
+    );
+  };
+
+  const toggleCompressorType = (type: string) => {
+    setSelectedCompressorTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  };
 
   useEffect(() => {
     const loadCats = async () => {
@@ -125,9 +242,14 @@ export default function ProductsPage({
 
     const target = categoryOrTag.toLowerCase().trim();
     const prodCat = (product.category || "").toLowerCase().trim();
+    const prodCatId = (product.categoryId || "").toLowerCase().trim();
 
-    // 1. Direct match with product.category
-    if (prodCat === target) return true;
+    // 1. Direct match with product.category or product.categoryId
+    if (prodCat === target || (prodCatId && prodCatId === target)) return true;
+
+    // Normalization helper (handles "A/C" vs "AC" and minor punctuation)
+    const normalize = (str: string) => str.toLowerCase().replace(/a\/c/g, "ac").replace(/[^a-z0-9]/g, "");
+    if (normalize(prodCat) === normalize(target)) return true;
 
     // 2. Cross-compatibility for room air conditioners
     if (
@@ -139,16 +261,19 @@ export default function ProductsPage({
 
     // 3. Match against category groups (if target is a Main Group)
     const group = categoryGroups.find(
-      (g) => g.mainTag.toLowerCase().trim() === target
+      (g) => g.mainTag.toLowerCase().trim() === target || normalize(g.mainTag) === normalize(target)
     );
     if (group) {
       const inSub = group.subCategories.some(
-        (sub) => sub.name.toLowerCase().trim() === prodCat
+        (sub) =>
+          sub.name.toLowerCase().trim() === prodCat ||
+          normalize(sub.name) === normalize(prodCat) ||
+          (prodCatId && sub.id.toLowerCase().trim() === prodCatId)
       );
       if (inSub) return true;
 
       if (
-        (product as any).tags?.some((t: string) => t.toLowerCase().trim() === target)
+        (product as any).tags?.some((t: string) => t.toLowerCase().trim() === target || normalize(t) === normalize(target))
       ) {
         return true;
       }
@@ -156,9 +281,16 @@ export default function ProductsPage({
 
     // 4. Product tags match
     if (
-      (product as any).tags?.some((t: string) => t.toLowerCase().trim() === target)
+      (product as any).tags?.some((t: string) => t.toLowerCase().trim() === target || normalize(t) === normalize(target))
     ) {
       return true;
+    }
+
+    // 5. Fallback name-based keyword match for generic categories
+    if (prodCat === "air conditioners" || prodCat === "hvac equipment") {
+      if (normalize(product.name).includes(normalize(target))) {
+        return true;
+      }
     }
 
     return false;
@@ -167,8 +299,53 @@ export default function ProductsPage({
   // Retrieve unique brands from product catalog
   const availableBrands = ["All", ...Array.from(new Set(activeProducts.map(p => p.brand)))];
 
-  // Active Filter Count for Mobile Badge
-  const activeFilterCount = (selectedCategory !== "All" ? 1 : 0) + (selectedBrand !== "All" ? 1 : 0) + (searchTerm.trim() ? 1 : 0);
+  // Pre-calculate extracted specs metadata for fast counting & filtering
+  const productsWithSpecsMeta = useMemo(() => {
+    return activeProducts.map((p) => ({
+      product: p,
+      btu: extractProductBtu(p),
+      compressorTypes: extractProductCompressorTypes(p),
+    }));
+  }, [activeProducts]);
+
+  const btuCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    BTU_RANGES.forEach((r) => {
+      counts[r.id] = 0;
+    });
+
+    productsWithSpecsMeta.forEach(({ btu }) => {
+      if (btu !== null) {
+        BTU_RANGES.forEach((r) => {
+          const match = r.max === Infinity ? btu >= r.min : btu >= r.min && btu <= r.max;
+          if (match) counts[r.id] = (counts[r.id] || 0) + 1;
+        });
+      }
+    });
+    return counts;
+  }, [productsWithSpecsMeta]);
+
+  // ONLY list BTU ranges that actually exist in available products in the database
+  const availableBtuRanges = useMemo(() => {
+    return BTU_RANGES.filter((r) => (btuCounts[r.id] || 0) > 0);
+  }, [btuCounts]);
+
+  // ONLY list compressor types that actually exist in available products in the database
+  const availableCompressorTypes = useMemo(() => {
+    const found = new Set<string>();
+    productsWithSpecsMeta.forEach(({ compressorTypes }) => {
+      compressorTypes.forEach((t) => found.add(t));
+    });
+    return Array.from(found).sort();
+  }, [productsWithSpecsMeta]);
+
+  // Active Filter Count for Mobile Badge & Clear button
+  const activeFilterCount = 
+    (selectedCategory !== "All" ? 1 : 0) + 
+    (selectedBrand !== "All" ? 1 : 0) + 
+    (searchTerm.trim() ? 1 : 0) +
+    selectedBtuRanges.length +
+    selectedCompressorTypes.length;
 
   // Technical SEO & GEO/AEO UAE head injection on mount/update
   useEffect(() => {
@@ -218,6 +395,7 @@ export default function ProductsPage({
   // Filter products based on state
   const filteredProducts = activeProducts.filter((product) => {
     const matchesSearch = 
+      !searchTerm.trim() ||
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -227,7 +405,24 @@ export default function ProductsPage({
 
     const matchesBrand = selectedBrand === "All" || product.brand === selectedBrand;
 
-    return matchesSearch && matchesCategory && matchesBrand;
+    const matchesBtu = (() => {
+      if (selectedBtuRanges.length === 0) return true;
+      const btu = extractProductBtu(product);
+      if (btu === null) return false;
+      return selectedBtuRanges.some((rangeId) => {
+        const r = BTU_RANGES.find((x) => x.id === rangeId);
+        if (!r) return false;
+        return r.max === Infinity ? btu >= r.min : btu >= r.min && btu <= r.max;
+      });
+    })();
+
+    const matchesCompressor = (() => {
+      if (selectedCompressorTypes.length === 0) return true;
+      const types = extractProductCompressorTypes(product);
+      return selectedCompressorTypes.some((t) => types.includes(t));
+    })();
+
+    return matchesSearch && matchesCategory && matchesBrand && matchesBtu && matchesCompressor;
   });
 
   const clearAllFilters = () => {
@@ -235,6 +430,8 @@ export default function ProductsPage({
     setSelectedCategory("All");
     setSelectedBrand("All");
     setActiveMainGroup(null);
+    setSelectedBtuRanges([]);
+    setSelectedCompressorTypes([]);
   };
 
   return (
@@ -313,7 +510,7 @@ export default function ProductsPage({
                   className="px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-1"
                 >
                   <ArrowLeft size={12} />
-                  <span>All Categories</span>
+                  <span>All AC Types</span>
                 </button>
                 {currentGroupSubCategories.map((sub) => {
                   const isSelected = selectedCategory.toLowerCase() === sub.name.toLowerCase();
@@ -379,7 +576,7 @@ export default function ProductsPage({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
           
           {/* Side Column: Desktop Advanced Filters (Hidden on Mobile) */}
-          <aside className="hidden lg:block lg:col-span-3 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm sticky top-36 z-20 self-start max-h-[calc(100vh-160px)] overflow-y-auto scrollbar-thin">
+          <aside className="hidden lg:block lg:col-span-3 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm sticky top-36 z-20 self-start max-h-[calc(100vh-160px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
               <div className="flex items-center gap-2">
                 <Filter size={16} className="text-blue-700" />
@@ -412,7 +609,7 @@ export default function ProductsPage({
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-[11px] uppercase tracking-wider text-slate-400 font-extrabold">
-                    Category
+                    AC Type
                   </label>
                   {selectedCategory !== "All" && (
                     <button
@@ -442,7 +639,7 @@ export default function ProductsPage({
                         className="inline-flex items-center gap-1 text-[#0f4c81] hover:text-[#031b4e] font-bold cursor-pointer transition-colors"
                       >
                         <ArrowLeft size={13} />
-                        <span>All Categories</span>
+                        <span>All AC Types</span>
                       </button>
                       <span className="text-slate-300">/</span>
                       <span className="font-extrabold text-slate-900 truncate">{activeMainGroup}</span>
@@ -523,8 +720,94 @@ export default function ProductsPage({
                 )}
               </div>
 
+              {/* Capacity BTUs Filter - Only shown if available in database */}
+              {availableBtuRanges.length > 0 && (
+                <div className="pt-4 border-t border-slate-100">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-extrabold text-slate-800 tracking-tight">
+                      Capacity BTUs
+                    </h4>
+                    {selectedBtuRanges.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedBtuRanges([])}
+                        className="text-[10px] text-blue-700 font-bold hover:underline cursor-pointer"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    {availableBtuRanges.map((range) => {
+                      const isChecked = selectedBtuRanges.includes(range.id);
+                      return (
+                        <label
+                          key={range.id}
+                          className={`flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs font-semibold cursor-pointer select-none transition-colors ${
+                            isChecked ? "bg-blue-50 text-blue-950 font-bold" : "text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleBtuRange(range.id)}
+                            className="w-4 h-4 rounded border-slate-300 text-[#031b4e] focus:ring-blue-600 cursor-pointer accent-[#031b4e]"
+                          />
+                          <span className="truncate text-xs text-slate-700 font-medium">
+                            {range.label}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Compressor Type Filter - Only shown if available in database */}
+              {availableCompressorTypes.length > 0 && (
+                <div className="pt-4 border-t border-slate-100">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-extrabold text-slate-800 tracking-tight">
+                      Compressor Type
+                    </h4>
+                    {selectedCompressorTypes.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCompressorTypes([])}
+                        className="text-[10px] text-blue-700 font-bold hover:underline cursor-pointer"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    {availableCompressorTypes.map((type) => {
+                      const isChecked = selectedCompressorTypes.includes(type);
+                      return (
+                        <label
+                          key={type}
+                          className={`flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs font-semibold cursor-pointer select-none transition-colors ${
+                            isChecked ? "bg-blue-50 text-blue-950 font-bold" : "text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleCompressorType(type)}
+                            className="w-4 h-4 rounded border-slate-300 text-[#031b4e] focus:ring-blue-600 cursor-pointer accent-[#031b4e]"
+                          />
+                          <span className="truncate text-xs text-slate-700 font-medium">
+                            {type}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Brand Filter */}
-              <div>
+              <div className="pt-4 border-t border-slate-100">
                 <label className="block text-[11px] uppercase tracking-wider text-slate-400 font-extrabold mb-2">
                   Select your brand
                 </label>
@@ -585,6 +868,41 @@ export default function ProductsPage({
                     </button>
                   </span>
                 )}
+                {selectedBtuRanges.map((rangeId) => {
+                  const range = BTU_RANGES.find((r) => r.id === rangeId);
+                  return (
+                    <span
+                      key={rangeId}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-50 text-purple-900 border border-purple-200"
+                    >
+                      <span className="text-purple-400 font-medium">Capacity:</span>
+                      <span>{range?.label || rangeId}</span>
+                      <button
+                        type="button"
+                        onClick={() => toggleBtuRange(rangeId)}
+                        className="text-purple-700 hover:text-purple-950 p-0.5 rounded-full hover:bg-purple-100 cursor-pointer"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  );
+                })}
+                {selectedCompressorTypes.map((type) => (
+                  <span
+                    key={type}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-teal-50 text-teal-900 border border-teal-200"
+                  >
+                    <span className="text-teal-400 font-medium">Compressor:</span>
+                    <span>{type}</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleCompressorType(type)}
+                      className="text-teal-700 hover:text-teal-950 p-0.5 rounded-full hover:bg-teal-100 cursor-pointer"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
               </div>
               {activeFilterCount > 0 && (
                 <button
@@ -656,11 +974,11 @@ export default function ProductsPage({
             {/* Scrollable Filter Body */}
             <div className="p-5 space-y-6 overflow-y-auto">
               
-              {/* Category: 2-Level Hierarchical Filter with Fixed Height */}
+              {/* AC Type: 2-Level Hierarchical Filter with Fixed Height */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-xs font-extrabold uppercase text-slate-400 tracking-wider">
-                    Category
+                    AC Type
                   </label>
                   {selectedCategory !== "All" && (
                     <button
@@ -689,7 +1007,7 @@ export default function ProductsPage({
                         className="inline-flex items-center gap-1 text-[#0f4c81] hover:text-[#031b4e] font-bold cursor-pointer transition-colors"
                       >
                         <ArrowLeft size={13} />
-                        <span>All Categories</span>
+                        <span>All AC Types</span>
                       </button>
                       <span className="text-slate-300">/</span>
                       <span className="font-extrabold text-slate-900 truncate">{activeMainGroup}</span>
@@ -757,6 +1075,92 @@ export default function ProductsPage({
                   </div>
                 )}
               </div>
+
+              {/* Capacity BTUs Filter (Mobile) - Only shown if available in database */}
+              {availableBtuRanges.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-extrabold uppercase text-slate-400 tracking-wider">
+                      Capacity BTUs
+                    </label>
+                    {selectedBtuRanges.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedBtuRanges([])}
+                        className="text-[11px] text-blue-700 font-bold hover:underline cursor-pointer"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    {availableBtuRanges.map((range) => {
+                      const isChecked = selectedBtuRanges.includes(range.id);
+                      return (
+                        <label
+                          key={range.id}
+                          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            isChecked ? "bg-blue-50 text-blue-900 border border-blue-200" : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleBtuRange(range.id)}
+                            className="w-4 h-4 rounded border-slate-300 text-[#031b4e] focus:ring-blue-600 cursor-pointer accent-[#031b4e]"
+                          />
+                          <span className="truncate text-xs font-medium text-slate-700">
+                            {range.label}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Compressor Type Filter (Mobile) - Only shown if available in database */}
+              {availableCompressorTypes.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-extrabold uppercase text-slate-400 tracking-wider">
+                      Compressor Type
+                    </label>
+                    {selectedCompressorTypes.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCompressorTypes([])}
+                        className="text-[11px] text-blue-700 font-bold hover:underline cursor-pointer"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    {availableCompressorTypes.map((type) => {
+                      const isChecked = selectedCompressorTypes.includes(type);
+                      return (
+                        <label
+                          key={type}
+                          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            isChecked ? "bg-blue-50 text-blue-900 border border-blue-200" : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleCompressorType(type)}
+                            className="w-4 h-4 rounded border-slate-300 text-[#031b4e] focus:ring-blue-600 cursor-pointer accent-[#031b4e]"
+                          />
+                          <span className="truncate text-xs font-medium text-slate-700">
+                            {type}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Brand Selection */}
               <div>

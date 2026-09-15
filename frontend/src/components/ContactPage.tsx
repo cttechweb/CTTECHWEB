@@ -60,6 +60,32 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
     }
   };
 
+  const checkIsEquipmentQuotationLanding = () => {
+    try {
+      const hash = window.location.hash || "";
+      return (
+        hash.includes("category=equipment_quotation") ||
+        hash.includes("category=quotation") ||
+        initialCategory === "equipment_quotation"
+      );
+    } catch {
+      return false;
+    }
+  };
+
+  const getProductFromHash = () => {
+    try {
+      const hash = window.location.hash || "";
+      const queryIdx = hash.indexOf("?");
+      if (queryIdx !== -1) {
+        const params = new URLSearchParams(hash.slice(queryIdx));
+        const p = params.get("product");
+        if (p) return decodeURIComponent(p);
+      }
+    } catch {}
+    return "";
+  };
+
   const resolveInitialCategory = () => {
     try {
       const hash = window.location.hash || "";
@@ -81,6 +107,8 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
 
   // Form State
   const [isFromProductSupport, setIsFromProductSupport] = useState<boolean>(checkIsProductSupportLanding);
+  const [isFromEquipmentQuotation, setIsFromEquipmentQuotation] = useState<boolean>(checkIsEquipmentQuotationLanding);
+  const [inquiryProduct, setInquiryProduct] = useState<string>(getProductFromHash);
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [email, setEmail] = useState("");
@@ -127,9 +155,23 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
     const handleHashSync = () => {
       const isPS = checkIsProductSupportLanding();
       setIsFromProductSupport(isPS);
+      const isEQ = checkIsEquipmentQuotationLanding();
+      setIsFromEquipmentQuotation(isEQ);
       const cat = resolveInitialCategory();
       setInquiryCategory(cat);
-      if (isPS) {
+
+      const prod = getProductFromHash();
+      if (prod) {
+        setInquiryProduct(prod);
+        setMessage((prev) => {
+          if (!prev) {
+            return `I would like to request an official wholesale quotation and availability for:\n• Product: ${prod}\n\nPlease provide unit pricing, stock lead time, and commercial supply terms.`;
+          }
+          return prev;
+        });
+      }
+
+      if (isPS || isEQ) {
         const formEl = document.getElementById("contact-form");
         if (formEl) {
           formEl.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -254,11 +296,19 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
             
             <div className="mb-6" id="contact-form">
               <h2 className="text-2xl font-black text-[#031b4e] uppercase tracking-tight font-sans">
-                {isFromProductSupport ? "Product Support & Technical Inquiry" : "Send Us a Message"}
+                {isFromProductSupport 
+                  ? "Product Support & Technical Inquiry" 
+                  : isFromEquipmentQuotation 
+                  ? "HVAC Equipment Quotation & Sourcing" 
+                  : "Send Us a Message"}
               </h2>
               <p className="text-xs text-slate-500 font-semibold mt-1">
                 {isFromProductSupport 
                   ? "Fill your details and submit your request here. Our engineering and support team will contact you promptly."
+                  : isFromEquipmentQuotation
+                  ? (inquiryProduct 
+                      ? `Requesting wholesale quotation for: ${inquiryProduct}. Fill your details below to receive an official proposal.`
+                      : "Fill your details and submit your quotation request below. Our commercial sales engineering team will contact you promptly.")
                   : "Fill out the form below. Our engineering and sales team will contact you promptly."}
               </p>
             </div>
@@ -273,7 +323,7 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
                       <label className="text-xs font-bold text-slate-700 block">
                         Your Full Name <span className="text-red-500">*</span>
                       </label>
-                      {isFromProductSupport && (
+                      {(isFromProductSupport || isFromEquipmentQuotation) && (
                         <span className="text-red-500 font-semibold text-[11px]">
                           Please fill your details
                         </span>
@@ -287,7 +337,7 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className={`w-full px-3.5 py-2.5 text-xs font-semibold border rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none transition-all text-slate-900 placeholder:text-slate-400 ${
-                        isFromProductSupport
+                        isFromProductSupport || isFromEquipmentQuotation
                           ? "border-[#0f4c81] ring-2 ring-[#0f4c81]/15"
                           : "border-slate-300 focus:border-[#0f4c81] focus:ring-2 focus:ring-[#0f4c81]/15"
                       }`}
@@ -295,9 +345,16 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                      Company / Organization Name
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-bold text-slate-700 block">
+                        Company / Organization Name
+                      </label>
+                      {isFromEquipmentQuotation && (
+                        <span className="text-red-500 font-semibold text-[11px]">
+                          Please fill your company
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="text"
                       placeholder="e.g. Al Futtaim Contracting, Emrill LLC"
@@ -311,9 +368,16 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
                 {/* Email & Phone */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                      Email Address (Gmail / Corporate ID) <span className="text-red-500">*</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-bold text-slate-700 block">
+                        Email Address (Gmail / Corporate ID) <span className="text-red-500">*</span>
+                      </label>
+                      {isFromEquipmentQuotation && (
+                        <span className="text-red-500 font-semibold text-[11px]">
+                          Please fill your email
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="email"
                       required
@@ -325,9 +389,16 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                      Phone Number (+971) <span className="text-red-500">*</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-bold text-slate-700 block">
+                        Phone Number (+971) <span className="text-red-500">*</span>
+                      </label>
+                      {isFromEquipmentQuotation && (
+                        <span className="text-red-500 font-semibold text-[11px]">
+                          Please fill your phone
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="tel"
                       required
@@ -351,8 +422,15 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
                       if (e.target.value !== "product_support") {
                         setIsFromProductSupport(false);
                       }
+                      if (e.target.value !== "equipment_quotation") {
+                        setIsFromEquipmentQuotation(false);
+                      }
                     }}
-                    className="w-full px-3.5 py-2.5 text-xs font-semibold border border-slate-300 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:border-[#0f4c81] focus:ring-2 focus:ring-[#0f4c81]/15 transition-all text-slate-900"
+                    className={`w-full px-3.5 py-2.5 text-xs font-semibold border rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none transition-all text-slate-900 ${
+                      isFromProductSupport || isFromEquipmentQuotation
+                        ? "border-[#0f4c81] ring-2 ring-[#0f4c81]/15"
+                        : "border-slate-300 focus:border-[#0f4c81] focus:ring-2 focus:ring-[#0f4c81]/15"
+                    }`}
                   >
                     {INQUIRY_CATEGORIES.map((cat) => (
                       <option key={cat.value} value={cat.value}>
@@ -366,13 +444,21 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-xs font-bold text-slate-700 block">
-                      {isFromProductSupport ? "Your Complaint / Technical Issue Details" : "Your Message / Requirements"} <span className="text-red-500">*</span>
+                      {isFromProductSupport 
+                        ? "Your Complaint / Technical Issue Details" 
+                        : isFromEquipmentQuotation 
+                        ? "Quotation Scope & Equipment Requirements" 
+                        : "Your Message / Requirements"} <span className="text-red-500">*</span>
                     </label>
-                    {isFromProductSupport && (
+                    {isFromProductSupport ? (
                       <span className="text-red-500 font-semibold text-[11px]">
                         Please fill your complaint
                       </span>
-                    )}
+                    ) : isFromEquipmentQuotation ? (
+                      <span className="text-red-500 font-semibold text-[11px]">
+                        Please fill your quotation requirements
+                      </span>
+                    ) : null}
                   </div>
                   <textarea
                     rows={4}
@@ -380,12 +466,14 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
                     placeholder={
                       isFromProductSupport
                         ? "Please fill your complaint here: Specify the HVAC product, model code, serial number, technical issue, or required spare parts..."
+                        : isFromEquipmentQuotation
+                        ? "Please specify required unit quantities, capacity tonnage, project location, delivery schedule, and any technical specifications..."
                         : "Provide details about your project, model codes, unit tonnage, or technical support requirements..."
                     }
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     className={`w-full px-3.5 py-2.5 text-xs font-medium border rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none transition-all text-slate-900 placeholder:text-slate-400 resize-y ${
-                      isFromProductSupport
+                      isFromProductSupport || isFromEquipmentQuotation
                         ? "border-[#0f4c81]/70 focus:border-[#0f4c81] focus:ring-2 focus:ring-[#0f4c81]/15"
                         : "border-slate-300 focus:border-[#0f4c81] focus:ring-2 focus:ring-[#0f4c81]/15"
                     }`}

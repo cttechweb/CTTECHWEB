@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { OrderRequest, OrderStatus } from "../../types";
 import { updateOrderStatus, updateOrderInternalNotes } from "../../services/orderService";
+import DirhamSymbol from "../common/DirhamSymbol";
 
 interface AdminOrderManagementProps {
   orders: OrderRequest[];
@@ -101,10 +102,10 @@ export default function AdminOrderManagement({ orders, onShowToast }: AdminOrder
         <div>
           <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
             <ShoppingBag size={20} className="text-[#0f4c81]" />
-            <span>B2B Order Requests & Procurement Pipeline</span>
+            <span>B2B Leads & Procurement Pipeline</span>
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Review incoming wholesale order requests, allocate equipment scope, and log commercial proposals.
+            Review incoming wholesale leads, allocate equipment scope, and log commercial proposals.
           </p>
         </div>
 
@@ -130,7 +131,7 @@ export default function AdminOrderManagement({ orders, onShowToast }: AdminOrder
           <Search size={15} className="absolute left-3.5 top-3 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by Order #, Company, or Contact..."
+            placeholder="Search by Lead #, Company, or Contact..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#0f4c81] focus:bg-white transition-colors"
@@ -249,7 +250,7 @@ export default function AdminOrderManagement({ orders, onShowToast }: AdminOrder
                 <div className="text-slate-500 font-medium">
                   Showing <span className="font-bold text-slate-800">{startOrderIdx + 1}</span> to{" "}
                   <span className="font-bold text-slate-800">{endOrderIdx}</span> of{" "}
-                  <span className="font-bold text-slate-800">{filteredOrders.length}</span> order requests
+                  <span className="font-bold text-slate-800">{filteredOrders.length}</span> leads
                 </div>
 
                 <div className="flex items-center gap-1.5">
@@ -294,8 +295,8 @@ export default function AdminOrderManagement({ orders, onShowToast }: AdminOrder
         ) : (
           <div className="py-16 text-center text-slate-500 space-y-2">
             <ShoppingBag size={32} className="mx-auto text-slate-400 mb-2" />
-            <p className="font-bold text-slate-800">No B2B Order Requests Found</p>
-            <p className="text-xs text-slate-400">Orders submitted by clients through the corporate cart will appear here automatically.</p>
+            <p className="font-bold text-slate-800">No B2B Leads Found</p>
+            <p className="text-xs text-slate-400">Wholesale leads submitted by clients through the corporate cart will appear here automatically.</p>
           </div>
         )}
       </div>
@@ -390,8 +391,15 @@ export default function AdminOrderManagement({ orders, onShowToast }: AdminOrder
 
                       <div className="text-right shrink-0">
                         <div className="font-black text-[#0f4c81] text-xs">{item.quantity} Unit(s)</div>
-                        <div className="text-[10px] text-slate-500">
-                          {item.unitPrice > 0 ? `$${item.unitPrice.toLocaleString()} / unit` : "Quote required"}
+                        <div className="text-[10px] text-slate-500 inline-flex items-center gap-1">
+                          {item.unitPrice > 0 ? (
+                            <>
+                              <DirhamSymbol className="h-2.5 w-auto" />
+                              <span>AED {item.unitPrice.toLocaleString()} / unit</span>
+                            </>
+                          ) : (
+                            "Quote required"
+                          )}
                         </div>
                       </div>
                     </div>

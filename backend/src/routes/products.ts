@@ -39,6 +39,24 @@ function formatProduct(row: any): any {
   const isFeatured = Boolean(specifications?._isFeatured === true || specifications?._isFeatured === "true" || row.is_featured === 1 || badge === "Featured");
   const hidePrice = Boolean(specifications?._hidePrice === true || specifications?._hidePrice === "true" || row.hide_price === 1);
 
+  // Extract extended metadata
+  const modelId = specifications?._modelId || row.model_id || undefined;
+  const series = specifications?._series || row.series || undefined;
+  const sourcingChannel = specifications?._sourcingChannel || row.sourcing_channel || undefined;
+  const certification = specifications?._certification || row.certification || undefined;
+  const primaryRegion = specifications?._primaryRegion || row.primary_region || undefined;
+  const applications = Array.isArray(specifications?._applications)
+    ? specifications._applications
+    : (Array.isArray(tags) && tags.length > 0 ? tags : undefined);
+  const documents = Array.isArray(specifications?._documents) ? specifications._documents : [];
+  const images = Array.isArray(specifications?._images) && specifications._images.length > 0
+    ? specifications._images
+    : (row.image_url ? [row.image_url] : []);
+  const seoTitle = specifications?._seoTitle || undefined;
+  const seoDescription = specifications?._seoDescription || undefined;
+  const seoKeywords = specifications?._seoKeywords || undefined;
+  const seoScore = typeof specifications?._seoScore === "number" ? specifications._seoScore : undefined;
+
   return {
     id: row.id,
     name: row.name,
@@ -49,6 +67,7 @@ function formatProduct(row: any): any {
     price: row.price,
     image: row.image_url || "",
     imageUrl: row.image_url || "",
+    images,
     inStock: row.in_stock === 1,
     rating: row.rating ?? 4.8,
     minOrderQty: row.min_order_qty ?? 1,
@@ -56,6 +75,17 @@ function formatProduct(row: any): any {
     badge,
     isFeatured,
     hidePrice,
+    modelId,
+    series,
+    sourcingChannel,
+    certification,
+    primaryRegion,
+    applications,
+    documents,
+    seoTitle,
+    seoDescription,
+    seoKeywords,
+    seoScore,
     specifications,
     features,
     tags,
@@ -137,10 +167,27 @@ export async function handleCreateOrUpdateProduct(request: Request, env: Env, ta
   const imageUrl = body.image || body.image_url || body.imageUrl || "";
   const inStock = body.inStock === false || body.in_stock === 0 ? 0 : 1;
   const rating = typeof body.rating === "number" ? body.rating : 4.8;
+  const minOrderQty = typeof body.minOrderQty === "number"
+    ? body.minOrderQty
+    : typeof body.min_order_qty === "number"
+      ? body.min_order_qty
+      : parseInt(body.minOrderQty || body.min_order_qty, 10) || 1;
   const specsObj = typeof body.specifications === "object" && body.specifications !== null ? { ...body.specifications } : {};
   if (body.badge !== undefined) specsObj._badge = body.badge;
   if (body.isFeatured !== undefined) specsObj._isFeatured = body.isFeatured;
   if (body.hidePrice !== undefined) specsObj._hidePrice = body.hidePrice;
+  if (body.modelId !== undefined) specsObj._modelId = body.modelId;
+  if (body.series !== undefined) specsObj._series = body.series;
+  if (body.sourcingChannel !== undefined) specsObj._sourcingChannel = body.sourcingChannel;
+  if (body.certification !== undefined) specsObj._certification = body.certification;
+  if (body.primaryRegion !== undefined) specsObj._primaryRegion = body.primaryRegion;
+  if (body.applications !== undefined) specsObj._applications = body.applications;
+  if (body.documents !== undefined) specsObj._documents = body.documents;
+  if (body.images !== undefined) specsObj._images = body.images;
+  if (body.seoTitle !== undefined) specsObj._seoTitle = body.seoTitle;
+  if (body.seoDescription !== undefined) specsObj._seoDescription = body.seoDescription;
+  if (body.seoKeywords !== undefined) specsObj._seoKeywords = body.seoKeywords;
+  if (body.seoScore !== undefined) specsObj._seoScore = body.seoScore;
   const specsJson = JSON.stringify(specsObj);
 
   const featuresJson = Array.isArray(body.features) ? JSON.stringify(body.features) : body.features_json || "[]";

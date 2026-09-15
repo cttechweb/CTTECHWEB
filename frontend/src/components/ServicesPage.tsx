@@ -951,148 +951,178 @@ export default function ServicesPage({
           </div>
         </div>
 
-        {/* RESPONSIVE SERVICE CARDS GRID */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="services-line-list">
-          {paginatedServices.map((service) => (
-            <div 
-              key={service.id}
-              onClick={() => setSelectedServiceId(service.id)}
-              className="bg-white rounded-2xl border border-slate-200 hover:border-[#2596be]/60 overflow-hidden shadow-2xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group cursor-pointer text-left h-full"
-            >
-              <div>
-                {/* Image Container with clean overlay */}
-                <div className="relative w-full h-44 sm:h-48 bg-slate-100 overflow-hidden">
-                  <img 
-                    src={service.image} 
-                    alt={service.title} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    referrerPolicy="no-referrer"
-                  />
-                  {/* Subtle gradient vignette at bottom for contrast */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent opacity-70"></div>
-
-                  {/* Clean Modern Category Pill Badge */}
-                  <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-md text-[#031b4e] text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border border-slate-200/80 shadow-2xs">
-                    {service.category}
-                  </span>
-
-                  {/* Wishlist Like Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleWishlist({ type: "service", service });
-                    }}
-                    className={`absolute top-3 right-3 p-2 rounded-full z-10 transition-all cursor-pointer shadow-xs ${
-                      isInWishlist(service.id)
-                        ? "bg-rose-50 text-rose-600 hover:bg-rose-100 scale-105"
-                        : "bg-white/90 hover:bg-white text-slate-400 hover:text-rose-600 backdrop-blur-md border border-slate-200/50"
-                    }`}
-                    title={isInWishlist(service.id) ? "Remove from Wishlist" : "Save to Wishlist"}
-                    aria-label="Save to Wishlist"
-                  >
-                    <Heart
-                      size={14}
-                      className={isInWishlist(service.id) ? "fill-rose-500 text-rose-500" : ""}
-                    />
-                  </button>
-
-                  {/* SLA Badge in bottom-left over image */}
-                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-[11px] font-bold text-white bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-md border border-white/20 shadow-xs">
-                    <Clock size={12} className="text-cyan-400 shrink-0" />
-                    <span className="truncate">SLA: {service.specs.sla}</span>
-                  </div>
-                </div>
-
-                {/* Content Area */}
-                <div className="p-5 space-y-3">
-                  {/* Metadata Row */}
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-extrabold uppercase tracking-wider text-[#2596be]">
-                      Engineering Service
-                    </span>
-                    <span className="font-semibold text-slate-400">
-                      {service.specs.warranty}
-                    </span>
-                  </div>
-
-                  {/* Title */}
-                  <h3 className="font-display font-black text-base sm:text-lg text-slate-900 group-hover:text-[#2596be] transition-colors leading-snug line-clamp-2 min-h-[44px]">
-                    {service.title}
-                  </h3>
-
-                  {/* Tagline */}
-                  <p className="text-xs text-slate-500 font-medium line-clamp-2 leading-relaxed min-h-[34px]">
-                    {service.tagline}
-                  </p>
-
-                  {/* Key Feature Highlight Chips */}
-                  {Array.isArray(service.features) && service.features.length > 0 && (
-                    <div className="pt-1 flex flex-wrap gap-1.5">
-                      {service.features.slice(0, 2).map((feat, fIdx) => (
-                        <span 
-                          key={fIdx} 
-                          className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 truncate max-w-full"
-                        >
-                          <CheckCircle size={10} className="text-emerald-500 shrink-0" />
-                          <span className="truncate">{feat}</span>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Footer matching ProductCard */}
-              <div className="p-5 pt-0">
-                <div className="flex items-center gap-2 pt-3.5 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onAddToCart) {
-                        onAddToCart(serviceToProduct(service), 1);
-                      } else {
-                        onRequestQuoteWithService(service.title);
-                      }
-                    }}
-                    className="flex-1 bg-[#2596be] hover:bg-[#1c7e9f] text-white py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
-                    id={`add-quote-service-${service.id}`}
-                    title="Add service to procurement quote cart"
-                  >
-                    <ClipboardList size={14} className="shrink-0" />
-                    <span>Add to Quote</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openServiceWhatsAppOrder(service);
-                    }}
-                    className="p-2.5 bg-emerald-50 text-[#25D366] hover:bg-[#25D366] hover:text-white border border-emerald-200/80 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center justify-center group/wa"
-                    title="Quick WhatsApp Booking & Inquiry"
-                    aria-label="Order on WhatsApp"
-                  >
-                    <img src="/whatsapp-official.png" alt="WhatsApp" className="w-3.5 h-3.5 object-contain" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedServiceId(service.id);
-                    }}
-                    className="p-2.5 border border-slate-200 hover:border-[#2596be] hover:text-[#2596be] text-slate-600 rounded-xl text-xs font-bold transition-colors shrink-0 cursor-pointer flex items-center justify-center"
-                    title="View Full Scope & Specifications"
-                    aria-label="View Scope"
-                  >
-                    <Eye size={15} />
-                  </button>
-                </div>
-              </div>
-
+        {/* RESPONSIVE SERVICE CARDS GRID OR EMPTY STATE */}
+        {paginatedServices.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center max-w-xl mx-auto space-y-4 shadow-xs">
+            <div className="w-14 h-14 bg-blue-50 text-[#0f4c81] rounded-2xl flex items-center justify-center mx-auto">
+              <Wrench size={26} />
             </div>
-          ))}
-        </div>
+            <h3 className="font-black text-lg text-slate-900">Custom Engineering & Technical Services</h3>
+            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+              We provide customized commercial HVAC maintenance, installation, and emergency engineering across the UAE. Contact our engineering desk directly for project quotes and bespoke service contracts.
+            </p>
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <a
+                href="https://wa.me/97125650123"
+                target="_blank"
+                rel="noreferrer"
+                className="px-5 py-2.5 bg-[#25D366] text-white font-bold text-xs rounded-xl hover:bg-emerald-600 transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
+              >
+                <img src="/whatsapp-official.png" alt="WhatsApp" className="w-4 h-4 object-contain" />
+                <span>Contact via WhatsApp</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => onRequestQuoteWithService("General HVAC Engineering Inquiry")}
+                className="px-5 py-2.5 bg-[#031b4e] text-white font-bold text-xs rounded-xl hover:bg-blue-900 transition-colors shadow-xs cursor-pointer"
+              >
+                Request Custom Quote
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="services-line-list">
+            {paginatedServices.map((service) => (
+              <div 
+                key={service.id}
+                onClick={() => setSelectedServiceId(service.id)}
+                className="bg-white rounded-2xl border border-slate-200 hover:border-[#2596be]/60 overflow-hidden shadow-2xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group cursor-pointer text-left h-full"
+              >
+                <div>
+                  {/* Image Container with clean overlay */}
+                  <div className="relative w-full h-44 sm:h-48 bg-slate-100 overflow-hidden">
+                    <img 
+                      src={service.image} 
+                      alt={service.title} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      referrerPolicy="no-referrer"
+                    />
+                    {/* Subtle gradient vignette at bottom for contrast */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent opacity-70"></div>
+
+                    {/* Clean Modern Category Pill Badge */}
+                    <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-md text-[#031b4e] text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border border-slate-200/80 shadow-2xs">
+                      {service.category}
+                    </span>
+
+                    {/* Wishlist Like Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleWishlist({ type: "service", service });
+                      }}
+                      className={`absolute top-3 right-3 p-2 rounded-full z-10 transition-all cursor-pointer shadow-xs ${
+                        isInWishlist(service.id)
+                          ? "bg-rose-50 text-rose-600 hover:bg-rose-100 scale-105"
+                          : "bg-white/90 hover:bg-white text-slate-400 hover:text-rose-600 backdrop-blur-md border border-slate-200/50"
+                      }`}
+                      title={isInWishlist(service.id) ? "Remove from Wishlist" : "Save to Wishlist"}
+                      aria-label="Save to Wishlist"
+                    >
+                      <Heart
+                        size={14}
+                        className={isInWishlist(service.id) ? "fill-rose-500 text-rose-500" : ""}
+                      />
+                    </button>
+
+                    {/* SLA Badge in bottom-left over image */}
+                    <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-[11px] font-bold text-white bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-md border border-white/20 shadow-xs">
+                      <Clock size={12} className="text-cyan-400 shrink-0" />
+                      <span className="truncate">SLA: {service.specs.sla}</span>
+                    </div>
+                  </div>
+
+                  {/* Content Area */}
+                  <div className="p-5 space-y-3">
+                    {/* Metadata Row */}
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-extrabold uppercase tracking-wider text-[#2596be]">
+                        Engineering Service
+                      </span>
+                      <span className="font-semibold text-slate-400">
+                        {service.specs.warranty}
+                      </span>
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="font-display font-black text-base sm:text-lg text-slate-900 group-hover:text-[#2596be] transition-colors leading-snug line-clamp-2 min-h-[44px]">
+                      {service.title}
+                    </h3>
+
+                    {/* Tagline */}
+                    <p className="text-xs text-slate-500 font-medium line-clamp-2 leading-relaxed min-h-[34px]">
+                      {service.tagline}
+                    </p>
+
+                    {/* Key Feature Highlight Chips */}
+                    {Array.isArray(service.features) && service.features.length > 0 && (
+                      <div className="pt-1 flex flex-wrap gap-1.5">
+                        {service.features.slice(0, 2).map((feat, fIdx) => (
+                          <span 
+                            key={fIdx} 
+                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 truncate max-w-full"
+                          >
+                            <CheckCircle size={10} className="text-emerald-500 shrink-0" />
+                            <span className="truncate">{feat}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action Footer matching ProductCard */}
+                <div className="p-5 pt-0">
+                  <div className="flex items-center gap-2 pt-3.5 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onAddToCart) {
+                          onAddToCart(serviceToProduct(service), 1);
+                        } else {
+                          onRequestQuoteWithService(service.title);
+                        }
+                      }}
+                      className="flex-1 bg-[#2596be] hover:bg-[#1c7e9f] text-white py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
+                      id={`add-quote-service-${service.id}`}
+                      title="Add service to procurement quote cart"
+                    >
+                      <ClipboardList size={14} className="shrink-0" />
+                      <span>Add to Quote</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openServiceWhatsAppOrder(service);
+                      }}
+                      className="p-2.5 bg-emerald-50 text-[#25D366] hover:bg-[#25D366] hover:text-white border border-emerald-200/80 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center justify-center group/wa"
+                      title="Quick WhatsApp Booking & Inquiry"
+                      aria-label="Order on WhatsApp"
+                    >
+                      <img src="/whatsapp-official.png" alt="WhatsApp" className="w-3.5 h-3.5 object-contain" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedServiceId(service.id);
+                      }}
+                      className="p-2.5 border border-slate-200 hover:border-[#2596be] hover:text-[#2596be] text-slate-600 rounded-xl text-xs font-bold transition-colors shrink-0 cursor-pointer flex items-center justify-center"
+                      title="View Full Scope & Specifications"
+                      aria-label="View Scope"
+                    >
+                      <Eye size={15} />
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            ))}
+          </div>
+        )}
 
           {/* ELEGANT NUMERIC PAGINATION CONTROLS (PAGE 1, PAGE 2, PAGE 3...) */}
           {totalPages > 1 && (

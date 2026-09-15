@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, FileSpreadsheet, Upload, Check, AlertCircle, Sparkles } from "lucide-react";
 import { Product } from "../../types";
+import DirhamSymbol from "../common/DirhamSymbol";
 
 interface ExcelProductImporterModalProps {
   isOpen: boolean;
@@ -206,7 +207,12 @@ export default function ExcelProductImporterModal({
                       <td className="p-2 font-extrabold text-slate-900">{item.name}</td>
                       <td className="p-2 font-mono text-slate-500">{item.modelId}</td>
                       <td className="p-2">{item.brand}</td>
-                      <td className="p-2 font-bold text-blue-800">${item.price}</td>
+                      <td className="p-2 font-bold text-blue-800">
+                        <span className="inline-flex items-center gap-1">
+                          <DirhamSymbol className="h-3 w-auto" />
+                          <span>AED {item.price}</span>
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

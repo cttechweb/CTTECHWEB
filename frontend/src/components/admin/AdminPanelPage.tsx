@@ -26,6 +26,7 @@ import AdminCareersManager from "./AdminCareersManager";
 import AdminRetailerApplicationsManager from "./AdminRetailerApplicationsManager";
 import { getLocalCategories, getCategories } from "../../services/categoryService";
 import { getLocalJobPostings } from "../../services/careersService";
+import DirhamSymbol from "../common/DirhamSymbol";
 
 interface AdminPanelPageProps {
   products: Product[];
@@ -330,7 +331,7 @@ export default function AdminPanelPage({
             >
               <div className="flex items-center gap-2.5">
                 <ShoppingBag size={16} />
-                <span>Order Requests</span>
+                <span>Leads</span>
               </div>
               <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono font-bold ${
                 activeTab === "orders" 
@@ -588,7 +589,7 @@ export default function AdminPanelPage({
         <header className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shrink-0 shadow-2xs">
           <div>
             <h1 className="font-extrabold text-lg text-slate-900 tracking-tight">
-              {activeTab === "orders" && "B2B Order Requests Pipeline"}
+              {activeTab === "orders" && "B2B Leads Pipeline"}
               {activeTab === "retailer-apps" && "Retailer & B2B Partner Applications"}
               {activeTab === "enquiries" && "General Enquiries & Lead Pipeline"}
               {activeTab === "products" && (productSubTab === "inventory" ? "Product Catalog Manager" : "Product Categories Manager")}
@@ -601,7 +602,7 @@ export default function AdminPanelPage({
               {activeTab === "settings" && "General Site & System Settings"}
             </h1>
             <p className="text-xs text-slate-500 font-medium">
-              {activeTab === "orders" && "Manage incoming B2B order requests, allocate equipment, and record audit history"}
+              {activeTab === "orders" && "Manage incoming B2B wholesale leads, allocate equipment, and record audit history"}
               {activeTab === "retailer-apps" && "Review trade licenses, verify commercial tax credentials, and authorize B2B wholesale partner status"}
               {activeTab === "enquiries" && "Unified customer inquiries, product support tickets, and CRM-synchronized submissions"}
               {activeTab === "products" && (productSubTab === "inventory" ? "Manage full commercial specs, price display toggles, and catalog items" : "Create and organize dynamic HVAC sourcing categories, subtitles, and SEO catalogs")}
@@ -786,8 +787,15 @@ export default function AdminPanelPage({
 
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono font-bold text-slate-900 text-xs">
-                                ${p.price ? p.price.toLocaleString() : "Quote"}
+                              <span className="font-mono font-bold text-slate-900 text-xs inline-flex items-center gap-1">
+                                {p.price ? (
+                                  <>
+                                    <DirhamSymbol className="h-3 w-auto" />
+                                    <span>AED {p.price.toLocaleString()}</span>
+                                  </>
+                                ) : (
+                                  "Quote"
+                                )}
                               </span>
                               <button
                                 type="button"

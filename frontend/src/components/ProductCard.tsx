@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { ClipboardList, Eye, Heart, Sparkles, Flame, Star, Share2, Check } from "lucide-react";
 import { Product } from "../types";
 import { useWishlist } from "../context/WishlistContext";
+import { getProductSlug } from "../utils/productSlug";
+import DirhamSymbol from "./common/DirhamSymbol";
 
 interface ProductCardProps {
   product: Product;
@@ -23,7 +25,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const handleShareClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const shareUrl = `${window.location.origin}${window.location.pathname}#/product/${product.id}`;
+    const shareUrl = `${window.location.origin}${window.location.pathname}#/product/${getProductSlug(product)}`;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -206,20 +208,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </h3>
 
           {/* Price Area */}
-          <div className="mt-2 pt-2 border-t border-slate-100 flex items-baseline justify-between">
-            <div>
-              <span className="text-[10px] text-slate-400 font-bold block">Wholesale Rate</span>
-              {product.hidePrice ? (
-                <span className="text-[11px] sm:text-xs font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 uppercase tracking-wider block mt-0.5">
-                  Price on Request
+          {!product.hidePrice && (
+            <div className="mt-2 pt-2 border-t border-slate-100 flex items-baseline justify-between">
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold block">Wholesale Rate</span>
+                <span className="text-xs sm:text-base font-black text-[#031b4e] inline-flex items-center gap-1">
+                  <DirhamSymbol className="h-3 sm:h-3.5 w-auto" />
+                  <span>AED {product.price.toLocaleString()}</span>
                 </span>
-              ) : (
-                <span className="text-xs sm:text-base font-black text-[#031b4e]">
-                  ${product.price.toLocaleString()}
-                </span>
-              )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

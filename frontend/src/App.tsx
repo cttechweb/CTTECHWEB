@@ -59,6 +59,7 @@ import {
 } from "./services/productService";
 import { 
   subscribeToServices, 
+  getLocalServicesCache,
   createService as createServiceDb, 
   updateService as updateServiceDb, 
   deleteService as deleteServiceDb 
@@ -69,6 +70,7 @@ import {
   deleteWorkflow as deleteWorkflowDb 
 } from "./services/workflowService";
 import { isAdminRoute, PRIMARY_ADMIN_ROUTE } from "./utils/adminRoute";
+import { getProductSlug } from "./utils/productSlug";
 
 
 export default function App() {
@@ -127,12 +129,7 @@ export default function App() {
   });
 
   const [servicesList, setServicesList] = useState<ServiceItem[]>(() => {
-    try {
-      const saved = localStorage.getItem("cooltech_services_v1");
-      return saved ? JSON.parse(saved) : SERVICES;
-    } catch {
-      return SERVICES;
-    }
+    return getLocalServicesCache();
   });
 
   useEffect(() => {
@@ -189,14 +186,19 @@ export default function App() {
 
   // Product CRUD Handlers with D1 / Backend Persistence
   const handleAddProduct = async (newProd: Product) => {
+    setProductsList((prev) => [newProd, ...prev.filter((p) => p.id !== newProd.id)]);
     await createProduct(newProd);
   };
 
   const handleUpdateProduct = async (updatedProd: Product) => {
+    setProductsList((prev) =>
+      prev.map((p) => (p.id === updatedProd.id ? updatedProd : p))
+    );
     await updateProduct(updatedProd.id, updatedProd);
   };
 
   const handleDeleteProduct = async (productId: string) => {
+    setProductsList((prev) => prev.filter((p) => p.id !== productId));
     await deleteProduct(productId);
   };
 
@@ -501,7 +503,7 @@ export default function App() {
   };
 
   const handleOpenProductDetail = (product: Product) => {
-    window.location.hash = `#/product/${product.id}`;
+    window.location.hash = `#/product/${getProductSlug(product)}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -816,7 +818,9 @@ export default function App() {
         ) : currentHash.startsWith("#/contact") || currentHash.startsWith("#/support") ? (
           <ContactPage
             initialCategory={
-              currentHash.includes("category=product_support") ||
+              currentHash.includes("category=equipment_quotation") || currentHash.includes("category=quotation")
+                ? "equipment_quotation"
+                : currentHash.includes("category=product_support") ||
               currentHash.includes("category=product-support") ||
               currentHash.startsWith("#/support")
                 ? "product_support"

@@ -13,18 +13,20 @@ const BADGES_CACHE_KEY = "cooltech_product_badges_v1";
 export function getProductOverrides(): Record<string, { badge?: string; isFeatured?: boolean; hidePrice?: boolean }> {
   try {
     const raw = localStorage.getItem(BADGES_CACHE_KEY);
-    const parsed = raw ? JSON.parse(raw) : {};
-    // Seed test a from admin screenshot if not set
-    if (!parsed["prod-1787896560795"]) {
-      parsed["prod-1787896560795"] = { badge: "Popular", isFeatured: false };
-    }
-    return parsed;
+    return raw ? JSON.parse(raw) : {};
   } catch {
-    return { "prod-1787896560795": { badge: "Popular", isFeatured: false } };
+    return {};
   }
 }
 
-export function saveProductOverride(productId: string, meta: { badge?: string; isFeatured?: boolean; hidePrice?: boolean }) {
+export function saveProductOverride(productId: string, meta: { 
+  badge?: string; 
+  isFeatured?: boolean; 
+  hidePrice?: boolean;
+  stockStatus?: string;
+  showMinOrderQty?: boolean;
+  minOrderQty?: number;
+}) {
   try {
     const current = getProductOverrides();
     current[productId] = { ...current[productId], ...meta };
@@ -50,11 +52,45 @@ export function enrichProduct(p: Product): Product {
   const isFeatured = p.isFeatured ?? overrides?.isFeatured ?? (specs._isFeatured === "true" || specs._isFeatured === true) ?? (badge === "Featured");
   const hidePrice = p.hidePrice ?? overrides?.hidePrice ?? (specs._hidePrice === "true" || specs._hidePrice === true);
 
+  const modelId = p.modelId || specs._modelId || undefined;
+  const series = p.series || specs._series || undefined;
+  const sourcingChannel = p.sourcingChannel || specs._sourcingChannel || undefined;
+  const certification = p.certification || specs._certification || undefined;
+  const primaryRegion = p.primaryRegion || specs._primaryRegion || undefined;
+  const applications = p.applications || specs._applications || undefined;
+  const documents = p.documents || specs._documents || [];
+
+  const stockStatus = p.stockStatus || overrides?.stockStatus || specs._stockStatus || (p.inStock ? "In Stock & Ready to Ship" : "Stock Out");
+  const inStock = p.inStock ?? (stockStatus.toLowerCase().includes("in stock") || stockStatus.toLowerCase().includes("ready"));
+  const showMinOrderQty = p.showMinOrderQty ?? overrides?.showMinOrderQty ?? (p.minOrderQty !== undefined && p.minOrderQty !== null && p.minOrderQty > 0);
+  const minOrderQty = p.minOrderQty ?? overrides?.minOrderQty ?? 1;
+
+  // Clean specifications of any internal system _ keys
+  const cleanSpecs: Record<string, string> = {};
+  if (p.specifications) {
+    Object.entries(p.specifications).forEach(([k, v]) => {
+      if (!k.startsWith("_") && typeof v === "string") {
+        cleanSpecs[k] = v;
+      }
+    });
+  }
+
   return {
     ...p,
     badge,
     isFeatured,
     hidePrice,
+    modelId,
+    series,
+    sourcingChannel,
+    certification,
+    primaryRegion,
+    applications,
+    documents,
+    stockStatus,
+    inStock,
+    showMinOrderQty,
+    specifications: cleanSpecs,
   };
 }
 
@@ -88,7 +124,10 @@ export function getLocalProductsCache(): Product[] {
     if (saved !== null) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return mergeProductsWithTestCatalog(parsed);
+        const cleaned = parsed.filter(
+          (p: any) => p && p.id && !p.id.startsWith("test-prod-") && p.id !== "prod-1787896560795" && p.name !== "test a"
+        );
+        return mergeProductsWithTestCatalog(cleaned);
       }
     }
   } catch {}
@@ -189,6 +228,9 @@ export async function saveProduct(product: Product): Promise<boolean> {
     badge: payload.badge,
     isFeatured: payload.isFeatured,
     hidePrice: payload.hidePrice,
+    stockStatus: payload.stockStatus,
+    showMinOrderQty: payload.showMinOrderQty,
+    minOrderQty: payload.minOrderQty,
   });
 
   const current = getLocalProductsCache();

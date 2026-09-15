@@ -7,12 +7,28 @@ import { ServiceItem } from "../types";
 import { SERVICES as STATIC_SERVICES } from "../data";
 import { apiClient } from "./apiClient";
 
+const TEMPLATE_SERVICE_IDS = new Set([
+  "ac-cleaning", "ac-installation", "amc-maintenance", "emergency-repair",
+  "water-tank-chiller", "duct-ventilation", "cold-room-ice-machine",
+  "industrial-chiller-plant", "vrf-system-servicing", "heavy-compressor-overhaul",
+  "fahu-ahu-servicing", "kitchen-exhaust-degreasing", "smart-thermostat-bms",
+  "refrigerant-recovery", "anti-corrosion-coil-coating", "cooling-tower-servicing",
+  "chilled-water-pump-overhaul", "sound-attenuator-install", "energy-audit-thermal",
+  "cassette-ac-servicing", "package-unit-replacement"
+]);
+
 const LOCAL_STORAGE_KEY = "cooltech_services_v1";
 
-function getLocalServicesCache(): ServiceItem[] {
+export function getLocalServicesCache(): ServiceItem[] {
   try {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-    return saved ? JSON.parse(saved) : STATIC_SERVICES;
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((s: ServiceItem) => s && s.id && !TEMPLATE_SERVICE_IDS.has(s.id));
+      }
+    }
+    return STATIC_SERVICES;
   } catch {
     return STATIC_SERVICES;
   }

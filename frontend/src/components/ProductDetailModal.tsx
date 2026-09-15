@@ -92,17 +92,17 @@ export default function ProductDetailModal({
               <div className="border-t border-b border-slate-100 py-3 mb-6 flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">Sourcing Channel</span>
-                  <span className="text-xs font-black text-slate-700 uppercase">Direct OEM Wholesale</span>
+                  <span className="text-xs font-black text-slate-700 uppercase">{product.sourcingChannel || "Direct Wholesale"}</span>
                 </div>
                 <div className="h-4 w-px bg-slate-250"></div>
                 <div>
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">Certification</span>
-                  <span className="text-xs font-black text-slate-700 uppercase">CE / AHRI Certified</span>
+                  <span className="text-xs font-black text-slate-700 uppercase">{product.certification || "Standard Certified"}</span>
                 </div>
                 <div className="h-4 w-px bg-slate-250"></div>
                 <div>
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">Primary Region</span>
-                  <span className="text-xs font-black text-[#2596be] uppercase">GCC & UAE Market</span>
+                  <span className="text-xs font-black text-[#2596be] uppercase">{product.primaryRegion || "Global / Regional"}</span>
                 </div>
               </div>
 

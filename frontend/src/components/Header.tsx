@@ -14,6 +14,7 @@ import { CartItem, Product, ServiceItem } from "../types";
 import { PRODUCTS, SERVICES } from "../data";
 import { useWishlist } from "../context/WishlistContext";
 import { getGeneralSettings } from "../services/generalSettingsService";
+import { getProductSlug } from "../utils/productSlug";
 
 interface HeaderProps {
   cart: CartItem[];
@@ -196,7 +197,7 @@ export default function Header({
   const handleSelectProduct = (product: Product) => {
     setIsDropdownOpen(false);
     onSearchChange("");
-    window.location.hash = `#/product/${product.id}`;
+    window.location.hash = `#/product/${getProductSlug(product)}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -475,7 +476,7 @@ export default function Header({
                     >
                       <Package size={16} className="text-blue-600 shrink-0" />
                       <div>
-                        <p className="text-slate-800 font-black text-xs">Product Page</p>
+                        <p className="text-slate-800 font-black text-xs">Products</p>
                         <p className="text-[10px] text-slate-400 font-bold leading-none mt-0.5">Industrial B2B HVAC Catalog</p>
                       </div>
                     </button>
@@ -1020,7 +1021,7 @@ export default function Header({
                 className="w-full text-left py-2 border-b border-slate-50 hover:text-blue-700 pl-2 flex items-center gap-2"
               >
                 <Package size={14} className="text-blue-600" />
-                <span>Product Page</span>
+                <span>Products</span>
               </button>
               <button 
                 onClick={() => {

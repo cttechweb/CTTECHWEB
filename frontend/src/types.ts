@@ -133,7 +133,9 @@ export interface Product {
   reviewsCount?: number;
   brand: string;
   inStock: boolean;
+  stockStatus?: string;
   minOrderQty?: number;
+  showMinOrderQty?: boolean;
   leadTime?: string;
   specifications: Record<string, string>;
   features: string[];

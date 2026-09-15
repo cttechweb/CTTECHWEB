@@ -47,7 +47,7 @@ export function openProductWhatsAppOrder(
   const model = product.modelId || product.sku || product.id || "N/A";
   const priceDisplay =
     product.price && product.price > 0
-      ? `$${product.price.toLocaleString()} / Unit`
+      ? `AED ${product.price.toLocaleString()} / Unit`
       : "Wholesale Rate on Request";
 
   const message = 
@@ -101,7 +101,7 @@ export function openCartWhatsAppOrder(cart: CartItem[]) {
       const model = p.modelId || p.sku || p.id || "";
       const priceStr =
         p.price && p.price > 0
-          ? `$${(p.price * item.quantity).toLocaleString()}`
+          ? `AED ${(p.price * item.quantity).toLocaleString()}`
           : "Quote Required";
       return `${idx + 1}. *${p.name}* ${model ? `(${model})` : ""}\n   • Qty: ${item.quantity} Unit(s) | Subtotal: ${priceStr}`;
     })
