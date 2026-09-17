@@ -2,11 +2,27 @@ import React, { useState, useEffect, useRef } from "react";
 import { 
   X, Plus, Trash2, Check, DollarSign, Image, Package, CheckSquare, 
   ShieldCheck, EyeOff, Globe, FileText, Search, Sparkles, Layers, SlidersHorizontal,
-  Upload, Cloud, Link2, Loader2, CheckCircle, RefreshCw
+  Upload, Cloud, Link2, Loader2, CheckCircle, RefreshCw, Star, Edit3, Bookmark, ArrowRight
 } from "lucide-react";
-import { Product, Category } from "../../types";
+import { Product, Category, SpecTemplate, AppTemplate } from "../../types";
 import { uploadProductImage, uploadDocumentFile } from "../../services/storageService";
 import { getLocalCategories, getCategories } from "../../services/categoryService";
+import {
+  getSpecTemplates,
+  createSpecTemplate,
+  updateSpecTemplate,
+  deleteSpecTemplate,
+  setDefaultTemplate,
+  getDefaultTemplate
+} from "../../services/specPresetService";
+import {
+  getAppTemplates,
+  createAppTemplate,
+  updateAppTemplate,
+  deleteAppTemplate,
+  setDefaultAppTemplate,
+  getDefaultAppTemplate
+} from "../../services/appPresetService";
 import DirhamSymbol from "../common/DirhamSymbol";
 
 interface ProductEditorModalProps {
@@ -270,6 +286,339 @@ export default function ProductEditorModal({
   const [seoDescription, setSeoDescription] = useState("");
   const [seoKeywords, setSeoKeywords] = useState("HVAC Sourcing Dubai, VRF Units UAE, Daikin Wholesale");
 
+  // Parameter Template Presets state (strictly user-created, 0 dummy data)
+  const [savedTemplates, setSavedTemplates] = useState<SpecTemplate[]>(getSpecTemplates);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [hasDismissedSpecPrompt, setHasDismissedSpecPrompt] = useState(false);
+
+  // Save as Template Prompt Dialog (triggered on Next / tab switch / submit with unsaved custom specs)
+  const [isSavePromptOpen, setIsSavePromptOpen] = useState(false);
+  const [promptTemplateName, setPromptTemplateName] = useState("");
+  const [promptSetDefault, setPromptSetDefault] = useState(false);
+  const [pendingTabSwitch, setPendingTabSwitch] = useState<"basic" | "specs" | "features" | "seo" | null>(null);
+  const [pendingFormSubmit, setPendingFormSubmit] = useState(false);
+
+  // Manual "Save as New Template" modal state
+  const [isSaveNewModalOpen, setIsSaveNewModalOpen] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState("");
+  const [newTemplateSetDefault, setNewTemplateSetDefault] = useState(false);
+
+  // "Edit Template" modal state
+  const [isEditTemplateModalOpen, setIsEditTemplateModalOpen] = useState(false);
+  const [editingTemplateTarget, setEditingTemplateTarget] = useState<SpecTemplate | null>(null);
+  const [editTemplateName, setEditTemplateName] = useState("");
+  const [editTemplateParams, setEditTemplateParams] = useState<string[]>([]);
+
+  // Sync templates with storage updates
+  useEffect(() => {
+    const handleTemplatesUpdate = (e: any) => {
+      if (e?.detail && Array.isArray(e.detail)) {
+        setSavedTemplates(e.detail);
+      } else {
+        setSavedTemplates(getSpecTemplates());
+      }
+    };
+    window.addEventListener("cooltech_spec_templates_updated", handleTemplatesUpdate);
+    return () => window.removeEventListener("cooltech_spec_templates_updated", handleTemplatesUpdate);
+  }, []);
+
+  // Active selected template object
+  const activeTemplate = savedTemplates.find((t) => t.id === selectedTemplateId);
+
+  // Clean current parameter keys from the matrix
+  const currentParamKeys = specs.map((s) => s.key.trim()).filter(Boolean);
+
+  // Check if current parameters are modified from the active template
+  const isTemplateModified = Boolean(
+    activeTemplate &&
+    (currentParamKeys.length !== activeTemplate.parameters.length ||
+      currentParamKeys.some((k, i) => k.toLowerCase() !== (activeTemplate.parameters[i] || "").toLowerCase()))
+  );
+
+  // Determine if we should prompt the user to save as a template
+  const shouldPromptSaveSpecs = (): boolean => {
+    if (hasDismissedSpecPrompt) return false;
+    const cleanKeys = specs.map((s) => s.key.trim()).filter(Boolean);
+    if (cleanKeys.length === 0) return false;
+
+    // If a template is currently selected, prompt only if parameter keys were modified
+    if (selectedTemplateId && activeTemplate) {
+      return isTemplateModified;
+    }
+
+    // If no template selected, check if keys already match any existing saved template
+    const alreadyMatches = savedTemplates.some(
+      (t) =>
+        t.parameters.length === cleanKeys.length &&
+        t.parameters.every((k, i) => k.toLowerCase() === cleanKeys[i].toLowerCase())
+    );
+    return !alreadyMatches;
+  };
+
+  const handleTabSwitch = (targetTab: "basic" | "specs" | "features" | "seo") => {
+    if (activeTab === "specs" && targetTab !== "specs" && shouldPromptSaveSpecs()) {
+      setPendingTabSwitch(targetTab);
+      setPromptTemplateName(category ? `${category} Specifications` : "Standard Specs");
+      setPromptSetDefault(savedTemplates.length === 0);
+      setIsSavePromptOpen(true);
+      return;
+    }
+    setActiveTab(targetTab);
+  };
+
+  const handleSelectTemplate = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    if (!templateId) return;
+
+    const template = savedTemplates.find((t) => t.id === templateId);
+    if (!template) return;
+
+    // Preserve existing entered values for matching keys
+    const newSpecs = template.parameters.map((param) => {
+      const existing = specs.find(
+        (s) => s.key.trim().toLowerCase() === param.trim().toLowerCase()
+      );
+      return {
+        key: param,
+        value: existing ? existing.value : ""
+      };
+    });
+
+    setSpecs(newSpecs.length > 0 ? newSpecs : [{ key: "", value: "" }]);
+  };
+
+  const handleToggleDefaultTemplate = (templateId: string) => {
+    const template = savedTemplates.find((t) => t.id === templateId);
+    if (!template) return;
+    const nextDefault = !template.isDefault;
+    setDefaultTemplate(nextDefault ? templateId : null);
+    setSavedTemplates(getSpecTemplates());
+  };
+
+  const handleDeleteTemplate = (templateId: string, templateName: string) => {
+    if (!window.confirm(`Are you sure you want to delete parameter template "${templateName}"?`)) {
+      return;
+    }
+    deleteSpecTemplate(templateId);
+    setSavedTemplates(getSpecTemplates());
+    if (selectedTemplateId === templateId) {
+      setSelectedTemplateId("");
+    }
+  };
+
+  const handleOpenEditTemplateModal = (template: SpecTemplate) => {
+    setEditingTemplateTarget(template);
+    setEditTemplateName(template.name);
+    setEditTemplateParams([...template.parameters]);
+    setIsEditTemplateModalOpen(true);
+  };
+
+  const handleSaveEditedTemplate = () => {
+    if (!editingTemplateTarget) return;
+    if (!editTemplateName.trim()) {
+      alert("Please provide a template title.");
+      return;
+    }
+    const cleanParams = editTemplateParams.map((p) => p.trim()).filter(Boolean);
+    if (cleanParams.length === 0) {
+      alert("Please provide at least one parameter.");
+      return;
+    }
+
+    const updated = updateSpecTemplate(editingTemplateTarget.id, editTemplateName, cleanParams);
+    setSavedTemplates(getSpecTemplates());
+    setIsEditTemplateModalOpen(false);
+
+    if (selectedTemplateId === editingTemplateTarget.id && updated) {
+      const refreshedSpecs = updated.parameters.map((p) => {
+        const existing = specs.find((s) => s.key.trim().toLowerCase() === p.toLowerCase());
+        return { key: p, value: existing ? existing.value : "" };
+      });
+      setSpecs(refreshedSpecs);
+    }
+  };
+
+  const handleUpdateActiveTemplate = () => {
+    if (!activeTemplate) return;
+    const cleanParams = specs.map((s) => s.key.trim()).filter(Boolean);
+    if (cleanParams.length === 0) {
+      alert("At least one parameter is required.");
+      return;
+    }
+    if (window.confirm(`Update saved template "${activeTemplate.name}" with the current parameter rows?`)) {
+      updateSpecTemplate(activeTemplate.id, activeTemplate.name, cleanParams);
+      setSavedTemplates(getSpecTemplates());
+    }
+  };
+
+  const handleOpenSaveNewModal = () => {
+    const cleanParams = specs.map((s) => s.key.trim()).filter(Boolean);
+    if (cleanParams.length === 0) {
+      alert("Please add at least one parameter row before saving as a template.");
+      return;
+    }
+    setNewTemplateName(category ? `${category} Specifications` : "Commercial Specs");
+    setNewTemplateSetDefault(savedTemplates.length === 0);
+    setIsSaveNewModalOpen(true);
+  };
+
+  const handleSaveNewTemplate = () => {
+    if (!newTemplateName.trim()) {
+      alert("Please enter a template name.");
+      return;
+    }
+    const cleanParams = specs.map((s) => s.key.trim()).filter(Boolean);
+    if (cleanParams.length === 0) {
+      alert("Please add at least one parameter.");
+      return;
+    }
+    const created = createSpecTemplate(newTemplateName, cleanParams, newTemplateSetDefault);
+    setSavedTemplates(getSpecTemplates());
+    setSelectedTemplateId(created.id);
+    setIsSaveNewModalOpen(false);
+  };
+
+  const handlePromptSaveAsTemplate = () => {
+    if (!promptTemplateName.trim()) {
+      alert("Please enter a template name.");
+      return;
+    }
+    const cleanParams = specs.map((s) => s.key.trim()).filter(Boolean);
+    const created = createSpecTemplate(promptTemplateName, cleanParams, promptSetDefault);
+    setSavedTemplates(getSpecTemplates());
+    setSelectedTemplateId(created.id);
+    setIsSavePromptOpen(false);
+
+    if (pendingTabSwitch) {
+      setActiveTab(pendingTabSwitch);
+      setPendingTabSwitch(null);
+    } else if (pendingFormSubmit) {
+      setPendingFormSubmit(false);
+      proceedWithSubmit();
+    }
+  };
+
+  const handlePromptDeclineSave = () => {
+    setHasDismissedSpecPrompt(true);
+    setIsSavePromptOpen(false);
+
+    if (pendingTabSwitch) {
+      setActiveTab(pendingTabSwitch);
+      setPendingTabSwitch(null);
+    } else if (pendingFormSubmit) {
+      setPendingFormSubmit(false);
+      proceedWithSubmit();
+    }
+  };
+
+  // Saved Parameters Popup/Modal State (Clean button in matrix header)
+  const [isParamPresetsModalOpen, setIsParamPresetsModalOpen] = useState(false);
+
+  // Target Application Templates state (strictly user-created, 0 dummy data)
+  const [savedAppTemplates, setSavedAppTemplates] = useState<AppTemplate[]>(getAppTemplates);
+  const [selectedAppTemplateId, setSelectedAppTemplateId] = useState<string>("");
+  const [isAppPresetsModalOpen, setIsAppPresetsModalOpen] = useState(false);
+  const [isSaveNewAppModalOpen, setIsSaveNewAppModalOpen] = useState(false);
+  const [newAppTemplateName, setNewAppTemplateName] = useState("");
+  const [newAppTemplateSetDefault, setNewAppTemplateSetDefault] = useState(false);
+  const [isEditAppModalOpen, setIsEditAppModalOpen] = useState(false);
+  const [editingAppTarget, setEditingAppTarget] = useState<AppTemplate | null>(null);
+  const [editAppTemplateName, setEditAppTemplateName] = useState("");
+  const [editAppTemplateText, setEditAppTemplateText] = useState("");
+
+  // Sync app templates with storage updates
+  useEffect(() => {
+    const handleAppTemplatesUpdate = (e: any) => {
+      if (e?.detail && Array.isArray(e.detail)) {
+        setSavedAppTemplates(e.detail);
+      } else {
+        setSavedAppTemplates(getAppTemplates());
+      }
+    };
+    window.addEventListener("cooltech_app_templates_updated", handleAppTemplatesUpdate);
+    return () => window.removeEventListener("cooltech_app_templates_updated", handleAppTemplatesUpdate);
+  }, []);
+
+  const activeAppTemplate = savedAppTemplates.find((t) => t.id === selectedAppTemplateId);
+
+  const handleSelectAppTemplate = (templateId: string) => {
+    setSelectedAppTemplateId(templateId);
+    if (!templateId) return;
+    const template = savedAppTemplates.find((t) => t.id === templateId);
+    if (template) {
+      setApplicationsText(template.applicationsText);
+    }
+  };
+
+  const handleToggleDefaultAppTemplate = (templateId: string) => {
+    const template = savedAppTemplates.find((t) => t.id === templateId);
+    if (!template) return;
+    const nextDefault = !template.isDefault;
+    setDefaultAppTemplate(nextDefault ? templateId : null);
+    setSavedAppTemplates(getAppTemplates());
+  };
+
+  const handleDeleteAppTemplate = (templateId: string, templateName: string) => {
+    if (!window.confirm(`Are you sure you want to delete application preset "${templateName}"?`)) {
+      return;
+    }
+    deleteAppTemplate(templateId);
+    setSavedAppTemplates(getAppTemplates());
+    if (selectedAppTemplateId === templateId) {
+      setSelectedAppTemplateId("");
+    }
+  };
+
+  const handleOpenEditAppModal = (template: AppTemplate) => {
+    setEditingAppTarget(template);
+    setEditAppTemplateName(template.name);
+    setEditAppTemplateText(template.applicationsText);
+    setIsEditAppModalOpen(true);
+  };
+
+  const handleSaveEditedAppTemplate = () => {
+    if (!editingAppTarget) return;
+    if (!editAppTemplateName.trim()) {
+      alert("Please enter a preset name.");
+      return;
+    }
+    if (!editAppTemplateText.trim()) {
+      alert("Please enter at least one target application.");
+      return;
+    }
+    const updated = updateAppTemplate(editingAppTarget.id, editAppTemplateName, editAppTemplateText);
+    setSavedAppTemplates(getAppTemplates());
+    setIsEditAppModalOpen(false);
+    if (selectedAppTemplateId === editingAppTarget.id && updated) {
+      setApplicationsText(updated.applicationsText);
+    }
+  };
+
+  const handleOpenSaveNewAppModal = () => {
+    if (!applicationsText.trim()) {
+      alert("Please enter target applications before saving as a preset.");
+      return;
+    }
+    setNewAppTemplateName(category ? `${category} Applications` : "Commercial Applications");
+    setNewAppTemplateSetDefault(savedAppTemplates.length === 0);
+    setIsSaveNewAppModalOpen(true);
+  };
+
+  const handleSaveNewAppTemplate = () => {
+    if (!newAppTemplateName.trim()) {
+      alert("Please enter a preset name.");
+      return;
+    }
+    if (!applicationsText.trim()) {
+      alert("Please enter target applications.");
+      return;
+    }
+    const created = createAppTemplate(newAppTemplateName, applicationsText, newAppTemplateSetDefault);
+    setSavedAppTemplates(getAppTemplates());
+    setSelectedAppTemplateId(created.id);
+    setIsSaveNewAppModalOpen(false);
+  };
+
   useEffect(() => {
     if (editingProduct) {
       setName(editingProduct.name);
@@ -316,7 +665,11 @@ export default function ProductEditorModal({
       setSourcingChannel(editingProduct.sourcingChannel || "DIRECT OEM WHOLESALE");
       setCertification(editingProduct.certification || "CE / AHRI CERTIFIED");
       setPrimaryRegion(editingProduct.primaryRegion || "GCC & UAE MARKET");
-      setApplicationsText((editingProduct.applications || ["Commercial", "Industrial", "Healthcare"]).join(", "));
+      const currentAppsText = (editingProduct.applications || ["Commercial", "Industrial", "Healthcare"]).join(", ");
+      setApplicationsText(currentAppsText);
+      const appTpls = getAppTemplates();
+      const matchedApp = appTpls.find((t) => t.applicationsText.trim().toLowerCase() === currentAppsText.trim().toLowerCase());
+      setSelectedAppTemplateId(matchedApp ? matchedApp.id : "");
       setDocuments(editingProduct.documents || []);
 
       setSeoTitle(editingProduct.seoTitle || `${editingProduct.name} Sourcing Dubai | Cool Technologies`);
@@ -324,15 +677,25 @@ export default function ProductEditorModal({
       setSeoKeywords(editingProduct.seoKeywords || `${editingProduct.name}, HVAC Dubai, Wholesale UAE`);
 
       if (editingProduct.specifications) {
-        setSpecs(
-          Object.entries(editingProduct.specifications)
-            .filter(([key]) => !key.startsWith("_"))
-            .map(([key, value]) => ({ key, value }))
+        const loadedSpecs = Object.entries(editingProduct.specifications)
+          .filter(([key]) => !key.startsWith("_"))
+          .map(([key, value]) => ({ key, value }));
+        setSpecs(loadedSpecs.length > 0 ? loadedSpecs : [{ key: "Cooling Capacity", value: "" }]);
+
+        // Match with any existing saved template
+        const currentKeys = loadedSpecs.map((s) => s.key.trim().toLowerCase());
+        const templates = getSpecTemplates();
+        const matched = templates.find(
+          (t) =>
+            t.parameters.length === currentKeys.length &&
+            t.parameters.every((k, i) => k.trim().toLowerCase() === currentKeys[i])
         );
+        setSelectedTemplateId(matched ? matched.id : "");
       }
       if (editingProduct.features) {
         setFeatures(editingProduct.features);
       }
+      setHasDismissedSpecPrompt(false);
     } else {
       setName("");
       const initialCat = availableCategories.length > 0 ? availableCategories[0].name : "Window A/C";
@@ -356,11 +719,36 @@ export default function ProductEditorModal({
       setSourcingChannel("DIRECT OEM WHOLESALE");
       setCertification("CE / AHRI CERTIFIED");
       setPrimaryRegion("GCC & UAE MARKET");
-      setApplicationsText("Commercial Complexes, Critical Data Centers, Industrial Processing, Healthcare & Public");
+      
+      // Auto-load default application template if present
+      const defaultApp = getDefaultAppTemplate();
+      if (defaultApp && defaultApp.applicationsText.trim()) {
+        setApplicationsText(defaultApp.applicationsText);
+        setSelectedAppTemplateId(defaultApp.id);
+      } else {
+        setApplicationsText("Commercial Complexes, Critical Data Centers, Industrial Processing, Healthcare & Public");
+        setSelectedAppTemplateId("");
+      }
 
       setSeoTitle("Daikin Fit Slim VRF Outdoor Unit Sourcing Dubai | Cool Technologies");
       setSeoDescription("Direct B2B OEM wholesale Daikin VRF units in Dubai and UAE. High ambient T3 tropical compressor, CE/AHRI certified.");
       setSeoKeywords("Daikin VRF Dubai, Commercial AC Sourcing UAE, Chiller Wholesale");
+
+      // Auto-load default template if one has been set by the user
+      const defaultTemplate = getDefaultTemplate();
+      if (defaultTemplate && defaultTemplate.parameters.length > 0) {
+        setSpecs(defaultTemplate.parameters.map((p) => ({ key: p, value: "" })));
+        setSelectedTemplateId(defaultTemplate.id);
+      } else {
+        setSpecs([
+          { key: "Cooling Capacity", value: "" },
+          { key: "Compressor Type", value: "" },
+          { key: "Refrigerant", value: "" },
+          { key: "Power Supply", value: "" }
+        ]);
+        setSelectedTemplateId("");
+      }
+      setHasDismissedSpecPrompt(false);
     }
   }, [editingProduct, isOpen]);
 
@@ -507,14 +895,7 @@ export default function ProductEditorModal({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSaving) return;
-    if (!name.trim()) {
-      alert("Please provide a product title.");
-      return;
-    }
-
+  const proceedWithSubmit = async () => {
     const specificationsObj: Record<string, string> = {};
     specs.forEach((s) => {
       if (s.key.trim()) specificationsObj[s.key.trim()] = s.value;
@@ -589,6 +970,25 @@ export default function ProductEditorModal({
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSaving) return;
+    if (!name.trim()) {
+      alert("Please provide a product title.");
+      return;
+    }
+
+    if (activeTab === "specs" && shouldPromptSaveSpecs()) {
+      setPendingFormSubmit(true);
+      setPromptTemplateName(category ? `${category} Specifications` : "Standard Technical Specs");
+      setPromptSetDefault(savedTemplates.length === 0);
+      setIsSavePromptOpen(true);
+      return;
+    }
+
+    await proceedWithSubmit();
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150">
       
@@ -620,7 +1020,7 @@ export default function ProductEditorModal({
         <div className="bg-slate-100 border-b border-slate-200 px-6 pt-2 flex items-center gap-2 overflow-x-auto shrink-0">
           <button
             type="button"
-            onClick={() => setActiveTab("basic")}
+            onClick={() => handleTabSwitch("basic")}
             className={`px-4 py-2.5 text-xs font-extrabold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === "basic"
                 ? "border-[#031b4e] text-[#031b4e] bg-white rounded-t-lg shadow-2xs"
@@ -633,7 +1033,7 @@ export default function ProductEditorModal({
 
           <button
             type="button"
-            onClick={() => setActiveTab("specs")}
+            onClick={() => handleTabSwitch("specs")}
             className={`px-4 py-2.5 text-xs font-extrabold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === "specs"
                 ? "border-[#031b4e] text-[#031b4e] bg-white rounded-t-lg shadow-2xs"
@@ -646,7 +1046,7 @@ export default function ProductEditorModal({
 
           <button
             type="button"
-            onClick={() => setActiveTab("features")}
+            onClick={() => handleTabSwitch("features")}
             className={`px-4 py-2.5 text-xs font-extrabold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === "features"
                 ? "border-[#031b4e] text-[#031b4e] bg-white rounded-t-lg shadow-2xs"
@@ -659,7 +1059,7 @@ export default function ProductEditorModal({
 
           <button
             type="button"
-            onClick={() => setActiveTab("seo")}
+            onClick={() => handleTabSwitch("seo")}
             className={`px-4 py-2.5 text-xs font-extrabold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === "seo"
                 ? "border-[#031b4e] text-[#031b4e] bg-white rounded-t-lg shadow-2xs"
@@ -1169,13 +1569,28 @@ export default function ProductEditorModal({
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold text-slate-700">Target Applications (Comma-separated)</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-bold text-slate-700">Target Applications (Comma-separated)</label>
+                      <button
+                        type="button"
+                        onClick={() => setIsAppPresetsModalOpen(true)}
+                        className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
+                      >
+                        <SlidersHorizontal size={11} />
+                        <span>Saved Applications</span>
+                        {savedAppTemplates.length > 0 && (
+                          <span className="px-1.5 py-0.2 bg-blue-100 text-blue-800 rounded-full text-[9px] font-bold">
+                            {savedAppTemplates.length}
+                          </span>
+                        )}
+                      </button>
+                    </div>
                     <input
                       type="text"
                       placeholder="Bedrooms, Offices, Apartments, Retail Spaces"
                       value={applicationsText}
                       onChange={(e) => setApplicationsText(e.target.value)}
-                      className="w-full mt-1 px-3 py-1.5 border border-slate-300 rounded text-xs bg-white"
+                      className="w-full px-3 py-1.5 border border-slate-300 rounded text-xs bg-white"
                     />
                   </div>
                 </div>
@@ -1336,16 +1751,43 @@ export default function ProductEditorModal({
 
               {/* Technical Specifications Matrix Rows */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider">Technical Specification Matrix</h3>
-                  <button
-                    type="button"
-                    onClick={handleAddSpec}
-                    className="px-2.5 py-1 bg-[#031b4e] text-white text-[11px] font-bold rounded flex items-center gap-1 cursor-pointer"
-                  >
-                    <Plus size={12} />
-                    <span>Add Parameter Row</span>
-                  </button>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider">
+                      Technical Specification Matrix
+                    </h3>
+                    {activeTemplate && (
+                      <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded font-bold flex items-center gap-1">
+                        <span>{activeTemplate.name}</span>
+                        {activeTemplate.isDefault && <Star size={10} className="fill-amber-500 text-amber-500" />}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setIsParamPresetsModalOpen(true)}
+                      className="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-[11px] font-bold rounded flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                    >
+                      <SlidersHorizontal size={12} className="text-blue-600" />
+                      <span>Saved Parameters</span>
+                      {savedTemplates.length > 0 && (
+                        <span className="ml-0.5 px-1.5 py-0.2 bg-blue-50 text-blue-700 rounded-full text-[9px] font-bold">
+                          {savedTemplates.length}
+                        </span>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleAddSpec}
+                      className="px-2.5 py-1 bg-[#031b4e] text-white text-[11px] font-bold rounded flex items-center gap-1 cursor-pointer hover:bg-blue-800 transition-colors"
+                    >
+                      <Plus size={12} />
+                      <span>Add Parameter Row</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -1624,6 +2066,704 @@ export default function ProductEditorModal({
         </form>
 
       </div>
+
+      {/* ── MODAL 1: SAVE AS TEMPLATE PROMPT (Triggered on Next / Tab Switch / Submit) ── */}
+      {isSavePromptOpen && (
+        <div className="fixed inset-0 z-60 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                <Bookmark size={20} />
+              </div>
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900">
+                  Save as Parameter Template?
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  You have configured {specs.filter((s) => s.key.trim()).length} parameter(s). Would you like to save them as a reusable preset template for future products?
+                </p>
+              </div>
+            </div>
+
+            {/* Chips preview of parameters */}
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                Parameters in this template:
+              </span>
+              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                {specs
+                  .filter((s) => s.key.trim())
+                  .map((s, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2 py-0.5 bg-white text-slate-700 border border-slate-200 rounded text-[11px] font-semibold"
+                    >
+                      {s.key.trim()}
+                    </span>
+                  ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Template Name / Title *
+                </label>
+                <input
+                  type="text"
+                  value={promptTemplateName}
+                  onChange={(e) => setPromptTemplateName(e.target.value)}
+                  placeholder="e.g. Commercial VRF System Specs"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 bg-white"
+                  autoFocus
+                />
+              </div>
+
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={promptSetDefault}
+                  onChange={(e) => setPromptSetDefault(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                />
+                <span>Set as default template for all new products</span>
+              </label>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSavePromptOpen(false);
+                  setPendingTabSwitch(null);
+                  setPendingFormSubmit(false);
+                }}
+                className="w-full sm:w-auto px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePromptDeclineSave}
+                className="w-full sm:w-auto px-3.5 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer text-center"
+              >
+                No, Just for This Product
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePromptSaveAsTemplate}
+                className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-white bg-[#031b4e] hover:bg-blue-800 rounded-lg transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Check size={14} />
+                <span>Save as Template</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 2: SAVE AS NEW TEMPLATE (Manual trigger from toolbar) ── */}
+      {isSaveNewModalOpen && (
+        <div className="fixed inset-0 z-60 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+                  <Bookmark size={16} />
+                </div>
+                <h3 className="text-sm font-extrabold text-slate-900">
+                  Save Parameter Template
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSaveNewModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-md cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                Parameters to be saved ({specs.filter((s) => s.key.trim()).length}):
+              </span>
+              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                {specs
+                  .filter((s) => s.key.trim())
+                  .map((s, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2 py-0.5 bg-white text-slate-700 border border-slate-200 rounded text-[11px] font-semibold"
+                    >
+                      {s.key.trim()}
+                    </span>
+                  ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Template Name *
+                </label>
+                <input
+                  type="text"
+                  value={newTemplateName}
+                  onChange={(e) => setNewTemplateName(e.target.value)}
+                  placeholder="e.g. Ducted Split AC Specs"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 bg-white"
+                  autoFocus
+                />
+              </div>
+
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={newTemplateSetDefault}
+                  onChange={(e) => setNewTemplateSetDefault(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                />
+                <span>Set as default template for all new products</span>
+              </label>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsSaveNewModalOpen(false)}
+                className="px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveNewTemplate}
+                className="px-4 py-2 text-xs font-bold text-white bg-[#031b4e] hover:bg-blue-800 rounded-lg transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
+              >
+                <Check size={14} />
+                <span>Save Template</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 3: EDIT PARAMETER TEMPLATE (Manage Name & Labels) ── */}
+      {isEditTemplateModalOpen && editingTemplateTarget && (
+        <div className="fixed inset-0 z-60 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between shrink-0 bg-slate-50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+                  <Edit3 size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900">
+                    Edit Parameter Template
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Manage template title and parameter labels
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditTemplateModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-md cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-4 flex-1">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Template Name *
+                </label>
+                <input
+                  type="text"
+                  value={editTemplateName}
+                  onChange={(e) => setEditTemplateName(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 bg-white"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700">
+                    Parameter Labels ({editTemplateParams.length})
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setEditTemplateParams([...editTemplateParams, ""])}
+                    className="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus size={12} />
+                    <span>Add Parameter</span>
+                  </button>
+                </div>
+
+                <div className="space-y-2 max-h-[35vh] overflow-y-auto pr-1">
+                  {editTemplateParams.map((param, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="text-[11px] text-slate-400 font-mono w-5 text-right shrink-0">
+                        {idx + 1}.
+                      </span>
+                      <input
+                        type="text"
+                        value={param}
+                        onChange={(e) => {
+                          const updated = [...editTemplateParams];
+                          updated[idx] = e.target.value;
+                          setEditTemplateParams(updated);
+                        }}
+                        placeholder="e.g. Cooling Capacity"
+                        className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:border-blue-600 bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = editTemplateParams.filter((_, i) => i !== idx);
+                          setEditTemplateParams(updated);
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                        title="Remove parameter"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                  {editTemplateParams.length === 0 && (
+                    <p className="text-xs text-slate-400 italic py-2 text-center">
+                      No parameters in this template. Click "+ Add Parameter" above.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsEditTemplateModalOpen(false)}
+                className="px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200/60 rounded-lg transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEditedTemplate}
+                className="px-4 py-2 text-xs font-bold text-white bg-[#031b4e] hover:bg-blue-800 rounded-lg transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
+              >
+                <Check size={14} />
+                <span>Save Changes</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: MANAGE SAVED PARAMETERS PRESETS (Triggered from Matrix Header) ── */}
+      {isParamPresetsModalOpen && (
+        <div className="fixed inset-0 z-60 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+                  <SlidersHorizontal size={16} />
+                </div>
+                <h3 className="text-sm font-extrabold text-slate-900">
+                  Saved Parameter Presets
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsParamPresetsModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-md cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Select Parameter Preset
+                </label>
+                <select
+                  value={selectedTemplateId}
+                  onChange={(e) => {
+                    handleSelectTemplate(e.target.value);
+                  }}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white focus:outline-none focus:border-blue-600"
+                >
+                  <option value="">
+                    {savedTemplates.length === 0
+                      ? "-- No Saved Templates (Save current rows as template below) --"
+                      : "-- Custom / No Template Selected --"}
+                  </option>
+                  {savedTemplates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.parameters.length} params) {t.isDefault ? "★ [Default]" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Actions for Selected Template */}
+              {activeTemplate && (
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800">
+                      {activeTemplate.name}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleDefaultTemplate(activeTemplate.id)}
+                        className={`px-2 py-1 rounded text-xs font-bold border transition-colors flex items-center gap-1 cursor-pointer ${
+                          activeTemplate.isDefault
+                            ? "bg-amber-100 text-amber-900 border-amber-300"
+                            : "bg-white text-slate-600 hover:bg-amber-50 border-slate-200"
+                        }`}
+                        title={activeTemplate.isDefault ? "Default template" : "Set as default for new products"}
+                      >
+                        <Star size={12} className={activeTemplate.isDefault ? "fill-amber-500 text-amber-500" : ""} />
+                        <span>{activeTemplate.isDefault ? "Default" : "Set Default"}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsParamPresetsModalOpen(false);
+                          handleOpenEditTemplateModal(activeTemplate);
+                        }}
+                        className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded cursor-pointer"
+                        title="Edit template"
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTemplate(activeTemplate.id, activeTemplate.name)}
+                        className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded cursor-pointer"
+                        title="Delete template"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {isTemplateModified && (
+                    <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px] text-amber-800">
+                      <span>Parameters modified from saved template</span>
+                      <button
+                        type="button"
+                        onClick={handleUpdateActiveTemplate}
+                        className="px-2 py-0.5 bg-amber-200 hover:bg-amber-300 font-bold rounded text-[10px] cursor-pointer"
+                      >
+                        Update Template
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Button to save current matrix rows as a new preset */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsParamPresetsModalOpen(false);
+                  handleOpenSaveNewModal();
+                }}
+                className="w-full py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-lg border border-blue-200 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <Plus size={14} />
+                <span>Save Current Rows as New Template</span>
+              </button>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsParamPresetsModalOpen(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: MANAGE SAVED TARGET APPLICATIONS ── */}
+      {isAppPresetsModalOpen && (
+        <div className="fixed inset-0 z-60 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+                  <SlidersHorizontal size={16} />
+                </div>
+                <h3 className="text-sm font-extrabold text-slate-900">
+                  Saved Target Applications
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAppPresetsModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-md cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Select Application Preset
+                </label>
+                <select
+                  value={selectedAppTemplateId}
+                  onChange={(e) => handleSelectAppTemplate(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white focus:outline-none focus:border-blue-600"
+                >
+                  <option value="">
+                    {savedAppTemplates.length === 0
+                      ? "-- No Saved Presets (Save current applications below) --"
+                      : "-- Custom / No Preset Selected --"}
+                  </option>
+                  {savedAppTemplates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} {t.isDefault ? "★ [Default]" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Actions for Selected App Template */}
+              {activeAppTemplate && (
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800">
+                      {activeAppTemplate.name}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleDefaultAppTemplate(activeAppTemplate.id)}
+                        className={`px-2 py-1 rounded text-xs font-bold border transition-colors flex items-center gap-1 cursor-pointer ${
+                          activeAppTemplate.isDefault
+                            ? "bg-amber-100 text-amber-900 border-amber-300"
+                            : "bg-white text-slate-600 hover:bg-amber-50 border-slate-200"
+                        }`}
+                        title={activeAppTemplate.isDefault ? "Default preset" : "Set as default for new products"}
+                      >
+                        <Star size={12} className={activeAppTemplate.isDefault ? "fill-amber-500 text-amber-500" : ""} />
+                        <span>{activeAppTemplate.isDefault ? "Default" : "Set Default"}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAppPresetsModalOpen(false);
+                          handleOpenEditAppModal(activeAppTemplate);
+                        }}
+                        className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded cursor-pointer"
+                        title="Edit preset"
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAppTemplate(activeAppTemplate.id, activeAppTemplate.name)}
+                        className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded cursor-pointer"
+                        title="Delete preset"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-600 italic">
+                    "{activeAppTemplate.applicationsText}"
+                  </p>
+                </div>
+              )}
+
+              {/* Button to save current applications text as a new preset */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAppPresetsModalOpen(false);
+                  handleOpenSaveNewAppModal();
+                }}
+                className="w-full py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-lg border border-blue-200 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <Plus size={14} />
+                <span>Save Current as New Preset</span>
+              </button>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsAppPresetsModalOpen(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: SAVE AS NEW TARGET APPLICATION PRESET ── */}
+      {isSaveNewAppModalOpen && (
+        <div className="fixed inset-0 z-60 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+                  <Bookmark size={16} />
+                </div>
+                <h3 className="text-sm font-extrabold text-slate-900">
+                  Save Target Applications Preset
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSaveNewAppModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-md cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                Applications to be saved:
+              </span>
+              <p className="text-xs text-slate-700 font-medium">
+                {applicationsText}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Preset Title / Name *
+                </label>
+                <input
+                  type="text"
+                  value={newAppTemplateName}
+                  onChange={(e) => setNewAppTemplateName(e.target.value)}
+                  placeholder="e.g. Commercial & Hotel Complexes"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 bg-white"
+                  autoFocus
+                />
+              </div>
+
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={newAppTemplateSetDefault}
+                  onChange={(e) => setNewAppTemplateSetDefault(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                />
+                <span>Set as default applications preset for all new products</span>
+              </label>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsSaveNewAppModalOpen(false)}
+                className="px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveNewAppTemplate}
+                className="px-4 py-2 text-xs font-bold text-white bg-[#031b4e] hover:bg-blue-800 rounded-lg transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
+              >
+                <Check size={14} />
+                <span>Save Preset</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: EDIT TARGET APPLICATION PRESET ── */}
+      {isEditAppModalOpen && editingAppTarget && (
+        <div className="fixed inset-0 z-60 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+                  <Edit3 size={16} />
+                </div>
+                <h3 className="text-sm font-extrabold text-slate-900">
+                  Edit Target Applications Preset
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditAppModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-md cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Preset Title / Name *
+                </label>
+                <input
+                  type="text"
+                  value={editAppTemplateName}
+                  onChange={(e) => setEditAppTemplateName(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Target Applications (Comma-separated) *
+                </label>
+                <textarea
+                  rows={3}
+                  value={editAppTemplateText}
+                  onChange={(e) => setEditAppTemplateText(e.target.value)}
+                  className="w-full p-2.5 border border-slate-300 rounded-lg text-xs leading-relaxed bg-white focus:outline-none focus:border-blue-600"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsEditAppModalOpen(false)}
+                className="px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEditedAppTemplate}
+                className="px-4 py-2 text-xs font-bold text-white bg-[#031b4e] hover:bg-blue-800 rounded-lg transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
+              >
+                <Check size={14} />
+                <span>Save Changes</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

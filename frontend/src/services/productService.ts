@@ -10,7 +10,14 @@ import { TEST_PRODUCTS } from "../data/mockProducts";
 const LOCAL_STORAGE_KEY = "cooltech_products_v3";
 const BADGES_CACHE_KEY = "cooltech_product_badges_v1";
 
-export function getProductOverrides(): Record<string, { badge?: string; isFeatured?: boolean; hidePrice?: boolean }> {
+export function getProductOverrides(): Record<string, { 
+  badge?: string; 
+  isFeatured?: boolean; 
+  hidePrice?: boolean;
+  stockStatus?: string;
+  showMinOrderQty?: boolean;
+  minOrderQty?: number;
+}> {
   try {
     const raw = localStorage.getItem(BADGES_CACHE_KEY);
     return raw ? JSON.parse(raw) : {};

@@ -144,6 +144,7 @@ export interface Product {
   model?: string;
   capacity?: string;
   sku?: string;
+  slug?: string;
   series?: string;
   sourcingChannel?: string;
   certification?: string;
@@ -161,6 +162,24 @@ export interface Product {
   seoScore?: number;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface SpecTemplate {
+  id: string;
+  name: string;
+  parameters: string[];
+  isDefault?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AppTemplate {
+  id: string;
+  name: string;
+  applicationsText: string;
+  isDefault?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Category {
