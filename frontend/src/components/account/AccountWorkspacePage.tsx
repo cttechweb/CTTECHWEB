@@ -45,6 +45,8 @@ import { uploadDocumentFile } from "../../services/storageService";
 import { CartItem, Product } from "../../types";
 import { apiClient } from "../../services/apiClient";
 import { sendEmailNotification } from "../../services/emailService";
+import { getProductSlug } from "../../utils/productSlug";
+import DirhamSymbol from "../common/DirhamSymbol";
 
 interface AccountWorkspacePageProps {
   cart?: CartItem[];
@@ -1047,73 +1049,163 @@ export default function AccountWorkspacePage({
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
-                      {wishlist.map((item) => (
-                        <div key={item.id} className="p-4 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-all flex flex-col justify-between">
-                          <div className="flex items-start gap-3">
-                            <img
-                              src={item.image}
-                              alt={item.name}
-                              className="w-16 h-16 rounded-lg object-cover border border-slate-100 shrink-0 bg-slate-50"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 block">{item.category}</span>
-                              <h4 className="text-xs font-black text-slate-900 truncate mt-0.5">{item.name}</h4>
-                              <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">{item.description}</p>
+                      {wishlist.map((item) => {
+                        const isProduct = item.type === "product" || Boolean(item.product);
+                        const product = item.product;
+                        const service = item.service;
+
+                        const name = product?.name || service?.title || item.name || item.title || "HVAC Equipment";
+                        const category = product?.category || service?.category || item.category || (isProduct ? "Equipment" : "Service");
+                        const image = product?.image || service?.image || item.image || "/src/assets/images/hvac_air_conditioner_1784350824930.jpg";
+                        const description = product?.description || service?.description || item.description || "";
+                        const brand = product?.brand || item.brand || "";
+                        const modelId = product?.modelId || (product as any)?.model || "";
+                        const price = product?.price ?? item.price;
+                        const hidePrice = Boolean(product?.hidePrice);
+                        const inStock = product?.inStock ?? true;
+                        const stockStatus = product?.stockStatus || (inStock ? "In Stock & Ready to Ship" : "Lead Time Required");
+
+                        const targetUrl = isProduct 
+                          ? `#/product/${product ? getProductSlug(product) : item.id}`
+                          : `#/services`;
+
+                        return (
+                          <div key={item.id} className="p-4 rounded-xl border border-slate-200 bg-white hover:border-[#2596be]/40 hover:shadow-md transition-all flex flex-col justify-between group">
+                            <div className="flex items-start gap-3.5">
+                              {/* Product/Service Image */}
+                              <a 
+                                href={targetUrl}
+                                className="w-20 h-20 rounded-xl overflow-hidden border border-slate-100 shrink-0 bg-slate-50 flex items-center justify-center relative cursor-pointer group-hover:border-slate-300 transition-colors"
+                              >
+                                <img
+                                  src={image}
+                                  alt={name}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = "/src/assets/images/hvac_air_conditioner_1784350824930.jpg";
+                                  }}
+                                />
+                                {brand && (
+                                  <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/60 text-[8px] font-black text-white uppercase tracking-wider backdrop-blur-xs">
+                                    {brand}
+                                  </span>
+                                )}
+                              </a>
+
+                              {/* Details */}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#2596be]">
+                                    {category}
+                                  </span>
+                                  {modelId && (
+                                    <span className="text-[10px] font-mono font-semibold text-slate-400">
+                                      {modelId}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <a href={targetUrl} className="block mt-0.5">
+                                  <h4 className="text-xs font-black text-slate-900 line-clamp-1 group-hover:text-[#2596be] transition-colors" title={name}>
+                                    {name}
+                                  </h4>
+                                </a>
+
+                                {description && (
+                                  <p className="text-[11px] text-slate-500 line-clamp-2 mt-1 leading-snug">
+                                    {description}
+                                  </p>
+                                )}
+
+                                {/* Price / Service Tag */}
+                                <div className="mt-2 flex items-center gap-2">
+                                  {isProduct ? (
+                                    hidePrice || !price || price <= 0 ? (
+                                      <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                                        Price on Request
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs font-black text-[#031b4e] inline-flex items-center gap-1">
+                                        <DirhamSymbol className="h-3 w-auto" />
+                                        <span>AED {Number(price).toLocaleString()}</span>
+                                      </span>
+                                    )
+                                  ) : (
+                                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                                      Professional Service
+                                    </span>
+                                  )}
+
+                                  {isProduct && (
+                                    <span className={`text-[10px] font-bold ${inStock ? "text-emerald-600" : "text-amber-600"}`}>
+                                      • {stockStatus}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                              <button
+                                type="button"
+                                onClick={() => removeFromWishlist(item.id)}
+                                className="px-2.5 py-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer text-xs font-semibold flex items-center gap-1.5"
+                                title="Remove from Wishlist"
+                              >
+                                <Trash2 size={13} />
+                                <span>Remove</span>
+                              </button>
+
+                              <div className="flex items-center gap-2">
+                                <a
+                                  href={targetUrl}
+                                  className="px-3 py-1.5 text-slate-600 hover:text-[#031b4e] hover:bg-slate-100 text-[11px] font-bold rounded-lg transition-colors cursor-pointer"
+                                >
+                                  View Details
+                                </a>
+
+                                {isProduct && onAddToCart && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const targetProduct: Product = product || {
+                                        id: item.id,
+                                        name,
+                                        category,
+                                        brand: brand || "Cool Tech",
+                                        price: price || 0,
+                                        rating: 5,
+                                        inStock,
+                                        image,
+                                        description,
+                                        specifications: {}
+                                      };
+                                      onAddToCart(targetProduct, 1);
+                                      if (onShowToast) onShowToast(`Added "${name}" to your quote cart.`);
+                                    }}
+                                    className="px-3 py-1.5 bg-[#031b4e] hover:bg-[#2596be] text-white text-[11px] font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
+                                  >
+                                    <ShoppingCart size={13} />
+                                    <span>Add to Cart</span>
+                                  </button>
+                                )}
+
+                                {!isProduct && onRequestQuoteWithService && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onRequestQuoteWithService(name)}
+                                    className="px-3 py-1.5 bg-[#031b4e] hover:bg-[#2596be] text-white text-[11px] font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
+                                  >
+                                    <Briefcase size={13} />
+                                    <span>Book Service</span>
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
-
-                          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                            <button
-                              type="button"
-                              onClick={() => removeFromWishlist(item.id)}
-                              className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
-                              title="Remove"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-
-                            {item.type === "product" && onAddToCart && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  onAddToCart({
-                                    id: item.id,
-                                    name: item.name,
-                                    category: item.category,
-                                    brand: item.brand || "Cool Tech",
-                                    model: item.model || "",
-                                    capacity: item.capacity || "",
-                                    price: item.price || 0,
-                                    rating: 5,
-                                    reviewsCount: 1,
-                                    inStock: true,
-                                    features: [],
-                                    image: item.image,
-                                    description: item.description,
-                                    specifications: {}
-                                  }, 1);
-                                  if (onShowToast) onShowToast(`Added "${item.name}" to your quote cart.`);
-                                }}
-                                className="px-3 py-1.5 bg-[#031b4e] hover:bg-[#2596be] text-white text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer"
-                              >
-                                <ShoppingCart size={13} />
-                                <span>Add to Cart</span>
-                              </button>
-                            )}
-
-                            {item.type === "service" && onRequestQuoteWithService && (
-                              <button
-                                type="button"
-                                onClick={() => onRequestQuoteWithService(item.name)}
-                                className="px-3 py-1.5 bg-[#031b4e] hover:bg-[#2596be] text-white text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer"
-                              >
-                                <Briefcase size={13} />
-                                <span>Book Service</span>
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -2095,22 +2187,54 @@ export default function AccountWorkspacePage({
               </div>
             ) : (
               <div className="space-y-3">
-                {wishlist.map((item) => (
-                  <div key={item.id} className="bg-white rounded-2xl p-3.5 border border-slate-200 flex items-center gap-3">
-                    <img src={item.image} alt={item.name} className="w-14 h-14 rounded-lg object-cover bg-slate-50" />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[9px] font-bold text-rose-600 uppercase block">{item.category}</span>
-                      <h4 className="text-xs font-black text-slate-900 truncate">{item.name}</h4>
+                {wishlist.map((item) => {
+                  const isProduct = item.type === "product" || Boolean(item.product);
+                  const product = item.product;
+                  const service = item.service;
+                  const name = product?.name || service?.title || item.name || item.title || "HVAC Equipment";
+                  const category = product?.category || service?.category || item.category || (isProduct ? "Equipment" : "Service");
+                  const image = product?.image || service?.image || item.image || "/src/assets/images/hvac_air_conditioner_1784350824930.jpg";
+                  const price = product?.price ?? item.price;
+                  const hidePrice = Boolean(product?.hidePrice);
+                  const targetUrl = isProduct 
+                    ? `#/product/${product ? getProductSlug(product) : item.id}`
+                    : `#/services`;
+
+                  return (
+                    <div key={item.id} className="bg-white rounded-2xl p-3.5 border border-slate-200 flex items-center gap-3">
+                      <a href={targetUrl} className="w-14 h-14 rounded-lg overflow-hidden border border-slate-100 shrink-0 bg-slate-50 block">
+                        <img 
+                          src={image} 
+                          alt={name} 
+                          className="w-full h-full object-cover" 
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/src/assets/images/hvac_air_conditioner_1784350824930.jpg";
+                          }}
+                        />
+                      </a>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[9px] font-bold text-[#2596be] uppercase block">{category}</span>
+                        <a href={targetUrl}>
+                          <h4 className="text-xs font-black text-slate-900 truncate hover:text-[#2596be]">{name}</h4>
+                        </a>
+                        {isProduct && !hidePrice && price && price > 0 ? (
+                          <div className="text-[11px] font-black text-[#031b4e] inline-flex items-center gap-1 mt-0.5">
+                            <DirhamSymbol className="h-2.5 w-auto" />
+                            <span>AED {Number(price).toLocaleString()}</span>
+                          </div>
+                        ) : null}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeFromWishlist(item.id)}
+                        className="p-1.5 text-slate-400 hover:text-red-600 cursor-pointer"
+                        title="Remove"
+                      >
+                        <Trash2 size={15} />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeFromWishlist(item.id)}
-                      className="p-1.5 text-slate-400 hover:text-red-600"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

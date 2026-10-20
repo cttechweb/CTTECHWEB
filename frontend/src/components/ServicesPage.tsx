@@ -341,7 +341,7 @@ export default function ServicesPage({
     const reviewToSave: ReviewItem = {
       id: `rev-svc-${Date.now()}`,
       authorName: newReview.name.trim(),
-      authorRole: (profile?.companyName ? `${profile.companyName}` : profile?.designation) || "Verified Client",
+      authorRole: (profile?.companyName ? `${profile.companyName}` : profile?.designation) || "",
       location: newReview.location.trim() || "UAE",
       rating: newReview.rating,
       comment: newReview.comment.trim(),
@@ -404,8 +404,8 @@ export default function ServicesPage({
       <div className="w-full bg-white min-h-screen py-6 md:py-10 text-slate-800 font-sans" id="service-detail-view">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           
-          {/* Breadcrumbs Navigation Bar matching Product Detail Page */}
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-6 text-xs text-slate-400 font-semibold" id="service-breadcrumbs">
+          {/* Breadcrumbs Navigation Bar matching Product Detail Page — hidden on mobile for clean clutter-free UX */}
+          <div className="hidden md:flex flex-wrap items-center justify-between gap-4 mb-6 text-xs text-slate-400 font-semibold" id="service-breadcrumbs">
             <div className="flex items-center gap-1.5">
               <button 
                 onClick={() => {
@@ -465,7 +465,7 @@ export default function ServicesPage({
                 {/* Previous Arrow */}
                 <button 
                   onClick={handlePrevDetailImage}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-[#2596be] hover:text-white transition-colors shadow-sm cursor-pointer"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-[#2596be] hover:text-white transition-colors shadow-sm cursor-pointer z-10"
                   title="Previous Image"
                 >
                   <ChevronLeft size={16} className="stroke-[2.5]" />
@@ -474,11 +474,51 @@ export default function ServicesPage({
                 {/* Next Arrow */}
                 <button 
                   onClick={handleNextDetailImage}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-[#2596be] hover:text-white transition-colors shadow-sm cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-[#2596be] hover:text-white transition-colors shadow-sm cursor-pointer z-10"
                   title="Next Image"
                 >
                   <ChevronRight size={16} className="stroke-[2.5]" />
                 </button>
+
+                {/* Floating Top-Right Controls: Heart Wishlist + Share Icon directly below it */}
+                <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex flex-col gap-2 z-20">
+                  {/* Wishlist Heart Button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleWishlist({ type: "service", service: selectedService });
+                    }}
+                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-md backdrop-blur-xs ${
+                      isInWishlist(selectedService.id)
+                        ? "bg-rose-50 text-rose-600 hover:bg-rose-100 scale-105 border border-rose-200"
+                        : "bg-white/95 hover:bg-white text-slate-500 hover:text-rose-600 border border-slate-200/80 hover:scale-105"
+                    }`}
+                    title={isInWishlist(selectedService.id) ? "Remove from Wishlist" : "Save to Wishlist"}
+                    aria-label="Save to Wishlist"
+                    id="service-detail-wishlist-toggle-btn"
+                  >
+                    <Heart
+                      size={18}
+                      className={isInWishlist(selectedService.id) ? "fill-rose-500 text-rose-500" : ""}
+                    />
+                  </button>
+
+                  {/* Share Icon Button (Placed below Heart on Image Right Side) */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsShareModalOpen(true);
+                    }}
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-white/95 hover:bg-white text-slate-500 hover:text-[#2596be] border border-slate-200/80 hover:scale-105 transition-all cursor-pointer shadow-md backdrop-blur-xs"
+                    title="Share service with image preview"
+                    aria-label="Share Service"
+                    id="service-detail-share-product-icon-btn"
+                  >
+                    <Share2 size={17} />
+                  </button>
+                </div>
               </div>
 
               {/* Thumbnail Navigation Strip */}
@@ -609,31 +649,18 @@ export default function ServicesPage({
                         onRequestQuoteWithService(selectedService.title);
                       }
                     }}
-                    className="flex-1 h-12 bg-[#2596be] hover:bg-[#1c7e9f] text-white rounded-lg text-xs font-black tracking-wider uppercase shadow-md hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full sm:flex-1 h-12 min-h-[48px] bg-[#2596be] hover:bg-[#1c7e9f] text-white rounded-xl text-xs font-black tracking-wider uppercase shadow-md hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
                     id="detail-add-quote-service-btn"
                   >
-                    <ClipboardList size={15} />
+                    <ClipboardList size={16} />
                     <span>Add Service to Quote</span>
-                  </button>
-
-                  {/* Download Brochure / Scope Button */}
-                  <button
-                    onClick={() => {
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 2000);
-                    }}
-                    className="px-5 h-12 border border-slate-200 hover:border-[#2596be] hover:text-[#2596be] text-slate-600 rounded-lg text-xs font-black tracking-wider uppercase transition-all flex items-center justify-center gap-2 bg-white cursor-pointer"
-                    id="detail-download-brochure-btn"
-                  >
-                    <Download size={15} />
-                    <span>{copied ? "Scope PDF Saved" : "Download Brochure"}</span>
                   </button>
 
                   {/* Direct WhatsApp Order / Inquiry */}
                   <button
                     type="button"
                     onClick={() => openServiceWhatsAppOrder(selectedService)}
-                    className="px-5 h-12 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-lg text-xs font-black tracking-wider uppercase transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full sm:w-auto sm:px-6 h-12 min-h-[48px] bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl text-xs font-black tracking-wider uppercase transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2 cursor-pointer shrink-0"
                     id="service-whatsapp-order-btn"
                     title="Book service or inquire directly via WhatsApp"
                   >
@@ -641,16 +668,21 @@ export default function ServicesPage({
                     <span>Order via WhatsApp</span>
                   </button>
 
-                  {/* Share Service */}
+                  {/* Download Brochure / Scope Button */}
                   <button
-                    type="button"
-                    onClick={() => setIsShareModalOpen(true)}
-                    className="px-4 h-12 border border-slate-200 hover:border-[#2596be] hover:text-[#2596be] text-slate-600 rounded-lg text-xs font-black tracking-wider uppercase transition-all flex items-center justify-center gap-2 bg-white cursor-pointer active:scale-95"
-                    id="service-share-btn"
-                    title="Share this service link & preview"
+                    onClick={() => {
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                      const el = document.getElementById("service-scope-section");
+                      if (el) {
+                        el.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }
+                    }}
+                    className="w-full sm:w-auto sm:px-5 h-12 min-h-[48px] border border-slate-200 hover:border-[#2596be] hover:text-[#2596be] text-slate-600 rounded-xl text-xs font-black tracking-wider uppercase transition-all flex items-center justify-center gap-2 bg-white cursor-pointer active:scale-95 shadow-2xs hover:shadow-sm shrink-0"
+                    id="detail-download-brochure-btn"
                   >
-                    <Share2 size={15} />
-                    <span>Share</span>
+                    <Download size={15} />
+                    <span>{copied ? "Scope PDF Saved" : "Download Brochure"}</span>
                   </button>
 
                 </div>
@@ -673,7 +705,7 @@ export default function ServicesPage({
           </div>
 
           {/* LOWER SECTION: Technical Scope of Work & Verified Reviews */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-6 border-t border-slate-200">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-6 border-t border-slate-200" id="service-scope-section">
             
             {/* Left: Scope of Work */}
             <div className="lg:col-span-7 bg-white rounded-xl p-6 border border-slate-200 shadow-2xs space-y-4">
@@ -1338,9 +1370,6 @@ export default function ServicesPage({
                     <span className="flex items-center gap-1.5 font-semibold">
                       <ShieldCheck size={14} className="text-blue-600 shrink-0" />
                       <span>Submitting as: <strong className="font-bold">{user.email || profile?.name}</strong></span>
-                    </span>
-                    <span className="text-[10px] text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded font-bold">
-                      Verified Client
                     </span>
                   </div>
                 )}

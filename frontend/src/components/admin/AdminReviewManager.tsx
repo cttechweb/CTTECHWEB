@@ -89,7 +89,7 @@ export default function AdminReviewManager({ reviews, onShowToast }: AdminReview
     const newRev: ReviewItem = {
       id: `rev-manual-${Date.now()}`,
       authorName: manualName.trim(),
-      authorRole: manualRole.trim() || "Verified Client",
+      authorRole: manualRole.trim() || "",
       location: manualLocation.trim() || "UAE",
       rating: manualRating,
       comment: manualComment.trim(),

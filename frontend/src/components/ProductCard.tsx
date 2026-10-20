@@ -150,6 +150,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </span>
               )
             )}
+            {/* Energy Rating / Certification Emblem Sticker */}
+            {product.emblemImage && (
+              <img
+                src={product.emblemImage}
+                alt={product.emblemText || "Emblem"}
+                title={product.emblemText || "Certified Equipment"}
+                className="h-5 sm:h-6 w-auto object-contain drop-shadow-xs rounded bg-white/95 p-0.5 border border-slate-200/80"
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = "none";
+                }}
+              />
+            )}
           </div>
 
           {/* Floating Top-Right Actions: Wishlist Heart & Share Icon below it */}

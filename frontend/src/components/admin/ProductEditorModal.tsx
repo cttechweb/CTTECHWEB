@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { 
   X, Plus, Trash2, Check, DollarSign, Image, Package, CheckSquare, 
   ShieldCheck, EyeOff, Globe, FileText, Search, Sparkles, Layers, SlidersHorizontal,
-  Upload, Cloud, Link2, Loader2, CheckCircle, RefreshCw, Star, Edit3, Bookmark, ArrowRight
+  Upload, Cloud, Link2, Loader2, CheckCircle, RefreshCw, Star, Edit3, Bookmark, ArrowRight,
+  Award, Scissors, Wand2
 } from "lucide-react";
+import StickerEditorModal from "./StickerEditorModal";
 import { Product, Category, SpecTemplate, AppTemplate } from "../../types";
 import { uploadProductImage, uploadDocumentFile } from "../../services/storageService";
 import { getLocalCategories, getCategories } from "../../services/categoryService";
@@ -230,7 +232,6 @@ export default function ProductEditorModal({
   };
   const [price, setPrice] = useState(1200);
   const [hidePrice, setHidePrice] = useState(false);
-  const [rating, setRating] = useState(4.9);
   const [image, setImage] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [directUrlInput, setDirectUrlInput] = useState("");
@@ -246,36 +247,35 @@ export default function ProductEditorModal({
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [imageInputMode, setImageInputMode] = useState<"upload" | "url">("upload");
 
+  // Overlay Sticker / Energy Star Rating & Certification Emblem State
+  const [emblemImage, setEmblemImage] = useState<string>("");
+  const [emblemText, setEmblemText] = useState<string>("");
+  const [emblemSize, setEmblemSize] = useState<"medium" | "large" | "xlarge">("large");
+  const [isUploadingEmblem, setIsUploadingEmblem] = useState<boolean>(false);
+  const [emblemUploadStatus, setEmblemUploadStatus] = useState<string | null>(null);
+  const [emblemInputMode, setEmblemInputMode] = useState<"upload" | "url">("upload");
+  const [isStickerEditorOpen, setIsStickerEditorOpen] = useState<boolean>(false);
+  const emblemFileInputRef = useRef<HTMLInputElement | null>(null);
+
   // Extended Sourcing & Tech Specs
   const [modelId, setModelId] = useState("");
   const [series, setSeries] = useState("");
   const [sourcingChannel, setSourcingChannel] = useState("DIRECT OEM WHOLESALE");
   const [certification, setCertification] = useState("CE / AHRI CERTIFIED");
   const [primaryRegion, setPrimaryRegion] = useState("GCC & UAE MARKET");
-  const [applicationsText, setApplicationsText] = useState("Commercial Complexes, Data Centers, Industrial Processing, Healthcare");
+  const [applicationsText, setApplicationsText] = useState("");
 
   // Key-value specifications
   const [specs, setSpecs] = useState<{ key: string; value: string }[]>([
-    { key: "Cooling Capacity", value: "60,000 BTU/h (5 Ton)" },
-    { key: "Compressor Type", value: "Twin-Screw Inverter" },
-    { key: "Refrigerant", value: "R-410A Eco-Friendly" },
-    { key: "Power Supply", value: "208-230V, 1-Phase, 60Hz" }
+    { key: "", value: "" }
   ]);
 
   // Bullet features
-  const [features, setFeatures] = useState<string[]>([
-    "Variable-speed inverter compressor for supreme temperature stability",
-    "Saves up to 40% space compared to traditional outdoor units",
-    "Anti-corrosion Blue Fin heat exchanger coating",
-    "Backed by manufacturer 10-Year commercial warranty"
-  ]);
+  const [features, setFeatures] = useState<string[]>([]);
   const [newFeatureText, setNewFeatureText] = useState("");
 
   // Technical PDF Documents
-  const [documents, setDocuments] = useState<{ name: string; url: string; size?: string }[]>([
-    { name: "Technical Spec Sheet (PDF)", url: "https://example.com/specs.pdf", size: "1.2 MB" },
-    { name: "CAD Installation Drawing", url: "https://example.com/cad.dwg", size: "4.5 MB" }
-  ]);
+  const [documents, setDocuments] = useState<{ name: string; url: string; size?: string }[]>([]);
   const [docName, setDocName] = useState("");
   const [docUrl, setDocUrl] = useState("");
   const [isUploadingDoc, setIsUploadingDoc] = useState(false);
@@ -284,7 +284,7 @@ export default function ProductEditorModal({
   // SEO Fields
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
-  const [seoKeywords, setSeoKeywords] = useState("HVAC Sourcing Dubai, VRF Units UAE, Daikin Wholesale");
+  const [seoKeywords, setSeoKeywords] = useState("");
 
   // Parameter Template Presets state (strictly user-created, 0 dummy data)
   const [savedTemplates, setSavedTemplates] = useState<SpecTemplate[]>(getSpecTemplates);
@@ -626,7 +626,6 @@ export default function ProductEditorModal({
       setBrand(editingProduct.brand);
       setPrice(editingProduct.price);
       setHidePrice(Boolean(editingProduct.hidePrice));
-      setRating(editingProduct.rating || 4.9);
       
       const loadedImages: string[] = [];
       if (editingProduct.image && editingProduct.image.trim()) {
@@ -659,6 +658,9 @@ export default function ProductEditorModal({
         });
       }
       setBadge(editingProduct.badge || (editingProduct.isFeatured ? "Featured" : ""));
+      setEmblemImage(editingProduct.emblemImage || "");
+      setEmblemText(editingProduct.emblemText || "");
+      setEmblemSize(editingProduct.emblemSize || "large");
 
       setModelId(editingProduct.modelId || `DAI-${editingProduct.id.toUpperCase()}`);
       setSeries(editingProduct.series || "PRO-SERIES");
@@ -700,24 +702,25 @@ export default function ProductEditorModal({
       setName("");
       const initialCat = availableCategories.length > 0 ? availableCategories[0].name : "Window A/C";
       setCategory(initialCat);
-      setBrand("Daikin");
-      setPrice(1500);
+      setBrand(availableBrands.length > 0 ? availableBrands[0] : "");
+      setPrice(0);
       setHidePrice(false);
-      setRating(4.9);
-      const defaultImg = "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=800&auto=format&fit=crop";
-      setImage(defaultImg);
-      setImages([defaultImg]);
-      setDescription("The Daikin Fit Slim VRF Outdoor Unit (5-Ton) represents the next generation in commercial climate performance. Engineered to satisfy rigorous efficiency parameters in tropical climates.");
+      setImage("");
+      setImages([]);
+      setDescription("");
       setInStock(true);
       setMinOrderQty(1);
-      setShowMinOrderQty(true);
-      setStockStatus("In Stock & Ready to Ship");
+      setShowMinOrderQty(false);
+      setStockStatus(availableStockStatuses.length > 0 ? availableStockStatuses[0] : "In Stock & Ready to Ship");
       setBadge("");
+      setEmblemImage("");
+      setEmblemText("");
+      setEmblemSize("large");
 
-      setModelId(`DAI-PROD-${Math.floor(1000 + Math.random() * 9000)}`);
-      setSeries("DAI-AIR");
+      setModelId("");
+      setSeries("");
       setSourcingChannel("DIRECT OEM WHOLESALE");
-      setCertification("CE / AHRI CERTIFIED");
+      setCertification("");
       setPrimaryRegion("GCC & UAE MARKET");
       
       // Auto-load default application template if present
@@ -726,13 +729,15 @@ export default function ProductEditorModal({
         setApplicationsText(defaultApp.applicationsText);
         setSelectedAppTemplateId(defaultApp.id);
       } else {
-        setApplicationsText("Commercial Complexes, Critical Data Centers, Industrial Processing, Healthcare & Public");
+        setApplicationsText("");
         setSelectedAppTemplateId("");
       }
 
-      setSeoTitle("Daikin Fit Slim VRF Outdoor Unit Sourcing Dubai | Cool Technologies");
-      setSeoDescription("Direct B2B OEM wholesale Daikin VRF units in Dubai and UAE. High ambient T3 tropical compressor, CE/AHRI certified.");
-      setSeoKeywords("Daikin VRF Dubai, Commercial AC Sourcing UAE, Chiller Wholesale");
+      setFeatures([]);
+      setDocuments([]);
+      setSeoTitle("");
+      setSeoDescription("");
+      setSeoKeywords("");
 
       // Auto-load default template if one has been set by the user
       const defaultTemplate = getDefaultTemplate();
@@ -740,12 +745,7 @@ export default function ProductEditorModal({
         setSpecs(defaultTemplate.parameters.map((p) => ({ key: p, value: "" })));
         setSelectedTemplateId(defaultTemplate.id);
       } else {
-        setSpecs([
-          { key: "Cooling Capacity", value: "" },
-          { key: "Compressor Type", value: "" },
-          { key: "Refrigerant", value: "" },
-          { key: "Power Supply", value: "" }
-        ]);
+        setSpecs([{ key: "", value: "" }]);
         setSelectedTemplateId("");
       }
       setHasDismissedSpecPrompt(false);
@@ -826,6 +826,30 @@ export default function ProductEditorModal({
       setImage(url);
     }
     setDirectUrlInput("");
+  };
+
+  const handleEmblemFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingEmblem(true);
+      setEmblemUploadStatus("Uploading sticker emblem...");
+      const result = await uploadProductImage(file, "emblems");
+      if (result?.url) {
+        setEmblemImage(result.url);
+        setEmblemUploadStatus("Sticker emblem uploaded successfully!");
+        setTimeout(() => setEmblemUploadStatus(null), 3000);
+      }
+    } catch (err: any) {
+      alert(err?.message || "Failed to upload emblem image file.");
+      setEmblemUploadStatus(null);
+    } finally {
+      setIsUploadingEmblem(false);
+      if (emblemFileInputRef.current) {
+        emblemFileInputRef.current.value = "";
+      }
+    }
   };
 
   const handleRemoveImageByIndex = (indexToRemove: number) => {
@@ -933,7 +957,6 @@ export default function ProductEditorModal({
       brand,
       price: Number(price),
       hidePrice: Boolean(hidePrice),
-      rating: Number(rating),
       image: finalPrimaryImage,
       images: finalImagesList,
       description: description.trim(),
@@ -943,6 +966,9 @@ export default function ProductEditorModal({
       showMinOrderQty: Boolean(showMinOrderQty),
       badge: badge || undefined,
       isFeatured: badge === "Featured",
+      emblemImage: emblemImage.trim() || undefined,
+      emblemText: emblemText.trim() || undefined,
+      emblemSize,
       tags: updatedTags,
       specifications: specificationsObj,
       features,
@@ -1266,7 +1292,7 @@ export default function ProductEditorModal({
                     </label>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
                       <label className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
                         <DirhamSymbol className="h-3 w-auto" />
@@ -1306,19 +1332,6 @@ export default function ProductEditorModal({
                         className={`w-full px-3 py-2 border rounded-lg text-xs font-bold ${
                           !showMinOrderQty ? "bg-slate-200 text-slate-400 border-slate-300" : "bg-white border-slate-300 focus:border-blue-600 text-slate-900"
                         }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-600">Star Rating (1 - 5.0)</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="1"
-                        max="5"
-                        value={rating}
-                        onChange={(e) => setRating(Number(e.target.value))}
-                        className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold bg-white"
                       />
                     </div>
                   </div>
@@ -1534,6 +1547,214 @@ export default function ProductEditorModal({
                         })}
                       </div>
                     </div>
+                  )}
+                </div>
+
+                {/* PRODUCT OVERLAY STICKER / ENERGY STAR & CERTIFICATION EMBLEM */}
+                <div className="sm:col-span-2 space-y-3 bg-gradient-to-br from-amber-50/40 via-white to-slate-50 p-4 rounded-xl border border-amber-200/80 shadow-2xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <label className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <Award size={15} className="text-amber-600" />
+                        <span>Product Overlay Sticker &amp; Star Rating / Certification Emblem</span>
+                      </label>
+                      <p className="text-[11px] text-slate-500">
+                        Upload or link an energy star rating label, ISO mark, or custom certification sticker to display directly over the product image.
+                      </p>
+                    </div>
+
+                    {/* Clean Mode Toggle: Upload File vs Direct URL */}
+                    <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-slate-200 text-[11px] font-bold">
+                      <button
+                        type="button"
+                        onClick={() => setEmblemInputMode("upload")}
+                        className={`px-3 py-1.5 rounded-md transition-all flex items-center gap-1 cursor-pointer ${
+                          emblemInputMode === "upload" ? "bg-amber-600 text-white shadow-2xs" : "text-slate-600 hover:bg-slate-100"
+                        }`}
+                      >
+                        <Upload size={12} />
+                        <span>Upload File</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEmblemInputMode("url")}
+                        className={`px-3 py-1.5 rounded-md transition-all flex items-center gap-1 cursor-pointer ${
+                          emblemInputMode === "url" ? "bg-amber-600 text-white shadow-2xs" : "text-slate-600 hover:bg-slate-100"
+                        }`}
+                      >
+                        <Link2 size={12} />
+                        <span>Direct URL</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Mode 1: Upload File */}
+                  {emblemInputMode === "upload" ? (
+                    <div>
+                      <input
+                        type="file"
+                        ref={emblemFileInputRef}
+                        onChange={handleEmblemFileChange}
+                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        className="hidden"
+                      />
+                      <div
+                        onClick={() => emblemFileInputRef.current?.click()}
+                        className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${
+                          isUploadingEmblem
+                            ? "border-amber-400 bg-amber-50/50 cursor-wait"
+                            : "border-slate-300 hover:border-amber-500 bg-white hover:bg-amber-50/20"
+                        }`}
+                      >
+                        <div className="flex flex-col items-center justify-center gap-1.5">
+                          <div className="w-9 h-9 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shadow-2xs">
+                            {isUploadingEmblem ? (
+                              <Loader2 size={16} className="animate-spin text-amber-600" />
+                            ) : (
+                              <Upload size={16} />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-800">
+                              {isUploadingEmblem ? "Uploading sticker..." : "Click to Upload Sticker / Rating Emblem"}
+                            </p>
+                            <p className="text-[10px] text-slate-400">
+                              Supports PNG with transparency, WebP, SVG, or JPG
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="url"
+                          placeholder="Paste image URL (e.g. https://... or /images/...)"
+                          value={emblemImage}
+                          onChange={(e) => setEmblemImage(e.target.value)}
+                          className="flex-1 px-3.5 py-2 border border-slate-300 rounded-lg text-xs font-mono bg-white focus:outline-none focus:border-amber-600"
+                        />
+                        {emblemImage && (
+                          <button
+                            type="button"
+                            onClick={() => setEmblemImage("")}
+                            className="p-2 border border-slate-300 hover:bg-slate-100 rounded-lg text-slate-500 text-xs font-bold cursor-pointer"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Active Sticker Card with Live Preview & EDIT / CROP / REMOVE-BG Actions */}
+                  {emblemImage && (
+                    <div className="bg-white p-3 rounded-xl border border-amber-200 shadow-2xs space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Checkerboard transparency container for preview */}
+                          <div className="relative w-16 h-16 rounded-lg border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center p-1 bg-[linear-gradient(45deg,#f1f5f9_25%,transparent_25%),linear-gradient(-45deg,#f1f5f9_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#f1f5f9_75%),linear-gradient(-45deg,transparent_75%,#f1f5f9_75%)] bg-[size:10px_10px]">
+                            <img
+                              src={emblemImage}
+                              alt="Emblem preview"
+                              className="max-h-full max-w-full object-contain drop-shadow-xs"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display = "none";
+                              }}
+                            />
+                          </div>
+
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-black uppercase text-amber-700 tracking-wider flex items-center gap-1">
+                              <CheckCircle size={11} className="text-emerald-600" />
+                              <span>Sticker Active on Image</span>
+                            </p>
+                            <p className="text-xs font-bold text-slate-800 truncate">
+                              {emblemText || "Custom Overlay Sticker"}
+                            </p>
+                            <p className="text-[10px] text-slate-400 truncate font-mono max-w-[240px] sm:max-w-xs">
+                              {emblemImage.startsWith("data:") ? "Custom Transparent PNG" : emblemImage}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons: Edit Image & Remove */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setIsStickerEditorOpen(true)}
+                            className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                            title="Crop edges and remove background transparency"
+                          >
+                            <Wand2 size={13} className="text-amber-300" />
+                            <span>Edit / Remove Background</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEmblemImage("");
+                              setEmblemText("");
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 rounded-lg transition-colors cursor-pointer"
+                            title="Remove sticker emblem"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Display Scale Controls on Product Card */}
+                      <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
+                          <span>Sticker Size on Product Image:</span>
+                        </span>
+
+                        <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-xs font-bold">
+                          {[
+                            { id: "medium", label: "Medium" },
+                            { id: "large", label: "Large (Recommended)" },
+                            { id: "xlarge", label: "Extra Large" }
+                          ].map((opt) => (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => setEmblemSize(opt.id as any)}
+                              className={`px-2.5 py-1 rounded transition-all cursor-pointer ${
+                                emblemSize === opt.id
+                                  ? "bg-white text-slate-900 shadow-2xs font-black"
+                                  : "text-slate-500 hover:text-slate-800"
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Optional Emblem Label / Tooltip Input */}
+                  <div className="pt-1">
+                    <label className="text-[11px] font-bold text-slate-700">Emblem Label / Tooltip Text (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 5 Star Energy Rating, ISO 9001 Certified, ESMA Approved"
+                      value={emblemText}
+                      onChange={(e) => setEmblemText(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:border-amber-600 font-medium"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Shown as the hover tooltip and accessibility title on the sticker.
+                    </p>
+                  </div>
+
+                  {emblemUploadStatus && (
+                    <p className="text-[11px] font-bold text-emerald-700 bg-emerald-50 p-2 rounded-lg border border-emerald-200 flex items-center gap-1.5">
+                      <CheckCircle size={13} />
+                      <span>{emblemUploadStatus}</span>
+                    </p>
                   )}
                 </div>
 
@@ -2763,6 +2984,20 @@ export default function ProductEditorModal({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Sticker Image Studio (Crop & Background Removal) */}
+      {isStickerEditorOpen && emblemImage && (
+        <StickerEditorModal
+          isOpen={isStickerEditorOpen}
+          onClose={() => setIsStickerEditorOpen(false)}
+          imageUrl={emblemImage}
+          initialSize={emblemSize}
+          onSave={(processedUrl, newSize) => {
+            setEmblemImage(processedUrl);
+            if (newSize) setEmblemSize(newSize);
+          }}
+        />
       )}
 
     </div>

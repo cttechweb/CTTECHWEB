@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 80" width="220" height="80">
+  <defs>
+    <linearGradient id="ceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#334155" />
+    </linearGradient>
+    <filter id="shadowCe" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <rect x="2" y="2" width="216" height="76" rx="8" fill="url(#ceGrad)" stroke="#94a3b8" stroke-width="1.5" filter="url(#shadowCe)"/>
+
+  <!-- Left CE Symbol -->
+  <g transform="translate(10, 10)">
+    <circle cx="30" cy="30" r="28" fill="#ffffff" stroke="#1e293b" stroke-width="2"/>
+    <text x="21" y="38" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="24" fill="#0f172a">C</text>
+    <text x="35" y="38" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="24" fill="#0f172a">E</text>
+    <text x="30" y="52" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="6.5" fill="#475569">CONFORMITÉ</text>
+  </g>
+
+  <!-- Right Details -->
+  <text x="78" y="28" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="14" fill="#ffffff" letter-spacing="1">CE COMPLIANT</text>
+  <text x="78" y="44" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="9" fill="#cbd5e1" letter-spacing="0.5">EUROPEAN CONFORMITY</text>
+  <rect x="78" y="50" width="130" height="1" fill="#94a3b8" opacity="0.3" />
+  <text x="78" y="64" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="8" fill="#e2e8f0">HEALTH &amp; SAFETY ASSURED</text>
+</svg>

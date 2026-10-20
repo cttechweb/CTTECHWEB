@@ -5,7 +5,35 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      {
+        name: 'image-proxy',
+        configureServer(server) {
+          server.middlewares.use('/api/proxy-image', async (req, res) => {
+            try {
+              const urlObj = new URL(req.url || '', 'http://localhost');
+              const targetUrl = urlObj.searchParams.get('url');
+              if (!targetUrl) {
+                res.statusCode = 400;
+                res.end('Missing url param');
+                return;
+              }
+              const response = await fetch(targetUrl);
+              const contentType = response.headers.get('content-type') || 'image/png';
+              res.setHeader('Content-Type', contentType);
+              res.setHeader('Access-Control-Allow-Origin', '*');
+              const arrayBuffer = await response.arrayBuffer();
+              res.end(Buffer.from(arrayBuffer));
+            } catch (err: any) {
+              res.statusCode = 500;
+              res.end(err?.message || 'Proxy error');
+            }
+          });
+        },
+      },
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

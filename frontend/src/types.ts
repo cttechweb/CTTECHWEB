@@ -156,6 +156,9 @@ export interface Product {
   badge?: "Best Seller" | "Featured" | "New" | "Popular" | string;
   tags?: string[];
   isFeatured?: boolean;
+  emblemImage?: string; // Overlay sticker / badge image (e.g. Energy Star rating sticker, ISO/ESMA emblem)
+  emblemText?: string; // Optional badge label / tooltip (e.g. "5 Star Energy Rating", "ISO Certified")
+  emblemSize?: "medium" | "large" | "xlarge"; // Display scale of overlay sticker on product image
   seoTitle?: string;
   seoDescription?: string;
   seoKeywords?: string;
@@ -208,6 +211,15 @@ export interface WishlistItem {
   product?: Product;
   service?: ServiceItem;
   addedAt: string;
+  name?: string;
+  title?: string;
+  image?: string;
+  category?: string;
+  description?: string;
+  price?: number;
+  brand?: string;
+  model?: string;
+  capacity?: string;
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -569,7 +581,23 @@ export interface GeneralSiteSettings {
   whatsappSettings?: WhatsAppRoutingSettings;
   departmentHotlines?: DepartmentHotlines;
   socialSeoSettings?: SocialSeoPreviewSettings;
+  phoneContacts?: DynamicContactNumber[];
+  emailContacts?: DynamicContactEmail[];
   updatedAt?: string;
+}
+
+export interface DynamicContactNumber {
+  id: string;
+  title: string;
+  number: string;
+  isActive?: boolean;
+}
+
+export interface DynamicContactEmail {
+  id: string;
+  title: string;
+  email: string;
+  isActive?: boolean;
 }
 
 export interface PageSocialPreview {

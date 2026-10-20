@@ -72,6 +72,10 @@ export default function ProductDetailPage({
     activeProducts.find((p) => matchesProductIdentifier(p, productId)) ||
     activeProducts[0];
   
+  const productEmblemImage = product?.emblemImage;
+  const productEmblemText = product?.emblemText;
+  const productEmblemSize = product?.emblemSize || "large";
+  
   // States
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [activeTab, setActiveTab] = useState<"features" | "specs" | "apps" | "docs">("features");
@@ -148,12 +152,96 @@ export default function ProductDetailPage({
     );
   }, [product?.specifications]);
 
-  const specs = product.specifications || {};
-  const coolingCap = specs["Cooling Capacity (BTU)"] || specs["Cooling Capacity (TR)"] || specs["Cooling Capacity"] || specs["Capacity"] || (cleanSpecs[0] ? cleanSpecs[0][1] : "N/A");
-  const compressorType = specs["Compressor Type"] || specs["Type of Compressor"] || (cleanSpecs[1] ? cleanSpecs[1][1] : (product.category === "Compressors" ? "Scroll" : "Rotary"));
-  const refrigerant = specs["Refrigerant"] || specs["Refrigerant Type"] || (cleanSpecs[2] ? cleanSpecs[2][1] : "R-32");
-  const powerSupply = specs["Power Supply"] || specs["Voltage"] || specs["Power Source"] || (cleanSpecs[3] ? cleanSpecs[3][1] : "Standard AC");
-  const warranty = specs["Warranty"] || "Standard Commercial Warranty";
+  // Top 5 to 7 most important quick parameters for the sidebar widget (logically selected, maximum 7)
+  const quickInfoList = useMemo(() => {
+    if (!product) return [];
+
+    const list: { label: string; value: string; isMono?: boolean }[] = [];
+
+    // 1. Core Identification (Top 3 items)
+    if (product.category) {
+      list.push({ label: "Product Type", value: product.category });
+    }
+    if (product.brand) {
+      list.push({ label: "Brand", value: product.brand });
+    }
+    if (product.modelId) {
+      list.push({ label: "Model SKU", value: product.modelId, isMono: true });
+    }
+
+    // Set of keys already covered or excluded
+    const usedKeys = new Set<string>();
+
+    // Helper to find a spec matching any regex or keyword
+    const findSpec = (patterns: RegExp[]): [string, string] | null => {
+      for (const pattern of patterns) {
+        const found = cleanSpecs.find(([k, v]) => {
+          if (usedKeys.has(k.toLowerCase())) return false;
+          return pattern.test(k.toLowerCase()) && v && String(v).trim() !== "";
+        });
+        if (found) {
+          usedKeys.add(found[0].toLowerCase());
+          return found;
+        }
+      }
+      return null;
+    };
+
+    // Priority Technical Parameters (Pick the single best representative for each priority category)
+    const priorityGroups: { label?: string; patterns: RegExp[] }[] = [
+      // 1. Primary Capacity (e.g., Nominal Cooling Capacity, Cooling Capacity, Capacity)
+      { patterns: [/^nominal\s+cooling\s+capacity/i, /^cooling\s+capacity/i, /^capacity/i, /tonnage/i] },
+      // 2. Compressor Type / Technology
+      { patterns: [/(compressor\s*type|type\s*of\s*compressor|compressor)/i] },
+      // 3. Refrigerant Gas
+      { patterns: [/(refrigerant\s*type|refrigerant|gas\s*type)/i] },
+      // 4. Power Supply / Voltage / Electrical
+      { patterns: [/(power\s*supply|voltage|electrical|power\s*source)/i] },
+      // 5. Operating Range / Max Ambient
+      { patterns: [/(maximum\s*ambient|operating\s*temp|ambient\s*temp)/i] },
+      // 6. Efficiency / Energy Rating
+      { patterns: [/(energy\s*rating|star\s*rating|eer|cop|seer)/i] },
+      // 7. Dimensions / Weight / Size
+      { patterns: [/(dimension|size|pipe\s*size|diameter|weight)/i] }
+    ];
+
+    for (const group of priorityGroups) {
+      if (list.length >= 7) break;
+      const match = findSpec(group.patterns);
+      if (match) {
+        list.push({
+          label: match[0],
+          value: match[1],
+          isMono: /voltage|refrigerant|model|sku|power|part/i.test(match[0])
+        });
+      }
+    }
+
+    // If we still have fewer than 5 items, fill from remaining cleanSpecs in user's defined order
+    if (list.length < 5) {
+      for (const [k, v] of cleanSpecs) {
+        if (list.length >= 5) break;
+        const lowerK = k.trim().toLowerCase();
+        if (usedKeys.has(lowerK)) continue;
+        if (lowerK.includes("model") || lowerK.includes("sku") || lowerK.includes("brand") || lowerK.includes("category")) continue;
+        if (v && String(v).trim() !== "") {
+          usedKeys.add(lowerK);
+          list.push({ label: k, value: v });
+        }
+      }
+    }
+
+    // If still under 5 items, add Availability / Stock Status or Series
+    if (list.length < 5 && product.stockStatus && product.stockStatus.trim() !== "") {
+      list.push({ label: "Availability", value: product.stockStatus });
+    }
+    if (list.length < 5 && product.series && product.series.trim() !== "") {
+      list.push({ label: "Series", value: product.series });
+    }
+
+    // Strictly ensure maximum 7 items
+    return list.slice(0, 7);
+  }, [cleanSpecs, product]);
 
   // Determine promotional badge (Featured, Best Seller, etc.)
   const isFeatured = useMemo(() => {
@@ -266,8 +354,8 @@ export default function ProductDetailPage({
     <div className="w-full bg-white min-h-screen py-6 md:py-10 text-slate-800" id="product-detail-page">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         
-        {/* Breadcrumbs Navigation Bar matching image */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6 text-xs text-slate-400 font-semibold" id="breadcrumbs">
+        {/* Breadcrumbs Navigation Bar matching image — hidden on mobile for clean clutter-free UX */}
+        <div className="hidden md:flex flex-wrap items-center justify-between gap-4 mb-6 text-xs text-slate-400 font-semibold" id="breadcrumbs">
           <div className="flex items-center gap-1.5">
             <button 
               onClick={onBackToCatalog}
@@ -312,21 +400,55 @@ export default function ProductDetailPage({
               onTouchEnd={handleTouchEnd}
             >
               
-              {/* Floating Top-Left Tag: Featured Product Tag */}
-              {isFeatured ? (
-                <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-20 pointer-events-none">
+              {/* Floating Top-Left Tag & Overlay Sticker / Certification Emblem */}
+              <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-20 flex flex-col items-start gap-2 pointer-events-none">
+                {isFeatured ? (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-black uppercase tracking-wider bg-[#031b4e] text-white shadow-md border border-slate-700/60">
                     <Sparkles size={13} className="text-amber-400 stroke-[2.5]" />
                     <span>Featured Product</span>
                   </span>
-                </div>
-              ) : promotionalBadge ? (
-                <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-20 pointer-events-none">
+                ) : promotionalBadge ? (
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-black uppercase tracking-wider bg-slate-800 text-white shadow-md">
                     <span>{promotionalBadge}</span>
                   </span>
-                </div>
-              ) : null}
+                ) : null}
+
+                {/* Overlaid Physical Sticker / Energy Rating & Certification Emblem */}
+                {productEmblemImage ? (
+                  <div 
+                    className="pointer-events-auto transition-transform hover:scale-105 duration-200 group/emblem relative"
+                    title={productEmblemText || "Certification & Energy Efficiency Emblem"}
+                  >
+                    <img
+                      src={productEmblemImage}
+                      alt={productEmblemText || "Product certification emblem"}
+                      className={`w-auto object-contain drop-shadow-md rounded-md transition-all hover:drop-shadow-xl ${
+                        productEmblemSize === "medium"
+                          ? "h-14 sm:h-18 md:h-22"
+                          : productEmblemSize === "xlarge"
+                          ? "h-24 sm:h-32 md:h-36"
+                          : "h-20 sm:h-26 md:h-30"
+                      }`}
+                      onError={(e) => {
+                        (e.currentTarget as HTMLElement).style.display = "none";
+                      }}
+                    />
+                    {productEmblemText && (
+                      <div className="absolute left-0 top-full mt-1.5 hidden group-hover/emblem:block z-30 whitespace-nowrap bg-slate-900 text-white text-[10px] font-bold px-2.5 py-1 rounded shadow-lg pointer-events-none">
+                        {productEmblemText}
+                      </div>
+                    )}
+                  </div>
+                ) : productEmblemText ? (
+                  <div 
+                    className="pointer-events-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] sm:text-[11px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md border border-amber-400"
+                    title={productEmblemText}
+                  >
+                    <Award size={13} className="text-amber-100" />
+                    <span>{productEmblemText}</span>
+                  </div>
+                ) : null}
+              </div>
 
               <img 
                 key={activeImageIdx}
@@ -561,8 +683,8 @@ export default function ProductDetailPage({
         {/* BOTTOM SECTION: Detailed Tabbed Data & Quick Info Sidebar Grid (Matching Image) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 md:gap-12 pt-6 border-t border-slate-100" id="product-detailed-specifications-section">
           
-          {/* Left Column: 8/12 - Tabbed Tech Specifications & Details */}
-          <div className="lg:col-span-8 space-y-6" id="tech-tabs-card">
+          {/* Left Column on Desktop (8/12), Second on Mobile — Tabbed Tech Specifications & Details */}
+          <div className="order-2 lg:order-1 lg:col-span-8 space-y-6" id="tech-tabs-card">
             
             {/* Tabs List Header */}
             <div className="flex items-center overflow-x-auto border-b border-slate-100 pb-3 gap-6 sm:gap-8 scrollbar-none" id="tabs-header">
@@ -767,11 +889,39 @@ export default function ProductDetailPage({
                 </div>
               )}
 
+            {/* Mobile-Only: Need More Information Action Widget (rendered below tabs on mobile screens) */}
+            <div className="block lg:hidden bg-blue-50/30 border border-blue-100/40 rounded-xl p-6 text-center space-y-4 mt-8">
+              <div className="w-10 h-10 rounded-full bg-blue-50 text-[#2596be] flex items-center justify-center mx-auto">
+                <HelpCircle size={20} className="stroke-[2.5]" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-sans font-black text-[#031b4e] uppercase text-xs tracking-wider">
+                  Need More Information?
+                </h4>
+                <p className="text-[11px] text-slate-400 font-bold leading-normal">
+                  Our corporate technical engineering team is ready to help you with equipment sizing, technical drawings, and custom project bids.
+                </p>
+              </div>
+              
+              <button
+                onClick={() => {
+                  const prodParam = encodeURIComponent(`${product.name}${product.modelId ? ` (${product.modelId})` : ""}`);
+                  window.location.hash = `#/contact?category=equipment_quotation&product=${prodParam}`;
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="w-full py-2.5 bg-[#2596be] hover:bg-[#1c7e9f] text-white rounded-lg text-xs font-black tracking-wider uppercase shadow-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                id="mobile-sidebar-product-enquiry-btn"
+              >
+                <Mail size={13} />
+                <span>Product Enquiry</span>
+              </button>
             </div>
-          </div>
 
-          {/* Right Column: 4/12 - Quick Information Sidebar Widget */}
-          <div className="lg:col-span-4 space-y-6" id="quick-info-sidebar">
+          </div>
+        </div>
+
+          {/* Right Column on Desktop (4/12), First on Mobile — Quick Information Widget */}
+          <div className="order-1 lg:order-2 lg:col-span-4 space-y-6" id="quick-info-sidebar">
             
             {/* Box 1: Quick Information Grid Table */}
             <div className="bg-slate-50 border border-slate-100 rounded-xl p-6 space-y-4">
@@ -779,59 +929,42 @@ export default function ProductDetailPage({
                 Quick Information
               </h4>
               
-              {/* Sidebar table parameters list */}
+              {/* Sidebar table parameters list - concise 5 to 7 key items */}
               <div className="divide-y divide-slate-100 text-xs font-medium" id="quick-info-table">
-                
-                <div className="py-2.5 flex items-center justify-between">
-                  <span className="text-slate-400">Product Type</span>
-                  <span className="text-slate-800 font-bold">{product.category}</span>
-                </div>
-
-                {product.modelId && (
-                  <div className="py-2.5 flex items-center justify-between">
-                    <span className="text-slate-400">Model SKU</span>
-                    <span className="text-slate-800 font-mono font-bold uppercase">{product.modelId}</span>
+                {quickInfoList.map((item, idx) => (
+                  <div key={idx} className="py-2.5 flex items-center justify-between gap-3">
+                    <span className="text-slate-400 shrink-0">{item.label}</span>
+                    <span 
+                      className={`text-slate-800 font-bold text-right truncate max-w-[175px] ${item.isMono ? 'font-mono' : ''}`} 
+                      title={item.value}
+                    >
+                      {item.value}
+                    </span>
                   </div>
-                )}
-
-                <div className="py-2.5 flex items-center justify-between">
-                  <span className="text-slate-400">Cooling Capacity</span>
-                  <span className="text-slate-800 font-bold">{coolingCap}</span>
-                </div>
-
-                <div className="py-2.5 flex items-center justify-between">
-                  <span className="text-slate-400">Compressor Type</span>
-                  <span className="text-slate-800 font-bold">{compressorType}</span>
-                </div>
-
-                <div className="py-2.5 flex items-center justify-between">
-                  <span className="text-slate-400">Refrigerant</span>
-                  <span className="text-slate-800 font-mono font-bold">{refrigerant}</span>
-                </div>
-
-                <div className="py-2.5 flex items-center justify-between">
-                  <span className="text-slate-400">Power Supply</span>
-                  <span className="text-slate-800 font-mono font-bold text-[11px] truncate max-w-[170px]" title={powerSupply}>
-                    {powerSupply}
-                  </span>
-                </div>
-
-                <div className="py-2.5 flex items-center justify-between">
-                  <span className="text-slate-400">Application</span>
-                  <span className="text-slate-800 font-bold truncate max-w-[170px] text-right" title={dynamicApplications.join(", ")}>
-                    {dynamicApplications.length > 0 ? dynamicApplications.slice(0, 2).join(", ") : product.category}
-                  </span>
-                </div>
-
-                <div className="py-2.5 flex items-center justify-between">
-                  <span className="text-slate-400">Warranty</span>
-                  <span className="text-slate-800 font-bold">{warranty}</span>
-                </div>
+                ))}
               </div>
+
+              {cleanSpecs.length > 4 && (
+                <div className="pt-2 border-t border-slate-100 text-center">
+                  <button
+                    onClick={() => {
+                      setActiveTab("specs");
+                      const el = document.getElementById("tech-tabs-card");
+                      if (el) {
+                        el.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }
+                    }}
+                    className="text-[11px] font-bold text-[#2596be] hover:underline cursor-pointer inline-flex items-center gap-1"
+                  >
+                    <span>View all {cleanSpecs.length} technical specifications</span>
+                    <span>&rarr;</span>
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* Box 2: Need More Information? Action Widget */}
-            <div className="bg-blue-50/30 border border-blue-100/40 rounded-xl p-6 text-center space-y-4">
+            {/* Box 2: Need More Information? Action Widget (Desktop sidebar only — on mobile it sits below the tabs) */}
+            <div className="hidden lg:block bg-blue-50/30 border border-blue-100/40 rounded-xl p-6 text-center space-y-4">
               <div className="w-10 h-10 rounded-full bg-blue-50 text-[#2596be] flex items-center justify-center mx-auto">
                 <HelpCircle size={20} className="stroke-[2.5]" />
               </div>

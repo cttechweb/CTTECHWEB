@@ -3,8 +3,13 @@ import {
   Linkedin, Twitter, Facebook, Sparkles, 
   Phone, Mail, MapPin, ArrowUpRight, Instagram, Youtube, MessageSquare, Globe 
 } from "lucide-react";
-import { getGeneralSettings, DEFAULT_SOCIAL_LINKS } from "../services/generalSettingsService";
-import { DynamicSocialLink } from "../types";
+import { 
+  getGeneralSettings, 
+  DEFAULT_SOCIAL_LINKS, 
+  DEFAULT_PHONE_CONTACTS, 
+  DEFAULT_EMAIL_CONTACTS 
+} from "../services/generalSettingsService";
+import { DynamicSocialLink, DynamicContactNumber, DynamicContactEmail } from "../types";
 // @ts-ignore
 import logo from "../assets/images/Cool Technologies Logo.png";
 
@@ -38,6 +43,8 @@ export default function Footer({
     return {
       phone: s.phone || "+971 2 565 0123",
       email: s.email || "info@cooltechuae.com",
+      phoneContacts: (s.phoneContacts && s.phoneContacts.length > 0 ? s.phoneContacts : DEFAULT_PHONE_CONTACTS),
+      emailContacts: (s.emailContacts && s.emailContacts.length > 0 ? s.emailContacts : DEFAULT_EMAIL_CONTACTS),
       address: s.address || "Plot-99, Sector M-42 / M-14, Mussafah Industrial Area, Abu Dhabi, UAE",
       socialLinks: (s.socialLinks && s.socialLinks.length > 0 ? s.socialLinks : DEFAULT_SOCIAL_LINKS)
     };
@@ -49,6 +56,8 @@ export default function Footer({
       setContactSettings({
         phone: s.phone || "+971 2 565 0123",
         email: s.email || "info@cooltechuae.com",
+        phoneContacts: (s.phoneContacts && s.phoneContacts.length > 0 ? s.phoneContacts : DEFAULT_PHONE_CONTACTS),
+        emailContacts: (s.emailContacts && s.emailContacts.length > 0 ? s.emailContacts : DEFAULT_EMAIL_CONTACTS),
         address: s.address || "Plot-99, Sector M-42 / M-14, Mussafah Industrial Area, Abu Dhabi, UAE",
         socialLinks: (s.socialLinks && s.socialLinks.length > 0 ? s.socialLinks : DEFAULT_SOCIAL_LINKS)
       });
@@ -336,27 +345,69 @@ export default function Footer({
           </h4>
           
           <div className="flex flex-col gap-3.5 text-[13px] text-slate-400">
-            {/* Contact Phone */}
-            <div className="flex items-start gap-2.5">
-              <Phone size={15} className="text-blue-500 shrink-0 mt-0.5" />
-              <div className="flex flex-col">
-                <span className="text-[11px] text-slate-500 uppercase font-semibold">Procurement Hotline</span>
-                <a href={`tel:${contactSettings.phone.replace(/[^0-9+]/g, '')}`} className="text-white font-bold hover:text-blue-400 transition-colors">
-                  {contactSettings.phone}
-                </a>
+            {/* Dynamic Contact Phone Numbers */}
+            {contactSettings.phoneContacts && contactSettings.phoneContacts.length > 0 ? (
+              contactSettings.phoneContacts
+                .filter((c) => c.isActive !== false && c.number?.trim())
+                .map((contact) => (
+                  <div key={contact.id} className="flex items-start gap-2.5">
+                    <Phone size={15} className="text-blue-500 shrink-0 mt-0.5" />
+                    <div className="flex flex-col">
+                      <span className="text-[11px] text-slate-500 uppercase font-semibold">
+                        {contact.title || "Procurement Hotline"}
+                      </span>
+                      <a
+                        href={`tel:${contact.number.replace(/[^0-9+]/g, '')}`}
+                        className="text-white font-bold hover:text-blue-400 transition-colors"
+                      >
+                        {contact.number}
+                      </a>
+                    </div>
+                  </div>
+                ))
+            ) : (
+              <div className="flex items-start gap-2.5">
+                <Phone size={15} className="text-blue-500 shrink-0 mt-0.5" />
+                <div className="flex flex-col">
+                  <span className="text-[11px] text-slate-500 uppercase font-semibold">Procurement Hotline</span>
+                  <a href={`tel:${contactSettings.phone.replace(/[^0-9+]/g, '')}`} className="text-white font-bold hover:text-blue-400 transition-colors">
+                    {contactSettings.phone}
+                  </a>
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Contact Email */}
-            <div className="flex items-start gap-2.5">
-              <Mail size={15} className="text-blue-500 shrink-0 mt-0.5" />
-              <div className="flex flex-col">
-                <span className="text-[11px] text-slate-500 uppercase font-semibold">Inquiries &amp; Quotations</span>
-                <a href={`mailto:${contactSettings.email}`} className="text-slate-200 hover:text-white hover:underline transition-colors font-medium">
-                  {contactSettings.email}
-                </a>
+            {/* Dynamic Contact Email Addresses */}
+            {contactSettings.emailContacts && contactSettings.emailContacts.length > 0 ? (
+              contactSettings.emailContacts
+                .filter((c) => c.isActive !== false && c.email?.trim())
+                .map((contact) => (
+                  <div key={contact.id} className="flex items-start gap-2.5">
+                    <Mail size={15} className="text-blue-500 shrink-0 mt-0.5" />
+                    <div className="flex flex-col">
+                      <span className="text-[11px] text-slate-500 uppercase font-semibold">
+                        {contact.title || "Inquiries & Quotations"}
+                      </span>
+                      <a
+                        href={`mailto:${contact.email}`}
+                        className="text-slate-200 hover:text-white hover:underline transition-colors font-medium break-all"
+                      >
+                        {contact.email}
+                      </a>
+                    </div>
+                  </div>
+                ))
+            ) : (
+              <div className="flex items-start gap-2.5">
+                <Mail size={15} className="text-blue-500 shrink-0 mt-0.5" />
+                <div className="flex flex-col">
+                  <span className="text-[11px] text-slate-500 uppercase font-semibold">Inquiries &amp; Quotations</span>
+                  <a href={`mailto:${contactSettings.email}`} className="text-slate-200 hover:text-white hover:underline transition-colors font-medium">
+                    {contactSettings.email}
+                  </a>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* HQ Address */}
             <div className="flex items-start gap-2.5">

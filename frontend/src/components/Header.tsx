@@ -4,7 +4,7 @@ import {
   Menu, X, ChevronDown, Wind, LogOut, ShieldAlert, Wrench,
   Package, Layers, HelpCircle, Users, FileText, BookOpen, Briefcase, Phone, Mail,
   Globe, Download, Newspaper, Info, Shield, CheckCircle, Sparkles, Droplet, Snowflake, Zap,
-  RefreshCw, Thermometer, Heart
+  RefreshCw, Thermometer, Heart, ArrowRight
 } from "lucide-react";
 // @ts-ignore
 import logo from "../assets/images/Cool Technologies Logo.png";
@@ -15,6 +15,7 @@ import { PRODUCTS, SERVICES } from "../data";
 import { useWishlist } from "../context/WishlistContext";
 import { getGeneralSettings } from "../services/generalSettingsService";
 import { getProductSlug } from "../utils/productSlug";
+import { matchesProductSearch, matchesServiceSearch } from "../utils/globalSearch";
 
 interface HeaderProps {
   cart: CartItem[];
@@ -33,12 +34,14 @@ interface HeaderProps {
   onOpenLogin: (mode?: "login" | "signup" | "retailer") => void;
   onOpenAbout: () => void;
   products?: Product[];
+  services?: ServiceItem[];
   b2bUser: any;
   onLogout: () => void;
 }
 
 export default function Header({
   products,
+  services,
   cart,
   onOpenCart,
   searchTerm,
@@ -127,33 +130,33 @@ export default function Header({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Filter ONLY internal Products and Services from database
+  // Filter Products and Services using Global Multi-Attribute Search
   const searchResults = useMemo(() => {
-    if (!debouncedQuery) return { products: [], services: [], total: 0 };
-    const q = debouncedQuery.toLowerCase();
+    if (!debouncedQuery) return { products: [], services: [], totalProductMatches: 0, totalServiceMatches: 0, total: 0 };
 
-    const matchingProducts = (products || PRODUCTS).filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q) ||
-        p.brand.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q)
-    ).slice(0, 5);
+    const activeProds = products || PRODUCTS;
+    const activeServs = (services && services.length > 0) ? services : SERVICES;
 
-    const matchingServices = SERVICES.filter(
-      (s) =>
-        s.title.toLowerCase().includes(q) ||
-        s.category.toLowerCase().includes(q) ||
-        s.tagline.toLowerCase().includes(q) ||
-        s.description.toLowerCase().includes(q)
-    ).slice(0, 5);
+    const allMatchingProducts = activeProds.filter((p) => {
+      const status = (p.status as string) || "active";
+      if (status === "inactive" || status === "archived") return false;
+      return matchesProductSearch(p, debouncedQuery);
+    });
+
+    const allMatchingServices = activeServs.filter((s) => {
+      const status = (s.status as string) || "active";
+      if (status === "inactive" || status === "archived") return false;
+      return matchesServiceSearch(s, debouncedQuery);
+    });
 
     return {
-      products: matchingProducts,
-      services: matchingServices,
-      total: matchingProducts.length + matchingServices.length,
+      products: allMatchingProducts.slice(0, 6),
+      services: allMatchingServices.slice(0, 4),
+      totalProductMatches: allMatchingProducts.length,
+      totalServiceMatches: allMatchingServices.length,
+      total: allMatchingProducts.length + allMatchingServices.length,
     };
-  }, [debouncedQuery]);
+  }, [debouncedQuery, products, services]);
 
   // Combined flat results array for arrow key navigation
   const flatResults = useMemo(() => {
@@ -236,84 +239,137 @@ export default function Header({
     return (
       <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200/90 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
         {searchResults.total > 0 ? (
-          <div className="max-h-[380px] overflow-y-auto divide-y divide-slate-100">
-            {/* Products Section */}
-            {searchResults.products.length > 0 && (
-              <div>
-                <div className="px-3.5 py-1.5 bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100 flex items-center justify-between select-none">
-                  <span>Products</span>
-                  <span className="text-[9px] text-slate-400 font-semibold">{searchResults.products.length} found</span>
-                </div>
+          <div>
+            <div className="max-h-[380px] overflow-y-auto divide-y divide-slate-100">
+              {/* Products Section */}
+              {searchResults.products.length > 0 && (
                 <div>
-                  {searchResults.products.map((product) => {
-                    indexCounter++;
-                    const itemIdx = indexCounter;
-                    const isHighlighted = itemIdx === selectedIndex;
-                    return (
-                      <button
-                        key={product.id}
-                        type="button"
-                        onClick={() => handleSelectProduct(product)}
-                        onMouseEnter={() => setSelectedIndex(itemIdx)}
-                        className={`w-full flex items-center gap-3 px-3.5 py-2.5 text-left transition-colors cursor-pointer ${
-                          isHighlighted ? "bg-blue-50 text-blue-900" : "hover:bg-slate-50 text-slate-800"
-                        }`}
-                      >
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-8 h-8 rounded border border-slate-200 object-cover bg-slate-50 shrink-0"
-                          referrerPolicy="no-referrer"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = "/src/assets/images/hvac_air_conditioner_1784350824930.jpg";
-                          }}
-                        />
-                        <span className="text-xs font-semibold line-clamp-1 flex-1">{product.name}</span>
-                      </button>
-                    );
-                  })}
+                  <div className="px-3.5 py-1.5 bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100 flex items-center justify-between select-none">
+                    <span>Products ({searchResults.totalProductMatches})</span>
+                    <span className="text-[9px] text-slate-400 font-semibold">Top matches</span>
+                  </div>
+                  <div>
+                    {searchResults.products.map((product) => {
+                      indexCounter++;
+                      const itemIdx = indexCounter;
+                      const isHighlighted = itemIdx === selectedIndex;
+                      return (
+                        <button
+                          key={product.id}
+                          type="button"
+                          onClick={() => handleSelectProduct(product)}
+                          onMouseEnter={() => setSelectedIndex(itemIdx)}
+                          className={`w-full flex items-center gap-3 px-3.5 py-2.5 text-left transition-colors cursor-pointer ${
+                            isHighlighted ? "bg-blue-50 text-blue-900" : "hover:bg-slate-50 text-slate-800"
+                          }`}
+                        >
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="w-10 h-10 rounded-lg border border-slate-200 object-cover bg-slate-50 shrink-0"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src = "/src/assets/images/hvac_air_conditioner_1784350824930.jpg";
+                            }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-xs font-bold line-clamp-1">{product.name}</span>
+                              {product.brand && (
+                                <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                                  {product.brand}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400">
+                              {product.modelId && <span className="font-mono text-[10px]">Model: {product.modelId}</span>}
+                              {product.category && <span>• {product.category}</span>}
+                            </div>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            {typeof product.price === "number" && product.price > 0 ? (
+                              <span className="text-xs font-black text-blue-700">AED {product.price.toLocaleString()}</span>
+                            ) : (
+                              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">B2B Quote</span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Services Section */}
-            {searchResults.services.length > 0 && (
-              <div>
-                <div className="px-3.5 py-1.5 bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100 flex items-center justify-between select-none">
-                  <span>Services</span>
-                  <span className="text-[9px] text-slate-400 font-semibold">{searchResults.services.length} found</span>
-                </div>
+              {/* Services Section */}
+              {searchResults.services.length > 0 && (
                 <div>
-                  {searchResults.services.map((service) => {
-                    indexCounter++;
-                    const itemIdx = indexCounter;
-                    const isHighlighted = itemIdx === selectedIndex;
-                    return (
-                      <button
-                        key={service.id}
-                        type="button"
-                        onClick={() => handleSelectService(service)}
-                        onMouseEnter={() => setSelectedIndex(itemIdx)}
-                        className={`w-full flex items-center gap-3 px-3.5 py-2.5 text-left transition-colors cursor-pointer ${
-                          isHighlighted ? "bg-blue-50 text-blue-900" : "hover:bg-slate-50 text-slate-800"
-                        }`}
-                      >
-                        <div className="w-8 h-8 rounded bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                          {getServiceIcon(service.iconName)}
-                        </div>
-                        <span className="text-xs font-semibold line-clamp-1 flex-1">{service.title}</span>
-                      </button>
-                    );
-                  })}
+                  <div className="px-3.5 py-1.5 bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100 flex items-center justify-between select-none">
+                    <span>Services ({searchResults.totalServiceMatches})</span>
+                    <span className="text-[9px] text-slate-400 font-semibold">Expert support</span>
+                  </div>
+                  <div>
+                    {searchResults.services.map((service) => {
+                      indexCounter++;
+                      const itemIdx = indexCounter;
+                      const isHighlighted = itemIdx === selectedIndex;
+                      return (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onClick={() => handleSelectService(service)}
+                          onMouseEnter={() => setSelectedIndex(itemIdx)}
+                          className={`w-full flex items-center gap-3 px-3.5 py-2.5 text-left transition-colors cursor-pointer ${
+                            isHighlighted ? "bg-blue-50 text-blue-900" : "hover:bg-slate-50 text-slate-800"
+                          }`}
+                        >
+                          <div className="w-10 h-10 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                            {getServiceIcon(service.iconName)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs font-bold line-clamp-1">{service.title}</span>
+                            {service.tagline && (
+                              <span className="text-[11px] text-slate-400 line-clamp-1 block mt-0.5">
+                                {service.tagline}
+                              </span>
+                            )}
+                          </div>
+                          <span className="shrink-0 text-[10px] font-bold text-cyan-700 bg-cyan-50 border border-cyan-200/60 px-2 py-0.5 rounded-full">
+                            Service
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+              )}
+            </div>
+
+            {/* View all in catalog footer */}
+            {searchResults.totalProductMatches > 0 && (
+              <div className="p-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span className="text-slate-500 text-[11px] font-medium">
+                  Found {searchResults.totalProductMatches} products for "{debouncedQuery}"
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    window.location.hash = `#/products?search=${encodeURIComponent(debouncedQuery)}`;
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="text-blue-700 hover:text-blue-900 font-extrabold flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <span>View all in catalog</span>
+                  <ArrowRight size={13} />
+                </button>
               </div>
             )}
           </div>
         ) : (
           /* Empty State */
-          <div className="p-4 text-center">
-            <p className="text-xs font-bold text-slate-700">No matching products or services found.</p>
-            <p className="text-[11px] text-slate-400 mt-0.5 font-medium">Try another keyword.</p>
+          <div className="p-5 text-center">
+            <p className="text-xs font-bold text-slate-700">No mechanical equipment or services matched.</p>
+            <p className="text-[11px] text-slate-400 mt-0.5 font-medium">Try searching by model number, tonnage, compressor, or brand.</p>
           </div>
         )}
       </div>
@@ -363,19 +419,23 @@ export default function Header({
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (flatResults.length > 0) {
-      const topItem = selectedIndex >= 0 ? flatResults[selectedIndex] : flatResults[0];
+    const query = searchTerm.trim();
+    if (!query) return;
+
+    if (selectedIndex >= 0 && flatResults[selectedIndex]) {
+      const topItem = flatResults[selectedIndex];
       if (topItem.type === "product") {
         handleSelectProduct(topItem.item as Product);
       } else {
         handleSelectService(topItem.item as ServiceItem);
       }
-    } else {
-      const catalogElement = document.getElementById("product-catalog");
-      if (catalogElement) {
-        catalogElement.scrollIntoView({ behavior: "smooth" });
-      }
+      return;
     }
+
+    // Default Enter behavior: Navigate directly to catalog filtered by search term
+    setIsDropdownOpen(false);
+    window.location.hash = `#/products?search=${encodeURIComponent(query)}`;
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleNavClick = (sectionId: string) => {

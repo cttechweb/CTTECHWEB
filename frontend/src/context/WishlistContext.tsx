@@ -34,7 +34,22 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode; onShowToast
       try {
         const saved = localStorage.getItem(storageKey);
         if (saved) {
-          setWishlist(JSON.parse(saved));
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            const normalized = parsed.map((it: any) => ({
+              ...it,
+              name: it.product?.name || it.service?.title || it.name || it.title || "Item",
+              title: it.service?.title || it.product?.name || it.title || it.name || "Item",
+              image: it.product?.image || it.service?.image || it.image || "",
+              category: it.product?.category || it.service?.category || it.category || "",
+              description: it.product?.description || it.service?.description || it.description || "",
+              price: it.product?.price ?? it.price ?? 0,
+              brand: it.product?.brand || it.brand || "",
+            }));
+            setWishlist(normalized);
+          } else {
+            setWishlist([]);
+          }
         } else {
           setWishlist([]);
         }
@@ -92,6 +107,13 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode; onShowToast
         product: item.product,
         service: item.service,
         addedAt: new Date().toISOString(),
+        name: item.product?.name || item.service?.title || "Item",
+        title: item.service?.title || item.product?.name || "Item",
+        image: item.product?.image || item.service?.image || "",
+        category: item.product?.category || item.service?.category || "",
+        description: item.product?.description || item.service?.description || "",
+        price: item.product?.price ?? 0,
+        brand: item.product?.brand || "",
       };
       const updated = [newItem, ...wishlist];
       saveWishlist(updated);

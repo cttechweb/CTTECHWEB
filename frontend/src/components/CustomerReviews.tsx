@@ -8,6 +8,8 @@ import { useAuth } from "../context/AuthContext";
 import { saveReviewToDatabase } from "../lib/reviewService";
 import { uploadProductImage } from "../services/storageService";
 
+import { INITIAL_REVIEWS } from "../data/initialReviews";
+
 interface CustomerReviewsProps {
   reviews?: ReviewItem[];
   onOpenLogin?: () => void;
@@ -31,12 +33,14 @@ export default function CustomerReviews({ reviews, onOpenLogin }: CustomerReview
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Filter strictly for approved homepage reviews
+  // Filter strictly for approved homepage reviews, falling back to verified initial reviews
   const approvedHomepageReviews = reviews 
     ? reviews.filter(r => r.target === "homepage" && r.status === "approved")
     : [];
 
-  const displayReviews = approvedHomepageReviews;
+  const defaultHomepageReviews = INITIAL_REVIEWS.filter(r => r.target === "homepage" && r.status === "approved");
+
+  const displayReviews = approvedHomepageReviews.length > 0 ? approvedHomepageReviews : defaultHomepageReviews;
 
   // Auto-open review modal if user logged in and returned with ?action=review
   useEffect(() => {
@@ -44,7 +48,7 @@ export default function CustomerReviews({ reviews, onOpenLogin }: CustomerReview
       const hash = window.location.hash || "";
       if (hash.includes("action=review") && user) {
         setAuthorName(profile?.name || user.displayName || user.email?.split("@")[0] || "");
-        setAuthorRole(profile?.companyName || profile?.designation || "Verified Client");
+        setAuthorRole(profile?.companyName || profile?.designation || "");
         setLocation(profile?.address || "Dubai, UAE");
         if (user.photoURL) setAuthorAvatar(user.photoURL);
         setIsReviewModalOpen(true);
@@ -72,7 +76,7 @@ export default function CustomerReviews({ reviews, onOpenLogin }: CustomerReview
     }
 
     setAuthorName(profile?.name || user.displayName || user.email?.split("@")[0] || "");
-    setAuthorRole(profile?.companyName || profile?.designation || "Verified Client");
+    setAuthorRole(profile?.companyName || profile?.designation || "");
     setLocation(profile?.address || "Dubai, UAE");
     if (user.photoURL && !authorAvatar) setAuthorAvatar(user.photoURL);
     setRating(5);
@@ -134,7 +138,7 @@ export default function CustomerReviews({ reviews, onOpenLogin }: CustomerReview
     const reviewToSave: ReviewItem = {
       id: `rev-hp-${Date.now()}`,
       authorName: authorName.trim(),
-      authorRole: authorRole.trim() || (profile?.companyName ? `${profile.companyName}` : "Verified Client"),
+      authorRole: authorRole.trim() || profile?.companyName || profile?.designation || "",
       location: location.trim() || "UAE",
       rating,
       comment: comment.trim(),
@@ -305,9 +309,6 @@ export default function CustomerReviews({ reviews, onOpenLogin }: CustomerReview
                       <span className="flex items-center gap-1.5 font-semibold">
                         <ShieldCheck size={14} className="text-blue-600 shrink-0" />
                         <span>Submitting as: <strong className="font-bold">{user.email || profile?.name}</strong></span>
-                      </span>
-                      <span className="text-[10px] text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded font-bold">
-                        Verified Client
                       </span>
                     </div>
                   )}

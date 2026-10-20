@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 100" width="240" height="100">
+  <defs>
+    <linearGradient id="bgGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f766e" />
+      <stop offset="50%" stop-color="#0d9488" />
+      <stop offset="100%" stop-color="#14b8a6" />
+    </linearGradient>
+    <linearGradient id="goldGrad3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <filter id="shadow3" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded card -->
+  <rect x="2" y="2" width="236" height="96" rx="10" fill="url(#bgGrad3)" stroke="#fcd34d" stroke-width="2" filter="url(#shadow3)"/>
+
+  <!-- Left Star Rating Block -->
+  <rect x="8" y="8" width="80" height="84" rx="8" fill="#ffffff" />
+  
+  <!-- Star icon header -->
+  <text x="48" y="26" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="16" fill="#0f766e">3 STAR</text>
+  
+  <!-- 3 Filled Stars + 2 Outline Stars -->
+  <g transform="translate(14, 34) scale(0.68)">
+    <!-- Star 1 (filled) -->
+    <polygon points="12,0 15,9 24,9 17,15 19,24 12,18 5,24 7,15 0,9 9,9" fill="url(#goldGrad3)" stroke="#b45309" stroke-width="0.5"/>
+    <!-- Star 2 (filled) -->
+    <g transform="translate(20, 0)">
+      <polygon points="12,0 15,9 24,9 17,15 19,24 12,18 5,24 7,15 0,9 9,9" fill="url(#goldGrad3)" stroke="#b45309" stroke-width="0.5"/>
+    </g>
+    <!-- Star 3 (filled) -->
+    <g transform="translate(40, 0)">
+      <polygon points="12,0 15,9 24,9 17,15 19,24 12,18 5,24 7,15 0,9 9,9" fill="url(#goldGrad3)" stroke="#b45309" stroke-width="0.5"/>
+    </g>
+    <!-- Star 4 (empty) -->
+    <g transform="translate(60, 0)">
+      <polygon points="12,0 15,9 24,9 17,15 19,24 12,18 5,24 7,15 0,9 9,9" fill="#e5e7eb" stroke="#9ca3af" stroke-width="0.5"/>
+    </g>
+    <!-- Star 5 (empty) -->
+    <g transform="translate(80, 0)">
+      <polygon points="12,0 15,9 24,9 17,15 19,24 12,18 5,24 7,15 0,9 9,9" fill="#e5e7eb" stroke="#9ca3af" stroke-width="0.5"/>
+    </g>
+  </g>
+
+  <!-- Subtext under stars in left block -->
+  <text x="48" y="70" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="8.5" fill="#0f766e" letter-spacing="0.5">STANDARD</text>
+  <text x="48" y="82" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="7" fill="#6b7280">SAVE UP TO 25%</text>
+
+  <!-- Right text details -->
+  <text x="100" y="27" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="13" fill="#ffffff" letter-spacing="0.5">ENERGY EFFICIENCY</text>
+  <text x="100" y="44" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="10" fill="#fcd34d" letter-spacing="0.5">★ ★ ★ ☆ ☆ RATING</text>
+  
+  <rect x="100" y="52" width="130" height="1" fill="#5eead4" opacity="0.4" />
+  
+  <text x="100" y="68" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="8.5" fill="#f0fdfa">ESMA / UAE COMPLIANT</text>
+  <text x="100" y="82" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="7.5" fill="#ccfbf1">TROPICAL CLIMATE TESTED</text>
+</svg>

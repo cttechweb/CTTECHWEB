@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 80" width="220" height="80">
+  <defs>
+    <linearGradient id="isoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f2b5c" />
+      <stop offset="100%" stop-color="#1e3a8a" />
+    </linearGradient>
+    <linearGradient id="silverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="50%" stop-color="#cbd5e1" />
+      <stop offset="100%" stop-color="#94a3b8" />
+    </linearGradient>
+    <filter id="shadowIso" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <rect x="2" y="2" width="216" height="76" rx="8" fill="url(#isoGrad)" stroke="#38bdf8" stroke-width="1.5" filter="url(#shadowIso)"/>
+
+  <!-- Left Circular Seal -->
+  <g transform="translate(10, 10)">
+    <!-- Outer Ring -->
+    <circle cx="30" cy="30" r="28" fill="#ffffff" stroke="#0f2b5c" stroke-width="2"/>
+    <circle cx="30" cy="30" r="24" fill="none" stroke="#3b82f6" stroke-width="1" stroke-dasharray="2 1"/>
+    <!-- Checkmark icon -->
+    <path d="M22 30 L28 36 L39 24" fill="none" stroke="#0284c7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="30" y="47" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="7" fill="#0f2b5c">QUALITY</text>
+  </g>
+
+  <!-- Right Details -->
+  <text x="78" y="28" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="14" fill="#ffffff" letter-spacing="1">ISO 9001:2015</text>
+  <text x="78" y="44" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="9.5" fill="#38bdf8" letter-spacing="0.5">CERTIFIED MANAGEMENT</text>
+  <rect x="78" y="50" width="130" height="1" fill="#60a5fa" opacity="0.3" />
+  <text x="78" y="64" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="8" fill="#e2e8f0">GLOBAL QUALITY STANDARD</text>
+</svg>

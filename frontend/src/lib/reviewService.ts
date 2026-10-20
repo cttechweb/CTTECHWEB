@@ -15,14 +15,17 @@ export function getLocalReviews(): ReviewItem[] {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved !== null) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed;
       }
     }
   } catch (err) {
     console.warn("Failed to load local reviews cache:", err);
   }
-  return [];
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_REVIEWS));
+  } catch {}
+  return INITIAL_REVIEWS;
 }
 
 export function saveLocalReviews(reviews: ReviewItem[]): void {

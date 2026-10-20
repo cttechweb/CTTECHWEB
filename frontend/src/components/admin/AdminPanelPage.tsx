@@ -168,6 +168,34 @@ export default function AdminPanelPage({
     }
   };
 
+  const handleBulkSetHidePrice = (hide: boolean) => {
+    if (selectedProductIds.length === 0) return;
+    selectedProductIds.forEach((id) => {
+      const prod = products.find((p) => p.id === id);
+      if (prod) {
+        onUpdateProduct({ ...prod, hidePrice: hide });
+      }
+    });
+    if (onShowToast) onShowToast(`Updated price visibility for ${selectedProductIds.length} products!`);
+    setSelectedProductIds([]);
+  };
+
+  const handleBulkSetStock = (inStock: boolean) => {
+    if (selectedProductIds.length === 0) return;
+    selectedProductIds.forEach((id) => {
+      const prod = products.find((p) => p.id === id);
+      if (prod) {
+        onUpdateProduct({
+          ...prod,
+          inStock,
+          stockStatus: inStock ? "In Stock & Ready to Ship" : "Stock Out / Lead Time Required"
+        });
+      }
+    });
+    if (onShowToast) onShowToast(`Updated stock status for ${selectedProductIds.length} products!`);
+    setSelectedProductIds([]);
+  };
+
   // Filtered Lists
   const filteredProducts = products.filter((p) => {
     const matchesSearch = 
@@ -754,13 +782,102 @@ export default function AdminPanelPage({
                     </div>
                   </div>
 
+              {/* Bulk Actions Floating Bar */}
+              {selectedProductIds.length > 0 && (
+                <div className="bg-[#031b4e] text-white p-3 sm:px-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-lg border border-blue-900 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xs font-black bg-blue-600/70 px-2.5 py-1 rounded-md text-white border border-blue-400/30">
+                      {selectedProductIds.length} Selected
+                    </span>
+                    <span className="text-xs text-blue-200">
+                      {selectedProductIds.length === filteredProducts.length
+                        ? "All products selected"
+                        : `of ${filteredProducts.length} filtered products`}
+                    </span>
+                    {selectedProductIds.length < filteredProducts.length && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedProductIds(filteredProducts.map((p) => p.id))}
+                        className="text-xs font-bold text-amber-300 hover:text-amber-200 underline cursor-pointer ml-1"
+                      >
+                        Select all {filteredProducts.length}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleBulkSetHidePrice(true)}
+                      className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                      title="Hide price on website for selected products"
+                    >
+                      <EyeOff size={13} className="text-amber-300" />
+                      <span>Hide Price</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleBulkSetHidePrice(false)}
+                      className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                      title="Make price public for selected products"
+                    >
+                      <Eye size={13} className="text-emerald-300" />
+                      <span>Show Price</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleBulkSetStock(true)}
+                      className="px-2.5 py-1.5 bg-emerald-600/80 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                      title="Mark selected products as In Stock"
+                    >
+                      <CheckCircle2 size={13} />
+                      <span>Mark In Stock</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleBulkDeleteSelected}
+                      className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+                      title="Delete all selected products"
+                    >
+                      <Trash2 size={13} />
+                      <span>Delete ({selectedProductIds.length})</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedProductIds([])}
+                      className="px-2.5 py-1.5 text-blue-200 hover:text-white hover:bg-white/10 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Products Table */}
               <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs text-slate-700">
                     <thead className="bg-slate-50 text-[10px] uppercase tracking-wider font-extrabold text-slate-500 border-b border-slate-200">
                       <tr>
-                        <th className="px-5 py-3.5">Equipment / Model</th>
+                        <th className="w-12 px-4 py-3.5 text-center">
+                          <input
+                            type="checkbox"
+                            checked={filteredProducts.length > 0 && selectedProductIds.length === filteredProducts.length}
+                            ref={(el) => {
+                              if (el) {
+                                el.indeterminate = selectedProductIds.length > 0 && selectedProductIds.length < filteredProducts.length;
+                              }
+                            }}
+                            onChange={toggleSelectAllFiltered}
+                            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                            title={selectedProductIds.length === filteredProducts.length ? "Deselect all" : "Select all"}
+                          />
+                        </th>
+                        <th className="px-4 py-3.5">Equipment / Model</th>
                         <th className="px-4 py-3.5">Category & Brand</th>
                         <th className="px-4 py-3.5">Wholesale Price</th>
                         <th className="px-4 py-3.5">Stock & MOQ</th>
@@ -768,11 +885,28 @@ export default function AdminPanelPage({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium">
-                      {paginatedProducts.map((p) => (
-                        <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="px-5 py-4">
+                      {paginatedProducts.map((p) => {
+                        const isSelected = selectedProductIds.includes(p.id);
+                        return (
+                        <tr key={p.id} className={`transition-colors ${isSelected ? "bg-blue-50/70" : "hover:bg-slate-50/80"}`}>
+                          <td className="w-12 px-4 py-4 text-center">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelectProduct(p.id)}
+                              className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                            />
+                          </td>
+                          <td className="px-4 py-4">
                             <div className="flex items-center gap-3">
-                              <img src={p.image} alt="" className="w-10 h-10 object-contain rounded bg-slate-50 p-1 border border-slate-200 shrink-0" />
+                              <img
+                                src={p.image}
+                                alt=""
+                                className="w-10 h-10 object-contain rounded bg-slate-50 p-1 border border-slate-200 shrink-0"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src = "/src/assets/images/hvac_air_conditioner_1784350824930.jpg";
+                                }}
+                              />
                               <div>
                                 <div className="font-bold text-slate-900 text-xs">{p.name}</div>
                                 {p.modelId && <div className="text-[10px] font-mono text-slate-400">SKU: {p.modelId}</div>}
@@ -839,8 +973,9 @@ export default function AdminPanelPage({
                               </button>
                             </div>
                           </td>
-                        </tr>
-                      ))}
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

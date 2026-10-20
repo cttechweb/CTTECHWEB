@@ -7,26 +7,66 @@ interface FloatingSelectorTriggerProps {
   currentHash: string;
 }
 
+const DISMISSED_PAGES_KEY = "cooltech_ai_bubble_dismissed_pages";
+const DISMISS_COUNT_KEY = "cooltech_ai_bubble_dismiss_count";
+const MAX_GLOBAL_DISMISSALS = 2;
+
+function getPageRouteKey(hash: string): string {
+  if (!hash || hash === "#" || hash === "#/" || hash === "") return "home";
+  if (hash.startsWith("#/products")) return "products";
+  if (hash.startsWith("#/product/")) return "product_detail";
+  if (hash.startsWith("#/categories")) return "categories";
+  if (hash.startsWith("#/services")) return "services";
+  return "other";
+}
+
+function isPermanentlyDismissed(): boolean {
+  try {
+    const count = parseInt(localStorage.getItem(DISMISS_COUNT_KEY) || "0", 10);
+    return count >= MAX_GLOBAL_DISMISSALS;
+  } catch {
+    return false;
+  }
+}
+
+function isDismissedOnCurrentPage(routeKey: string): boolean {
+  try {
+    const raw = localStorage.getItem(DISMISSED_PAGES_KEY);
+    if (!raw) return false;
+    const pages: string[] = JSON.parse(raw);
+    return Array.isArray(pages) && pages.includes(routeKey);
+  } catch {
+    return false;
+  }
+}
+
 export default function FloatingSelectorTrigger({ onOpenWizard, currentHash }: FloatingSelectorTriggerProps) {
   const [isBoxOpen, setIsBoxOpen] = useState(false);
-  const [isDismissedOnPage, setIsDismissedOnPage] = useState(false);
 
-  // Reset manual dismissal state whenever user navigates to a new page/hash route
-  useEffect(() => {
-    setIsDismissedOnPage(false);
-  }, [currentHash]);
-
-  // Monitor scroll and route: Show boxy card ONLY while inside product/service/category sections & NOT dismissed/completed
+  // Monitor scroll and route: Show boxy card ONLY in catalog sections & NOT dismissed/completed
   useEffect(() => {
     const checkProductSectionScroll = () => {
-      // If user completed wizard or manually clicked X on this page, DO NOT auto-open
-      const isCompleted = sessionStorage.getItem("cooltech_wizard_completed") === "true";
-      if (isDismissedOnPage || isCompleted) {
+      // 1. If user dismissed 2 times total anywhere, NEVER show pop-up again
+      if (isPermanentlyDismissed()) {
         setIsBoxOpen(false);
         return;
       }
 
-      // Explicitly disable popup on contact, legal, support, and other non-catalog routes
+      // 2. If user already dismissed on this specific page route, NEVER show on this page again
+      const routeKey = getPageRouteKey(currentHash);
+      if (isDismissedOnCurrentPage(routeKey)) {
+        setIsBoxOpen(false);
+        return;
+      }
+
+      // 3. If user completed wizard, do not auto-open
+      const isCompleted = sessionStorage.getItem("cooltech_wizard_completed") === "true";
+      if (isCompleted) {
+        setIsBoxOpen(false);
+        return;
+      }
+
+      // 4. Disable on non-catalog routes (contact, legal, support, about, etc.)
       const isNonCatalogRoute = 
         currentHash.startsWith("#/contact") ||
         currentHash.startsWith("#/support") ||
@@ -44,6 +84,19 @@ export default function FloatingSelectorTrigger({ onOpenWizard, currentHash }: F
         return;
       }
 
+      // 5. Appropriate routes
+      const isAppropriateRoute = 
+        routeKey === "home" ||
+        routeKey === "products" ||
+        routeKey === "product_detail" ||
+        routeKey === "categories" ||
+        routeKey === "services";
+
+      if (!isAppropriateRoute) {
+        setIsBoxOpen(false);
+        return;
+      }
+
       const isProductRoute = 
         currentHash.startsWith("#/categories") ||
         currentHash.startsWith("#/products") || 
@@ -51,6 +104,7 @@ export default function FloatingSelectorTrigger({ onOpenWizard, currentHash }: F
         currentHash.startsWith("#/services");
       
       const catalogEl = document.getElementById("product-catalog") || 
+                        document.getElementById("product-discovery") ||
                         document.getElementById("products-line-list") ||
                         document.getElementById("services-page") ||
                         document.getElementById("categories");
@@ -59,8 +113,7 @@ export default function FloatingSelectorTrigger({ onOpenWizard, currentHash }: F
 
       if (catalogEl) {
         const rect = catalogEl.getBoundingClientRect();
-        // Inside section when rect is in or near viewport
-        if (rect.top <= window.innerHeight * 0.8 && rect.bottom >= window.innerHeight * 0.1) {
+        if (rect.top <= window.innerHeight * 0.85 && rect.bottom >= window.innerHeight * 0.1) {
           isInsideSection = true;
         }
       }
@@ -79,13 +132,28 @@ export default function FloatingSelectorTrigger({ onOpenWizard, currentHash }: F
       clearTimeout(timer);
       window.removeEventListener("scroll", checkProductSectionScroll);
     };
-  }, [currentHash, isDismissedOnPage]);
+  }, [currentHash]);
 
   // Manual dismissal handler (Clicking X)
   const handleDismiss = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsDismissedOnPage(true);
     setIsBoxOpen(false);
+
+    const routeKey = getPageRouteKey(currentHash);
+
+    try {
+      // 1. Add current page to dismissed pages set in localStorage
+      const raw = localStorage.getItem(DISMISSED_PAGES_KEY);
+      const pages: string[] = raw ? JSON.parse(raw) : [];
+      if (!pages.includes(routeKey)) {
+        pages.push(routeKey);
+        localStorage.setItem(DISMISSED_PAGES_KEY, JSON.stringify(pages));
+      }
+
+      // 2. Increment global dismiss count in localStorage
+      const currentCount = parseInt(localStorage.getItem(DISMISS_COUNT_KEY) || "0", 10);
+      localStorage.setItem(DISMISS_COUNT_KEY, String(currentCount + 1));
+    } catch {}
   };
 
   // Hide ONLY on admin or builder routes
@@ -100,7 +168,7 @@ export default function FloatingSelectorTrigger({ onOpenWizard, currentHash }: F
       <div className="animate-[bounce_3.5s_infinite_ease-in-out] flex flex-col items-start relative">
         
         {/* ── BOXY MESSAGE CARD ON TOP (Hidden on mobile to preserve screen space) ── */}
-        {isBoxOpen && !isDismissedOnPage && (
+        {isBoxOpen && (
           <div className="hidden sm:block absolute bottom-full mb-3 left-0 w-72 sm:w-80 bg-white text-slate-900 border border-slate-200 shadow-2xl rounded-2xl p-4 animate-in fade-in zoom-in-95 duration-200 z-50">
             {/* Pointer arrow pointing down at the button */}
             <div className="absolute -bottom-2 left-5 w-4 h-4 bg-white border-b border-r border-slate-200 rotate-45" />
@@ -149,11 +217,7 @@ export default function FloatingSelectorTrigger({ onOpenWizard, currentHash }: F
         {/* ── PRIMARY AI FLOATING ICON BUTTON ── */}
         <button
           onClick={() => {
-            if (!isBoxOpen && !isDismissedOnPage) {
-              setIsBoxOpen(true);
-            } else {
-              onOpenWizard();
-            }
+            onOpenWizard();
           }}
           className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-[#031b4e] to-[#0a3285] hover:from-[#05266e] hover:to-[#2596be] text-white border-2 border-white shadow-xl hover:shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer relative shrink-0 group/icon"
           title="Open AI Smart Equipment Selector"

@@ -116,7 +116,7 @@ export default function SubmitReviewPage({ onShowToast }: SubmitReviewPageProps)
     const newReview: ReviewItem = {
       id: `rev-user-${Date.now()}`,
       authorName: authorName.trim(),
-      authorRole: authorRole.trim() || (target === "service" ? "Verified Service Client" : "Verified Client"),
+      authorRole: authorRole.trim() || profile?.companyName || profile?.designation || "",
       location: location.trim() || "UAE",
       rating,
       comment: comment.trim(),
@@ -278,9 +278,6 @@ export default function SubmitReviewPage({ onShowToast }: SubmitReviewPageProps)
                     <span className="flex items-center gap-2 font-medium">
                       <ShieldCheck size={16} className="text-blue-600 shrink-0" />
                       <span>Authenticated as: <strong className="font-bold">{user.email || profile?.name}</strong></span>
-                    </span>
-                    <span className="text-[10px] text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded font-bold">
-                      Verified Client
                     </span>
                   </div>
                 )}

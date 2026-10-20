@@ -33,6 +33,9 @@ export function saveProductOverride(productId: string, meta: {
   stockStatus?: string;
   showMinOrderQty?: boolean;
   minOrderQty?: number;
+  emblemImage?: string;
+  emblemText?: string;
+  emblemSize?: "medium" | "large" | "xlarge";
 }) {
   try {
     const current = getProductOverrides();
@@ -58,6 +61,9 @@ export function enrichProduct(p: Product): Product {
 
   const isFeatured = p.isFeatured ?? overrides?.isFeatured ?? (specs._isFeatured === "true" || specs._isFeatured === true) ?? (badge === "Featured");
   const hidePrice = p.hidePrice ?? overrides?.hidePrice ?? (specs._hidePrice === "true" || specs._hidePrice === true);
+  const emblemImage = p.emblemImage || overrides?.emblemImage || specs._emblemImage || undefined;
+  const emblemText = p.emblemText || overrides?.emblemText || specs._emblemText || undefined;
+  const emblemSize = p.emblemSize || overrides?.emblemSize || specs._emblemSize || "large";
 
   const modelId = p.modelId || specs._modelId || undefined;
   const series = p.series || specs._series || undefined;
@@ -87,6 +93,9 @@ export function enrichProduct(p: Product): Product {
     badge,
     isFeatured,
     hidePrice,
+    emblemImage,
+    emblemText,
+    emblemSize,
     modelId,
     series,
     sourcingChannel,
@@ -238,6 +247,9 @@ export async function saveProduct(product: Product): Promise<boolean> {
     stockStatus: payload.stockStatus,
     showMinOrderQty: payload.showMinOrderQty,
     minOrderQty: payload.minOrderQty,
+    emblemImage: payload.emblemImage,
+    emblemText: payload.emblemText,
+    emblemSize: payload.emblemSize,
   });
 
   const current = getLocalProductsCache();

@@ -14,11 +14,31 @@ import {
   WhatsAppRoutingSettings,
   DepartmentHotlines,
   SocialSeoPreviewSettings,
-  PageSocialPreview
+  PageSocialPreview,
+  DynamicContactNumber,
+  DynamicContactEmail
 } from "../types";
 import { apiClient } from "./apiClient";
 
 const LOCAL_STORAGE_SETTINGS_KEY = "cooltech_general_settings_v1";
+
+export const DEFAULT_PHONE_CONTACTS: DynamicContactNumber[] = [
+  {
+    id: "phone-default-1",
+    title: "Procurement Hotline",
+    number: "+971 2 565 0123",
+    isActive: true
+  }
+];
+
+export const DEFAULT_EMAIL_CONTACTS: DynamicContactEmail[] = [
+  {
+    id: "email-default-1",
+    title: "Inquiries & Quotations",
+    email: "info@cooltechuae.com",
+    isActive: true
+  }
+];
 
 export const DEFAULT_SOCIAL_LINKS: DynamicSocialLink[] = [
   {
@@ -530,6 +550,8 @@ export const DEFAULT_SETTINGS: GeneralSiteSettings = {
   whatsappSettings: DEFAULT_WHATSAPP_SETTINGS,
   departmentHotlines: DEFAULT_DEPARTMENT_HOTLINES,
   socialSeoSettings: DEFAULT_SOCIAL_SEO_SETTINGS,
+  phoneContacts: DEFAULT_PHONE_CONTACTS,
+  emailContacts: DEFAULT_EMAIL_CONTACTS,
   updatedAt: new Date().toISOString()
 };
 
@@ -600,6 +622,16 @@ export function getGeneralSettings(): GeneralSiteSettings {
               publicKey: (parsed.emailIntegration.publicKey || "").trim() || DEFAULT_EMAIL_SETTINGS.publicKey,
             }
           : DEFAULT_EMAIL_SETTINGS,
+        phoneContacts: parsed.phoneContacts && Array.isArray(parsed.phoneContacts) && parsed.phoneContacts.length > 0
+          ? parsed.phoneContacts
+          : (parsed.phone
+              ? [{ id: "phone-default-migrated", title: "Procurement Hotline", number: parsed.phone, isActive: true }]
+              : DEFAULT_PHONE_CONTACTS),
+        emailContacts: parsed.emailContacts && Array.isArray(parsed.emailContacts) && parsed.emailContacts.length > 0
+          ? parsed.emailContacts
+          : (parsed.email
+              ? [{ id: "email-default-migrated", title: "Inquiries & Quotations", email: parsed.email, isActive: true }]
+              : DEFAULT_EMAIL_CONTACTS),
       };
     }
   } catch (err) {
@@ -730,6 +762,33 @@ export function saveGeneralSettings(settings: Partial<GeneralSiteSettings>): Gen
     ...settings,
     updatedAt: new Date().toISOString()
   };
+
+  // Keep top-level phone and email in sync with the primary items if phoneContacts/emailContacts are provided
+  if (settings.phoneContacts && settings.phoneContacts.length > 0) {
+    const primaryPhone = settings.phoneContacts.find(p => p.isActive !== false && p.number?.trim()) || settings.phoneContacts[0];
+    if (primaryPhone?.number) {
+      updated.phone = primaryPhone.number.trim();
+    }
+  } else if (settings.phone && updated.phoneContacts && updated.phoneContacts.length > 0) {
+    // If phone was updated directly without phoneContacts, sync the primary phoneContact
+    updated.phoneContacts = [
+      { ...updated.phoneContacts[0], number: settings.phone.trim() },
+      ...updated.phoneContacts.slice(1)
+    ];
+  }
+
+  if (settings.emailContacts && settings.emailContacts.length > 0) {
+    const primaryEmail = settings.emailContacts.find(e => e.isActive !== false && e.email?.trim()) || settings.emailContacts[0];
+    if (primaryEmail?.email) {
+      updated.email = primaryEmail.email.trim();
+    }
+  } else if (settings.email && updated.emailContacts && updated.emailContacts.length > 0) {
+    // If email was updated directly without emailContacts, sync the primary emailContact
+    updated.emailContacts = [
+      { ...updated.emailContacts[0], email: settings.email.trim() },
+      ...updated.emailContacts.slice(1)
+    ];
+  }
 
   try {
     localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(updated));

@@ -33,7 +33,9 @@ import {
   GeneralSiteSettings,
   EmailIntegrationSettings,
   DynamicSocialLink,
-  WhatsAppRoutingSettings
+  WhatsAppRoutingSettings,
+  DynamicContactNumber,
+  DynamicContactEmail
 } from "../../types";
 import {
   getGeneralSettings,
@@ -41,7 +43,9 @@ import {
   DEFAULT_EMAIL_SETTINGS,
   DEFAULT_SOCIAL_LINKS,
   DEFAULT_WHATSAPP_SETTINGS,
-  DEFAULT_DEPARTMENT_HOTLINES
+  DEFAULT_DEPARTMENT_HOTLINES,
+  DEFAULT_PHONE_CONTACTS,
+  DEFAULT_EMAIL_CONTACTS
 } from "../../services/generalSettingsService";
 import { sendTestEmail } from "../../services/emailService";
 
@@ -83,12 +87,70 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
   );
   const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
 
+  // Dynamic Phone Contacts & Email Contacts
+  const [phoneContacts, setPhoneContacts] = useState<DynamicContactNumber[]>(
+    settings.phoneContacts && settings.phoneContacts.length > 0
+      ? settings.phoneContacts
+      : DEFAULT_PHONE_CONTACTS
+  );
+  const [emailContacts, setEmailContacts] = useState<DynamicContactEmail[]>(
+    settings.emailContacts && settings.emailContacts.length > 0
+      ? settings.emailContacts
+      : DEFAULT_EMAIL_CONTACTS
+  );
+
   // 4. Social Links
   const [socialLinks, setSocialLinks] = useState<DynamicSocialLink[]>(
     settings.socialLinks && settings.socialLinks.length > 0 ? settings.socialLinks : DEFAULT_SOCIAL_LINKS
   );
   const socialIconFileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadingForLinkId, setUploadingForLinkId] = useState<string | null>(null);
+
+  // Dynamic Phone Contact Handlers
+  const handleAddPhoneContact = () => {
+    const newPhone: DynamicContactNumber = {
+      id: `phone-${Date.now()}`,
+      title: "Hotline / Support",
+      number: "+971 2 565 0123",
+      isActive: true
+    };
+    setPhoneContacts([...phoneContacts, newPhone]);
+  };
+
+  const handleUpdatePhoneContact = (id: string, updates: Partial<DynamicContactNumber>) => {
+    setPhoneContacts(phoneContacts.map(p => p.id === id ? { ...p, ...updates } : p));
+  };
+
+  const handleDeletePhoneContact = (id: string) => {
+    if (phoneContacts.length <= 1) {
+      if (onShowToast) onShowToast("At least one contact phone number is required.");
+      return;
+    }
+    setPhoneContacts(phoneContacts.filter(p => p.id !== id));
+  };
+
+  // Dynamic Email Contact Handlers
+  const handleAddEmailContact = () => {
+    const newEmail: DynamicContactEmail = {
+      id: `email-${Date.now()}`,
+      title: "Inquiries & Quotations",
+      email: "info@cooltechuae.com",
+      isActive: true
+    };
+    setEmailContacts([...emailContacts, newEmail]);
+  };
+
+  const handleUpdateEmailContact = (id: string, updates: Partial<DynamicContactEmail>) => {
+    setEmailContacts(emailContacts.map(e => e.id === id ? { ...e, ...updates } : e));
+  };
+
+  const handleDeleteEmailContact = (id: string) => {
+    if (emailContacts.length <= 1) {
+      if (onShowToast) onShowToast("At least one contact email is required.");
+      return;
+    }
+    setEmailContacts(emailContacts.filter(e => e.id !== id));
+  };
 
   // Reload data from storage
   const reloadData = () => {
@@ -102,6 +164,8 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
     setAddress(s.address || "");
     setWorkingHours(s.workingHours || "Monday - Saturday: 8:00 AM - 7:00 PM (GST)");
     setLocationMapUrl(s.locationMapUrl || "");
+    setPhoneContacts(s.phoneContacts && s.phoneContacts.length > 0 ? s.phoneContacts : DEFAULT_PHONE_CONTACTS);
+    setEmailContacts(s.emailContacts && s.emailContacts.length > 0 ? s.emailContacts : DEFAULT_EMAIL_CONTACTS);
     setWhatsappSettings(s.whatsappSettings || DEFAULT_WHATSAPP_SETTINGS);
     setEmailIntegration(s.emailIntegration || DEFAULT_EMAIL_SETTINGS);
     setSocialLinks(s.socialLinks && s.socialLinks.length > 0 ? s.socialLinks : DEFAULT_SOCIAL_LINKS);
@@ -115,15 +179,20 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
   const handleSaveAll = (customMsg?: string) => {
     setIsSaving(true);
 
+    const primaryPhone = phoneContacts[0]?.number?.trim() || phone.trim();
+    const primaryEmail = emailContacts[0]?.email?.trim() || email.trim();
+
     const payload: Partial<GeneralSiteSettings> = {
       companyName: companyName.trim(),
       tagline: tagline.trim(),
-      phone: phone.trim(),
-      email: email.trim(),
+      phone: primaryPhone,
+      email: primaryEmail,
+      phoneContacts: phoneContacts,
+      emailContacts: emailContacts,
       address: address.trim(),
       workingHours: workingHours.trim(),
       locationMapUrl: locationMapUrl.trim(),
-      whatsapp: whatsappSettings.contactPageWhatsappNumber || whatsappSettings.floatingPhoneNumber || phone.trim(),
+      whatsapp: whatsappSettings.contactPageWhatsappNumber || whatsappSettings.floatingPhoneNumber || primaryPhone,
       emailIntegration: {
         ...emailIntegration,
         defaultReceivingEmail: (emailIntegration.defaultReceivingEmail || "").trim() || "sales@cooltechuae.com",
@@ -147,7 +216,7 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
       departmentHotlines: {
         ...(settings.departmentHotlines || DEFAULT_DEPARTMENT_HOTLINES),
         servicesEmergencyPhone: emergencyPhone.trim(),
-        salesPhone: phone.trim()
+        salesPhone: primaryPhone
       }
     };
 
@@ -405,19 +474,78 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
                     />
                   </div>
 
-                  <div>
-                    <label className="text-xs font-medium text-slate-700 block mb-1">Primary Phone Number</label>
-                    <div className="relative">
-                      <Phone size={13} className="absolute left-3 top-2.5 text-slate-400" />
-                      <input
-                        type="text"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="+971 2 565 0123"
-                        className="w-full pl-8 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 font-medium focus:outline-none focus:border-slate-900 bg-white"
-                      />
+                  {/* Dynamic Phone Numbers Section */}
+                  <div className="md:col-span-2 pt-2 border-t border-slate-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <label className="text-xs font-bold text-slate-800 block">Contact Phone Numbers</label>
+                        <p className="text-[11px] text-slate-500">
+                          Add custom titles and phone numbers (e.g. Procurement Hotline, Sales Desk) displayed in the footer.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddPhoneContact}
+                        className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-semibold rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Plus size={13} />
+                        <span>Add Phone Number</span>
+                      </button>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1">Displayed in website header, footer, and contact page.</p>
+
+                    <div className="space-y-2.5">
+                      {phoneContacts.map((contact, idx) => (
+                        <div
+                          key={contact.id}
+                          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2.5 bg-slate-50/70 border border-slate-200 rounded-lg"
+                        >
+                          <div className="w-full sm:w-1/2">
+                            <label className="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">
+                              Title / Department #{idx + 1}
+                            </label>
+                            <input
+                              type="text"
+                              value={contact.title}
+                              onChange={(e) => handleUpdatePhoneContact(contact.id, { title: e.target.value })}
+                              placeholder="e.g. Procurement Hotline"
+                              className="w-full border border-slate-200 rounded-md px-2.5 py-1.5 text-xs text-slate-900 bg-white focus:outline-none focus:border-slate-900"
+                            />
+                          </div>
+
+                          <div className="w-full sm:w-1/2">
+                            <label className="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">
+                              Phone Number
+                            </label>
+                            <div className="relative">
+                              <Phone size={12} className="absolute left-2.5 top-2 text-slate-400" />
+                              <input
+                                type="text"
+                                value={contact.number}
+                                onChange={(e) => handleUpdatePhoneContact(contact.id, { number: e.target.value })}
+                                placeholder="+971 2 565 0123"
+                                className="w-full pl-7 border border-slate-200 rounded-md px-2.5 py-1.5 text-xs text-slate-900 font-medium bg-white focus:outline-none focus:border-slate-900"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center sm:self-end pb-0.5">
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePhoneContact(contact.id)}
+                              disabled={phoneContacts.length <= 1}
+                              title={phoneContacts.length <= 1 ? "At least one contact number is required" : "Remove phone number"}
+                              className={`p-1.5 rounded-md transition-colors cursor-pointer ${
+                                phoneContacts.length <= 1
+                                  ? "text-slate-300 cursor-not-allowed"
+                                  : "text-slate-400 hover:text-red-600 hover:bg-red-50"
+                              }`}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   <div>
@@ -435,19 +563,78 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
                     <p className="text-[11px] text-slate-400 mt-1">Displayed on the Services page 24/7 emergency dispatch card.</p>
                   </div>
 
-                  <div>
-                    <label className="text-xs font-medium text-slate-700 block mb-1">General Inquiries Email</label>
-                    <div className="relative">
-                      <Mail size={13} className="absolute left-3 top-2.5 text-slate-400" />
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="info@cooltechuae.com"
-                        className="w-full pl-8 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 font-medium focus:outline-none focus:border-slate-900 bg-white"
-                      />
+                  {/* Dynamic Email Addresses Section */}
+                  <div className="md:col-span-2 pt-2 border-t border-slate-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <label className="text-xs font-bold text-slate-800 block">Contact Email Addresses</label>
+                        <p className="text-[11px] text-slate-500">
+                          Add custom titles and email IDs (e.g. Inquiries & Quotations, Support) displayed in the footer.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddEmailContact}
+                        className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-semibold rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Plus size={13} />
+                        <span>Add Email Address</span>
+                      </button>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1">Displayed in website header and footer.</p>
+
+                    <div className="space-y-2.5">
+                      {emailContacts.map((contact, idx) => (
+                        <div
+                          key={contact.id}
+                          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2.5 bg-slate-50/70 border border-slate-200 rounded-lg"
+                        >
+                          <div className="w-full sm:w-1/2">
+                            <label className="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">
+                              Title / Department #{idx + 1}
+                            </label>
+                            <input
+                              type="text"
+                              value={contact.title}
+                              onChange={(e) => handleUpdateEmailContact(contact.id, { title: e.target.value })}
+                              placeholder="e.g. Inquiries & Quotations"
+                              className="w-full border border-slate-200 rounded-md px-2.5 py-1.5 text-xs text-slate-900 bg-white focus:outline-none focus:border-slate-900"
+                            />
+                          </div>
+
+                          <div className="w-full sm:w-1/2">
+                            <label className="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">
+                              Email Address (Gmail / Corporate ID)
+                            </label>
+                            <div className="relative">
+                              <Mail size={12} className="absolute left-2.5 top-2 text-slate-400" />
+                              <input
+                                type="email"
+                                value={contact.email}
+                                onChange={(e) => handleUpdateEmailContact(contact.id, { email: e.target.value })}
+                                placeholder="info@cooltechuae.com"
+                                className="w-full pl-7 border border-slate-200 rounded-md px-2.5 py-1.5 text-xs text-slate-900 font-medium bg-white focus:outline-none focus:border-slate-900"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center sm:self-end pb-0.5">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteEmailContact(contact.id)}
+                              disabled={emailContacts.length <= 1}
+                              title={emailContacts.length <= 1 ? "At least one contact email is required" : "Remove email address"}
+                              className={`p-1.5 rounded-md transition-colors cursor-pointer ${
+                                emailContacts.length <= 1
+                                  ? "text-slate-300 cursor-not-allowed"
+                                  : "text-slate-400 hover:text-red-600 hover:bg-red-50"
+                              }`}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   <div>

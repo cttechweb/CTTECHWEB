@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 80" width="220" height="80">
+  <defs>
+    <linearGradient id="ahriGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0369a1" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <filter id="shadowAhri" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <rect x="2" y="2" width="216" height="76" rx="8" fill="url(#ahriGrad)" stroke="#38bdf8" stroke-width="1.5" filter="url(#shadowAhri)"/>
+
+  <!-- Left Seal -->
+  <g transform="translate(10, 10)">
+    <circle cx="30" cy="30" r="28" fill="#ffffff" stroke="#0369a1" stroke-width="2"/>
+    <circle cx="30" cy="30" r="24" fill="none" stroke="#0284c7" stroke-width="1"/>
+    <!-- Snowflake / cooling star symbol -->
+    <path d="M30 14 L30 46 M14 30 L46 30 M18 18 L42 42 M18 42 L42 18" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="30" cy="30" r="4" fill="#38bdf8"/>
+    <text x="30" y="52" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="6.5" fill="#0369a1">HVACR</text>
+  </g>
+
+  <!-- Right Details -->
+  <text x="78" y="28" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="14" fill="#ffffff" letter-spacing="1">AHRI CERTIFIED™</text>
+  <text x="78" y="44" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="9" fill="#bae6fd" letter-spacing="0.5">PERFORMANCE VERIFIED</text>
+  <rect x="78" y="50" width="130" height="1" fill="#bae6fd" opacity="0.4" />
+  <text x="78" y="64" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="8" fill="#f0f9ff">GLOBAL RATING STANDARD</text>
+</svg>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import Features from "./components/Features";
@@ -34,7 +34,7 @@ import AuthPage from "./components/AuthPage";
 import AccountWorkspacePage from "./components/account/AccountWorkspacePage";
 import RetailerApplicationPage from "./components/account/RetailerApplicationPage";
 import { saveBlogToDatabase, deleteBlogFromDatabase, bulkDeleteBlogsFromDatabase, subscribeToBlogs } from "./lib/blogService";
-import { subscribeToReviews } from "./lib/reviewService";
+import { subscribeToReviews, getLocalReviews } from "./lib/reviewService";
 import { ReviewItem } from "./types/review";
 import SubmitReviewPage from "./components/SubmitReviewPage";
 import FloatingWidgets from "./components/common/FloatingWidgets";
@@ -319,7 +319,7 @@ export default function App() {
   }, []);
 
   // Dynamic Customer Reviews List with Firestore DB Sync & Local Storage Cache
-  const [reviewsList, setReviewsList] = useState<ReviewItem[]>([]);
+  const [reviewsList, setReviewsList] = useState<ReviewItem[]>(() => getLocalReviews());
 
   useEffect(() => {
     const unsubscribe = subscribeToReviews((updatedReviews) => {
@@ -518,7 +518,12 @@ export default function App() {
   };
 
   const handleShopProductsScroll = () => {
-    window.location.hash = "#/products";
+    const el = document.getElementById("product-discovery");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    } else {
+      window.location.hash = "#/products";
+    }
   };
 
   const b2bDiscountRate = b2bUser?.isRetailer ? 0.10 : 0;
@@ -741,6 +746,7 @@ export default function App() {
       {/* Header component */}
       <Header
         products={productsList}
+        services={servicesList}
         cart={cart}
         onOpenCart={() => setIsCartOpen(true)}
         searchTerm={searchTerm}
@@ -864,16 +870,16 @@ export default function App() {
             {/* Value Ribbon */}
             <Features />
 
-            {/* Categories Section */}
+            {/* Categories Section - Restored to top */}
             <Categories
               activeCategory={activeCategory}
               onCategorySelect={setActiveCategory}
             />
 
-            {/* Brands Section */}
+            {/* Brands Logo Ticker */}
             <Brands />
 
-            {/* Interactive Products Grid Sourcing Center */}
+            {/* Clean Professional Product Catalog Showcase */}
             <ProductCatalog
               products={productsList}
               activeCategory={activeCategory}

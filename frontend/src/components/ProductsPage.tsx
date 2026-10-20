@@ -7,6 +7,7 @@ import { PRODUCTS } from "../data";
 import { getLocalCategories, getCategories } from "../services/categoryService";
 import { useWishlist } from "../context/WishlistContext";
 import { ProductCard } from "./ProductCard";
+import { matchesProductSearch } from "../utils/globalSearch";
 
 interface ProductsPageProps {
   products?: Product[];
@@ -142,11 +143,24 @@ export default function ProductsPage({
     return "All";
   };
 
+  const getInitialSearchFromHash = () => {
+    try {
+      const hash = window.location.hash || "";
+      if (hash.includes("search=")) {
+        const match = hash.match(/search=([^&]+)/);
+        if (match && match[1]) {
+          return decodeURIComponent(match[1]);
+        }
+      }
+    } catch {}
+    return "";
+  };
+
   // Dynamic Categories State
   const [categories, setCategories] = useState<Category[]>(getLocalCategories);
 
   // Page search & filters state
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState<string>(getInitialSearchFromHash);
   const [selectedCategory, setSelectedCategory] = useState<string>(getInitialCategoryFromHash);
   const [activeMainGroup, setActiveMainGroup] = useState<string | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<string>("All");
@@ -188,6 +202,10 @@ export default function ProductsPage({
       const cat = getInitialCategoryFromHash();
       if (cat !== "All") {
         setSelectedCategory(cat);
+      }
+      const search = getInitialSearchFromHash();
+      if (search) {
+        setSearchTerm(search);
       }
     };
     handleHash();
@@ -394,12 +412,7 @@ export default function ProductsPage({
 
   // Filter products based on state
   const filteredProducts = activeProducts.filter((product) => {
-    const matchesSearch = 
-      !searchTerm.trim() ||
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = matchesProductSearch(product, searchTerm);
 
     const matchesCategory = doesProductMatchCategory(product, selectedCategory);
 
@@ -483,11 +496,11 @@ export default function ProductsPage({
               onClick={() => setIsMobileFilterOpen(true)}
               className={`px-3.5 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 border shadow-xs transition-all cursor-pointer shrink-0 ${
                 activeFilterCount > 0
-                  ? "bg-[#031b4e] text-white border-[#031b4e]"
+                  ? "bg-[#031b4e] text-white border-[#031b4e] ring-2 ring-blue-500/25"
                   : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
               }`}
             >
-              <Filter size={15} />
+              <Filter size={15} className={activeFilterCount > 0 ? "text-cyan-400" : "text-slate-500"} />
               <span>Filters</span>
               {activeFilterCount > 0 && (
                 <span className="w-5 h-5 rounded-full bg-cyan-400 text-slate-950 font-black text-[10px] flex items-center justify-center">
@@ -833,86 +846,112 @@ export default function ProductsPage({
           {/* Grid Column: Products Results Grid (9 cols on desktop, 12 cols on mobile) */}
           <div className="lg:col-span-9 space-y-4 sm:space-y-6">
             
-            {/* Sourcing count bar */}
-            <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-xs">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-xs text-slate-500 font-bold">
-                  Showing <span className="text-slate-800 font-black">{filteredProducts.length}</span> of <span className="text-slate-800 font-black">{activeProducts.length}</span> items
-                </p>
-                {selectedCategory !== "All" && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-900 border border-blue-200">
-                    <span className="text-slate-400 font-medium">Category:</span>
-                    <span>{selectedCategory}</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedCategory("All");
-                        setActiveMainGroup(null);
-                      }}
-                      className="text-blue-700 hover:text-blue-950 p-0.5 rounded-full hover:bg-blue-100 cursor-pointer"
-                    >
-                      <X size={12} />
-                    </button>
+            {/* Active filters summary line (Desktop only - hidden on mobile) */}
+            {(selectedCategory !== "All" || selectedBrand !== "All" || searchTerm.trim() || selectedBtuRanges.length > 0 || selectedCompressorTypes.length > 0) && (
+              <div className="hidden lg:flex items-center justify-between gap-3 px-4 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-xs text-slate-600 shadow-2xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-extrabold text-[11px] uppercase tracking-wider text-slate-400 mr-1">
+                    Filtered by:
                   </span>
-                )}
-                {selectedBrand !== "All" && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200">
-                    <span className="text-slate-400 font-medium">Brand:</span>
-                    <span>{selectedBrand}</span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedBrand("All")}
-                      className="text-amber-700 hover:text-amber-950 p-0.5 rounded-full hover:bg-amber-100 cursor-pointer"
-                    >
-                      <X size={12} />
-                    </button>
-                  </span>
-                )}
-                {selectedBtuRanges.map((rangeId) => {
-                  const range = BTU_RANGES.find((r) => r.id === rangeId);
-                  return (
-                    <span
-                      key={rangeId}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-50 text-purple-900 border border-purple-200"
-                    >
-                      <span className="text-purple-400 font-medium">Capacity:</span>
-                      <span>{range?.label || rangeId}</span>
+
+                  {searchTerm.trim() && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white text-slate-800 border border-slate-200 shadow-2xs">
+                      <span className="text-slate-400 font-medium">Search:</span>
+                      <span className="font-bold">"{searchTerm}"</span>
                       <button
                         type="button"
-                        onClick={() => toggleBtuRange(rangeId)}
-                        className="text-purple-700 hover:text-purple-950 p-0.5 rounded-full hover:bg-purple-100 cursor-pointer"
+                        onClick={() => setSearchTerm("")}
+                        className="text-slate-400 hover:text-red-600 transition-colors ml-0.5 cursor-pointer"
+                        title="Clear search"
                       >
                         <X size={12} />
                       </button>
                     </span>
-                  );
-                })}
-                {selectedCompressorTypes.map((type) => (
-                  <span
-                    key={type}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-teal-50 text-teal-900 border border-teal-200"
-                  >
-                    <span className="text-teal-400 font-medium">Compressor:</span>
-                    <span>{type}</span>
-                    <button
-                      type="button"
-                      onClick={() => toggleCompressorType(type)}
-                      className="text-teal-700 hover:text-teal-950 p-0.5 rounded-full hover:bg-teal-100 cursor-pointer"
+                  )}
+
+                  {selectedCategory !== "All" && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white text-slate-800 border border-slate-200 shadow-2xs">
+                      <span className="text-slate-400 font-medium">Category:</span>
+                      <span className="font-bold">{selectedCategory}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCategory("All");
+                          setActiveMainGroup(null);
+                        }}
+                        className="text-slate-400 hover:text-slate-700 p-0.5 rounded-full hover:bg-slate-100 cursor-pointer transition-colors"
+                        title="Remove category filter"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  )}
+
+                  {selectedBrand !== "All" && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white text-slate-800 border border-slate-200 shadow-2xs">
+                      <span className="text-slate-400 font-medium">Brand:</span>
+                      <span className="font-bold">{selectedBrand}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedBrand("All")}
+                        className="text-slate-400 hover:text-slate-700 p-0.5 rounded-full hover:bg-slate-100 cursor-pointer transition-colors"
+                        title="Remove brand filter"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  )}
+
+                  {selectedBtuRanges.map((rangeId) => {
+                    const range = BTU_RANGES.find((r) => r.id === rangeId);
+                    return (
+                      <span
+                        key={rangeId}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white text-slate-800 border border-slate-200 shadow-2xs"
+                      >
+                        <span className="text-slate-400 font-medium">Capacity:</span>
+                        <span className="font-bold">{range?.label || rangeId}</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleBtuRange(rangeId)}
+                          className="text-slate-400 hover:text-slate-700 p-0.5 rounded-full hover:bg-slate-100 cursor-pointer transition-colors"
+                          title="Remove capacity filter"
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    );
+                  })}
+
+                  {selectedCompressorTypes.map((type) => (
+                    <span
+                      key={type}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white text-slate-800 border border-slate-200 shadow-2xs"
                     >
-                      <X size={12} />
-                    </button>
-                  </span>
-                ))}
+                      <span className="text-slate-400 font-medium">Compressor:</span>
+                      <span className="font-bold">{type}</span>
+                      <button
+                        type="button"
+                        onClick={() => toggleCompressorType(type)}
+                        className="text-slate-400 hover:text-slate-700 p-0.5 rounded-full hover:bg-slate-100 cursor-pointer transition-colors"
+                        title="Remove compressor filter"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+
+                {activeFilterCount > 0 && (
+                  <button
+                    onClick={clearAllFilters}
+                    className="text-[11px] font-bold text-slate-500 hover:text-red-600 transition-colors cursor-pointer shrink-0 ml-auto"
+                  >
+                    Clear All
+                  </button>
+                )}
               </div>
-              {activeFilterCount > 0 && (
-                <button
-                  onClick={clearAllFilters}
-                  className="text-[11px] text-blue-600 font-bold hover:underline cursor-pointer"
-                >
-                  Clear All
-                </button>
-              )}
-            </div>
+            )}
 
             {/* Zero state matches */}
             {filteredProducts.length === 0 && (
