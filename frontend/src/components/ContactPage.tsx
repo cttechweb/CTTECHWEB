@@ -17,10 +17,17 @@ import {
   FileSpreadsheet,
   Wrench,
   HelpCircle,
-  AlertCircle
+  AlertCircle,
+  PhoneCall
 } from "lucide-react";
 import { CompanyBranch, GeneralSiteSettings, ContactFaqItem } from "../types";
-import { getBranches, getGeneralSettings, getContactFaqs } from "../services/generalSettingsService";
+import { 
+  getBranches, 
+  getGeneralSettings, 
+  getContactFaqs,
+  DEFAULT_PHONE_CONTACTS,
+  DEFAULT_EMAIL_CONTACTS
+} from "../services/generalSettingsService";
 import { submitGeneralEnquiry } from "../services/enquiryService";
 
 interface ContactPageProps {
@@ -144,9 +151,13 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
     loadData();
     window.addEventListener("cooltech_settings_updated", loadData);
     window.addEventListener("cooltech_contact_settings_updated", loadData);
+    window.addEventListener("cooltech_general_settings_updated", loadData);
+    window.addEventListener("storage", loadData);
     return () => {
       window.removeEventListener("cooltech_settings_updated", loadData);
       window.removeEventListener("cooltech_contact_settings_updated", loadData);
+      window.removeEventListener("cooltech_general_settings_updated", loadData);
+      window.removeEventListener("storage", loadData);
     };
   }, []);
 
@@ -289,10 +300,10 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
       ───────────────────────────────────────────────────────────── */}
       <section className="py-12 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-stretch">
           
           {/* Left Column: Clean Contact Form (7 Cols) */}
-          <div className="lg:col-span-7 bg-white p-7 sm:p-10 rounded-2xl border border-slate-200/90 shadow-xs">
+          <div className="lg:col-span-7 bg-white p-6 sm:p-8 lg:p-9 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
             
             <div className="mb-6" id="contact-form">
               <h2 className="text-2xl font-black text-[#031b4e] uppercase tracking-tight font-sans">
@@ -523,104 +534,239 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
           </div>
 
           {/* Right Column: Direct Corporate Channels (5 Cols) */}
-          <div className="lg:col-span-5 space-y-5">
+          <div className="lg:col-span-5">
             
-            {/* Direct Channel Cards */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
-              <h3 className="text-sm font-black text-[#031b4e] uppercase tracking-wider border-b border-slate-100 pb-3">
-                Direct Contact Channels
-              </h3>
-
-              {/* Telephone */}
-              <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#0f4c81] flex items-center justify-center shrink-0 border border-blue-100">
-                  <Phone size={18} />
-                </div>
-                <div>
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                    Central Procurement Hotline
-                  </span>
-                  <a 
-                    href={`tel:${settings.phone.replace(/[^0-9+]/g, '')}`} 
-                    className="font-mono text-sm font-black text-slate-900 hover:text-[#0f4c81] transition-colors"
-                  >
-                    {settings.phone}
-                  </a>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">Mon - Sat: 8:00 AM - 7:00 PM GST</span>
-                </div>
-              </div>
-
-              {/* Email */}
-              <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#0f4c81] flex items-center justify-center shrink-0 border border-blue-100">
-                  <Mail size={18} />
-                </div>
-                <div>
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                    Quotations & Inquiries Email
-                  </span>
-                  <a 
-                    href={`mailto:${settings.email}`} 
-                    className="text-xs font-bold text-[#0f4c81] hover:underline"
-                  >
-                    {settings.email}
-                  </a>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">Responses within 1-2 business hours</span>
-                </div>
-              </div>
-
-              {/* WhatsApp Direct */}
-              <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
-                  <MessageSquare size={18} />
-                </div>
-                <div>
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                    WhatsApp B2B Support
-                  </span>
-                  {(() => {
-                    const contactWhatsapp = settings.whatsappSettings?.contactPageWhatsappNumber || settings.whatsapp || "+971 50 123 4567";
-                    return (
-                      <a 
-                        href={`https://wa.me/${contactWhatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent("Hello Cool Technologies, I would like to inquire regarding HVAC equipment & engineering services.")}`} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        className="font-mono text-xs font-bold text-emerald-700 hover:underline"
-                      >
-                        {contactWhatsapp}
-                      </a>
-                    );
-                  })()}
-                  <span className="text-[10px] text-slate-500 block mt-0.5">Direct chat with sales engineers</span>
-                </div>
-              </div>
-
-              {/* Headquarters Address */}
-              <div className="flex items-start gap-3.5 pt-2 border-t border-slate-100">
-                <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 border border-slate-200">
-                  <MapPin size={18} />
-                </div>
-                <div>
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                    Central Facility & Warehouse
-                  </span>
-                  <p className="text-xs font-semibold text-slate-700 mt-0.5 leading-relaxed">
-                    {settings.address}
+            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col justify-between h-full">
+              
+              <div>
+                {/* Header */}
+                <div className="border-b border-slate-100 pb-3.5 mb-4">
+                  <h3 className="text-sm font-black text-[#031b4e] uppercase tracking-wider">
+                    Direct Contact Channels
+                  </h3>
+                  <p className="text-xs text-slate-500 font-semibold mt-1">
+                    Connect directly with our sales, engineering, and support teams.
                   </p>
                 </div>
+
+                {(() => {
+                  const activePhones = (settings.phoneContacts && settings.phoneContacts.length > 0
+                    ? settings.phoneContacts
+                    : DEFAULT_PHONE_CONTACTS
+                  ).filter((c) => c.isActive !== false && c.number?.trim());
+
+                  const activeEmails = (settings.emailContacts && settings.emailContacts.length > 0
+                    ? settings.emailContacts
+                    : DEFAULT_EMAIL_CONTACTS
+                  ).filter((c) => c.isActive !== false && c.email?.trim());
+
+                  // 1. Telephone / Direct Mobile
+                  const customTelephonePhone = activePhones.find((p) => p.title?.toLowerCase().includes("tele") || p.title?.toLowerCase().includes("mobile"));
+                  const telephoneNumber = settings.whatsappSettings?.contactPageWhatsappNumber || settings.whatsapp || customTelephonePhone?.number || "+971 50 123 4567";
+
+                  // 2. Sales Category
+                  const salesPhone = {
+                    id: "phone-sales",
+                    title: "Sales",
+                    number: settings.departmentHotlines?.salesPhone || 
+                            activePhones.find((p) => p.title?.toLowerCase().includes("sale"))?.number || 
+                            settings.phone || 
+                            "+971 2 565 0123"
+                  };
+                  const salesEmail = {
+                    id: "email-sales",
+                    title: "Sales",
+                    email: activeEmails.find((e) => e.title?.toLowerCase().includes("sale") || e.email?.toLowerCase().includes("sale"))?.email || 
+                           settings.emailIntegration?.defaultReceivingEmail || 
+                           "sales@cooltechuae.com"
+                  };
+
+                  // 3. Services Category
+                  const servicesPhone = {
+                    id: "phone-services",
+                    title: "Services",
+                    number: settings.departmentHotlines?.servicesEmergencyPhone || 
+                            activePhones.find((p) => p.title?.toLowerCase().includes("service"))?.number || 
+                            "+971 2 815 6161"
+                  };
+                  const servicesEmail = {
+                    id: "email-services",
+                    title: "Services",
+                    email: activeEmails.find((e) => e.title?.toLowerCase().includes("service") || e.title?.toLowerCase().includes("care") || e.email?.toLowerCase().includes("care"))?.email || 
+                           "care@cooltechuae.com"
+                  };
+
+                  // 4. General Enquiry
+                  const generalEmail = {
+                    id: "email-general",
+                    title: "General Enquiry",
+                    email: settings.email || 
+                           activeEmails.find((e) => e.title?.toLowerCase().includes("general"))?.email || 
+                           "info@cooltechuae.com"
+                  };
+
+                  // Additional custom lines if any
+                  const additionalPhones = activePhones.filter(
+                    (p) => p.id !== salesPhone.id && p.id !== servicesPhone.id && p.id !== customTelephonePhone?.id
+                  );
+                  const additionalEmails = activeEmails.filter(
+                    (e) => e.id !== salesEmail.id && e.id !== servicesEmail.id && e.id !== generalEmail.id
+                  );
+
+                  return (
+                    <div className="space-y-3.5">
+                      
+                      {/* 1. General Enquiry & WhatsApp Direct Line */}
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                            <PhoneCall size={14} className="text-[#0f4c81]" />
+                            General Enquiry &amp; WhatsApp
+                          </span>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                            Direct Line
+                          </span>
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                          <a 
+                            href={`tel:${telephoneNumber.replace(/[^0-9+]/g, '')}`} 
+                            className="font-mono text-sm font-black text-slate-900 hover:text-[#0f4c81] transition-colors"
+                          >
+                            {telephoneNumber}
+                          </a>
+                          <a 
+                            href={`https://wa.me/${telephoneNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent("Hello Cool Technologies, I would like to inquire regarding HVAC equipment & engineering services.")}`} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs shrink-0 self-start sm:self-auto"
+                          >
+                            <MessageSquare size={13} />
+                            <span>WhatsApp Chat</span>
+                          </a>
+                        </div>
+                        {/* Integrated General Email right inside General Enquiry */}
+                        <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-2 text-xs">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-1">
+                            <Mail size={12} className="text-[#0f4c81]" />
+                            Email
+                          </span>
+                          <a 
+                            href={`mailto:${generalEmail.email}`} 
+                            className="font-bold text-[#0f4c81] hover:underline"
+                          >
+                            {generalEmail.email}
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* 2. Departments: Sales & Service (2-column grid) */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* Sales */}
+                        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between">
+                          <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
+                            <Phone size={13} className="text-[#0f4c81]" />
+                            <span>Sales</span>
+                          </div>
+                          <div className="space-y-1.5 text-xs">
+                            <div>
+                              <span className="text-[10px] text-slate-400 font-bold uppercase block">Phone</span>
+                              <a 
+                                href={`tel:${salesPhone.number.replace(/[^0-9+]/g, '')}`} 
+                                className="font-mono font-black text-slate-900 hover:text-[#0f4c81] transition-colors"
+                              >
+                                {salesPhone.number}
+                              </a>
+                            </div>
+                            <div className="pt-1 border-t border-slate-200/50">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase block">Email</span>
+                              <a 
+                                href={`mailto:${salesEmail.email}`} 
+                                className="font-semibold text-[#0f4c81] hover:underline break-all block"
+                              >
+                                {salesEmail.email}
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Services */}
+                        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between">
+                          <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
+                            <Phone size={13} className="text-[#0f4c81]" />
+                            <span>Services</span>
+                          </div>
+                          <div className="space-y-1.5 text-xs">
+                            <div>
+                              <span className="text-[10px] text-slate-400 font-bold uppercase block">Phone</span>
+                              <a 
+                                href={`tel:${servicesPhone.number.replace(/[^0-9+]/g, '')}`} 
+                                className="font-mono font-black text-slate-900 hover:text-[#0f4c81] transition-colors"
+                              >
+                                {servicesPhone.number}
+                              </a>
+                            </div>
+                            <div className="pt-1 border-t border-slate-200/50">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase block">Email</span>
+                              <a 
+                                href={`mailto:${servicesEmail.email}`} 
+                                className="font-semibold text-[#0f4c81] hover:underline break-all block"
+                              >
+                                {servicesEmail.email}
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 3. Headquarters Facility Address */}
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-2.5 text-xs">
+                        <MapPin size={14} className="text-slate-400 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Headquarters Facility</span>
+                          <span className="text-slate-700 font-semibold leading-relaxed">
+                            {settings.address || "Mussafah M-14, Abu Dhabi, United Arab Emirates"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Additional lines if configured */}
+                      {(additionalPhones.length > 0 || additionalEmails.length > 0) && (
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5 text-xs">
+                          {additionalPhones.map((p) => (
+                            <div key={p.id} className="flex items-center justify-between gap-2">
+                              <span className="font-bold text-slate-500 uppercase text-[10px]">{p.title}:</span>
+                              <a href={`tel:${p.number.replace(/[^0-9+]/g, '')}`} className="font-mono font-bold text-slate-900 hover:underline">
+                                {p.number}
+                              </a>
+                            </div>
+                          ))}
+                          {additionalEmails.map((e) => (
+                            <div key={e.id} className="flex items-center justify-between gap-2">
+                              <span className="font-bold text-slate-500 uppercase text-[10px]">{e.title}:</span>
+                              <a href={`mailto:${e.email}`} className="font-bold text-[#0f4c81] hover:underline truncate">
+                                {e.email}
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                    </div>
+                  );
+                })()}
               </div>
 
-            </div>
+              {/* Quality & Assurance Note at bottom of card */}
+              <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#0f4c81] flex items-center justify-center shrink-0 border border-blue-100">
+                  <ShieldCheck size={16} />
+                </div>
+                <div className="text-xs leading-tight">
+                  <span className="font-bold text-slate-900 block">ISO 9001:2015 Certified Distributor</span>
+                  <span className="text-slate-500 text-[11px]">Factory-sealed equipment with genuine OEM warranty protection.</span>
+                </div>
+              </div>
 
-            {/* Quality & Assurance Note */}
-            <div className="bg-[#031b4e] text-white p-5 rounded-2xl flex items-center gap-3.5 shadow-xs">
-              <div className="w-9 h-9 rounded-xl bg-white/10 text-cyan-300 flex items-center justify-center shrink-0 border border-white/10">
-                <ShieldCheck size={18} />
-              </div>
-              <div className="text-xs leading-relaxed">
-                <span className="font-extrabold block text-white">ISO 9001:2015 Certified Distributor</span>
-                <span className="text-slate-300 text-[11px]">Factory-sealed equipment with genuine OEM warranty protection.</span>
-              </div>
             </div>
 
           </div>
@@ -632,10 +778,39 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
       {/* ─────────────────────────────────────────────────────────────
           3. REGIONAL BRANCHES DIRECTORY & DYNAMIC LIVE MAP OR FULL MAIN MAP
       ───────────────────────────────────────────────────────────── */}
-      {branches.length > 0 ? (
+      {branches.length === 1 && activeBranch ? (
+        /* SINGLE BRANCH: Full width container completely filled with the live map (no boxy borders or white side margins) */
+        <section className="w-full relative h-[480px] sm:h-[540px] md:h-[600px] border-t border-b border-slate-200 bg-slate-100 overflow-hidden">
+          <iframe
+            key={activeBranch.id}
+            title={`${activeBranch.name || "Main Facility"} Location Map`}
+            src={getEmbedMapUrl(activeBranch)}
+            width="100%"
+            height="100%"
+            className="w-full h-full border-0 block"
+            allowFullScreen={true}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+          {activeBranch.mapUrl && (
+            <div className="absolute bottom-5 right-5 sm:right-8 z-10">
+              <a
+                href={activeBranch.mapUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/95 hover:bg-white text-[#0f4c81] font-bold text-xs rounded-xl shadow-lg border border-slate-200 backdrop-blur-xs transition-all hover:scale-105"
+              >
+                <span>Open in Google Maps App</span>
+                <ArrowUpRight size={14} />
+              </a>
+            </div>
+          )}
+        </section>
+      ) : branches.length > 1 ? (
         <section className="py-14 bg-white border-t border-slate-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             
+            {/* Header & Tabs: Shown when multiple branches exist */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
               <div>
                 <span className="text-[11px] font-black uppercase tracking-widest text-[#0f4c81] bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
@@ -681,7 +856,7 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
                           HQ
                         </span>
                       )}
-                      {isSelected && !isAutoPaused && branches.length > 1 && (
+                      {isSelected && !isAutoPaused && (
                         <span className="w-1.5 h-1.5 rounded-full bg-cyan-300 animate-pulse ml-0.5" title="Auto-switching active" />
                       )}
                     </button>
@@ -690,7 +865,7 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
               </div>
             </div>
 
-            {/* Dynamic Interactive Split: Selected Branch Card + Live Interactive Google Map */}
+            {/* Layout for MULTIPLE branches: 12-Column Split (5-Col Info Card + 7-Col Map) */}
             {activeBranch && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
                 

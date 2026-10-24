@@ -85,13 +85,13 @@ export default function ServicesPage({
   // Dynamic emergency dispatch hotline
   const [emergencyPhone, setEmergencyPhone] = useState<string>(() => {
     const settings = getGeneralSettings();
-    return settings.departmentHotlines?.servicesEmergencyPhone || settings.phone || "+971 2 565 0123";
+    return settings.departmentHotlines?.servicesEmergencyPhone || settings.phone || "+971 2 815 6161";
   });
 
   useEffect(() => {
     const handleSettingsUpdated = () => {
       const settings = getGeneralSettings();
-      setEmergencyPhone(settings.departmentHotlines?.servicesEmergencyPhone || settings.phone || "+971 2 565 0123");
+      setEmergencyPhone(settings.departmentHotlines?.servicesEmergencyPhone || settings.phone || "+971 2 815 6161");
     };
     window.addEventListener("cooltech_contact_settings_updated", handleSettingsUpdated);
     window.addEventListener("cooltech_settings_updated", handleSettingsUpdated);

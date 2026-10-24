@@ -244,18 +244,11 @@ export default function AdminGeneralSettings({ onShowToast, onNavigateToContactC
     const msg = typeof customMsg === "string" ? customMsg : "Settings saved successfully!";
     setIsSaving(true);
     try {
+      const current = getGeneralSettings();
       saveGeneralSettings({
-        companyName: companyName.trim(),
-        tagline: tagline.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
-        whatsapp: whatsapp.trim(),
-        address: address.trim(),
-        workingHours: workingHours.trim(),
+        ...current,
         brandPartners: partners,
         achievements: achievements,
-        branches: branches,
-        contactFaqs: faqs,
         brandTickerSpeed: tickerSpeed,
         achievementBgOpacity: globalAchievementBgOpacity,
       });
@@ -740,7 +733,7 @@ export default function AdminGeneralSettings({ onShowToast, onNavigateToContactC
   const SUBMODULES = [
     { id: "brands" as const, label: "Trusted Partners", icon: <Building size={15} />, count: partners.length },
     { id: "achievements" as const, label: "Achievements", icon: <Trophy size={15} />, count: achievements.length },
-    { id: "contacts" as const, label: "Company & Branches", icon: <Phone size={15} />, count: branches.length },
+    { id: "contacts" as const, label: "Contact & Comms Hub", icon: <Headphones size={15} />, count: branches.length },
   ];
 
   return (
@@ -775,7 +768,7 @@ export default function AdminGeneralSettings({ onShowToast, onNavigateToContactC
             <p className="text-[11px] text-slate-500">
               {activeTab === "brands" && "Configure trusted brand partner ticker, order, logos, and display formatting."}
               {activeTab === "achievements" && "Manage company milestones, timeline years, dealership badges, and achievements."}
-              {activeTab === "contacts" && "Manage corporate headquarters details, regional branch locations, and contact FAQs."}
+              {activeTab === "contacts" && "Centralized corporate contact coordinates, regional branch locations, and contact FAQs."}
             </p>
           </div>
 
@@ -1312,499 +1305,200 @@ export default function AdminGeneralSettings({ onShowToast, onNavigateToContactC
           TAB 3: COMPANY & CONTACT DETAILS + DYNAMIC REGIONAL BRANCHES + FAQS
       ─────────────────────────────────────────────────────────── */}
       {activeTab === "contacts" && (
-        <div className="space-y-5 max-w-5xl">
-          
-          {/* Card 1: Main Organization Coordinates (Collapsible) */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-2xs overflow-hidden transition-all">
-            <div 
-              onClick={() => setIsHQExpanded(!isHQExpanded)}
-              className="p-5 md:p-6 pb-4 flex flex-wrap items-center justify-between gap-3 cursor-pointer hover:bg-slate-50/70 transition-colors select-none"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#0f4c81] flex items-center justify-center shrink-0 border border-blue-100">
-                  <Building size={17} />
+        <div className="space-y-6 max-w-5xl">
+          {/* Main Centralization Announcement Banner */}
+          <div className="bg-gradient-to-br from-[#0f4c81] via-[#155a96] to-[#1c7e9f] text-white rounded-2xl p-6 md:p-8 shadow-md relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-2xl -mr-20 -mt-20 pointer-events-none" />
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-2 max-w-2xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-xs text-white text-[11px] font-bold uppercase tracking-wider">
+                  <Sparkles size={13} className="text-amber-300" />
+                  <span>Centralized & Unified Management</span>
                 </div>
-                <div>
-                  <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
-                    <span>Headquarters & Central Coordinates</span>
-                  </h3>
-                  <p className="text-[11px] text-slate-500">Primary corporate contact channels displayed in Website Header, Footer, and RFQs.</p>
-                </div>
+                <h3 className="text-xl md:text-2xl font-black tracking-tight">
+                  All Contacts & Branches Are Now Managed in One Central Hub
+                </h3>
+                <p className="text-xs md:text-sm text-blue-100 leading-relaxed">
+                  To eliminate conflicting saves and ensure 100% dynamic updates across the public Contact page, Header, Footer, and Floating WhatsApp widget, all corporate coordinates, hotlines, regional branches, and FAQs are managed in the <strong>Contact & Comms Center</strong>.
+                </p>
               </div>
 
-              <div className="flex items-center gap-2.5" onClick={(e) => e.stopPropagation()}>
+              {onNavigateToContactCenter && (
                 <button
                   type="button"
-                  onClick={() => handleSaveAll("Central contact details saved successfully!")}
-                  className={`px-4 py-2 text-white font-bold text-xs rounded-lg shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                    isSavedRecently
-                      ? "bg-emerald-600 hover:bg-emerald-700 ring-2 ring-emerald-400"
-                      : "bg-[#0f4c81] hover:bg-[#1c7e9f]"
-                  }`}
+                  onClick={onNavigateToContactCenter}
+                  className="px-5 py-3 bg-white text-[#0f4c81] hover:bg-blue-50 font-black text-xs md:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  {isSavedRecently ? (
-                    <>
-                      <Check size={14} className="animate-bounce" />
-                      <span>Saved Successfully!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save size={13} />
-                      <span>Save Coordinates</span>
-                    </>
-                  )}
+                  <Headphones size={16} />
+                  <span>Open Contact & Comms Center</span>
+                  <ExternalLink size={14} className="text-slate-400" />
                 </button>
+              )}
+            </div>
+          </div>
 
-                <button
-                  type="button"
-                  onClick={() => setIsHQExpanded(!isHQExpanded)}
-                  className="p-2 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-slate-900 transition-all cursor-pointer"
-                  title={isHQExpanded ? "Collapse Section" : "Expand Section"}
-                >
-                  <ChevronDown size={17} className={`transition-transform duration-200 ${isHQExpanded ? "rotate-180" : ""}`} />
-                </button>
+          {/* Live Preview Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Card 1: Corporate HQ & Hotline */}
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-3">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#0f4c81] flex items-center justify-center font-bold">
+                    <Building size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900">Headquarters Coordinates</h4>
+                    <p className="text-[10px] text-slate-400">Header, Footer & Primary RFQ routing</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Live & Synced
+                </span>
+              </div>
+
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between py-1 border-b border-slate-50">
+                  <span className="text-slate-400">Company Name:</span>
+                  <span className="font-bold text-slate-800">{settings.companyName || "Cool Technologies LLC"}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-50">
+                  <span className="text-slate-400">Central Phone:</span>
+                  <span className="font-bold text-slate-800">{settings.phone || "+971 2 565 0123"}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-50">
+                  <span className="text-slate-400">Inquiries Email:</span>
+                  <span className="font-bold text-slate-800">{settings.email || "info@cooltechuae.com"}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-50">
+                  <span className="text-slate-400">WhatsApp Business:</span>
+                  <span className="font-bold text-slate-800">{settings.whatsapp || "+971 50 123 4567"}</span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-slate-400">Address:</span>
+                  <span className="font-bold text-slate-800 text-right truncate max-w-[220px]">
+                    {settings.address || "Plot-99, Mussafah, Abu Dhabi"}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {isHQExpanded && (
-              <div className="p-5 md:p-6 pt-0 space-y-4 border-t border-slate-100 animate-in fade-in duration-150">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-4">
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">Company Trade Name</label>
-                    <input
-                      type="text"
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#0f4c81] focus:bg-white rounded-lg px-3 py-2 text-xs text-slate-900 font-medium outline-none transition-all"
-                      placeholder="Cool Technologies LLC"
-                    />
+            {/* Card 2: Department Direct Channels */}
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-3">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                    <Phone size={16} />
                   </div>
-
                   <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">Tagline / Motto</label>
-                    <input
-                      type="text"
-                      value={tagline}
-                      onChange={(e) => setTagline(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#0f4c81] focus:bg-white rounded-lg px-3 py-2 text-xs text-slate-900 font-medium outline-none transition-all"
-                      placeholder="The Experts in Commercial Cooling"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">Central Inquiries Email</label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#0f4c81] focus:bg-white rounded-lg px-3 py-2 text-xs text-slate-900 font-medium outline-none transition-all"
-                      placeholder="info@cooltechuae.com"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">Central Procurement Hotline</label>
-                    <input
-                      type="text"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#0f4c81] focus:bg-white rounded-lg px-3 py-2 text-xs text-slate-900 font-medium outline-none transition-all"
-                      placeholder="+971 2 565 0123"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">WhatsApp Business</label>
-                    <input
-                      type="text"
-                      value={whatsapp}
-                      onChange={(e) => setWhatsapp(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#0f4c81] focus:bg-white rounded-lg px-3 py-2 text-xs text-slate-900 font-medium outline-none transition-all"
-                      placeholder="+971 50 123 4567"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">Working / Operations Schedule</label>
-                    <input
-                      type="text"
-                      value={workingHours}
-                      onChange={(e) => setWorkingHours(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#0f4c81] focus:bg-white rounded-lg px-3 py-2 text-xs text-slate-900 font-medium outline-none transition-all"
-                      placeholder="Monday - Saturday: 8:00 AM - 7:00 PM (GST)"
-                    />
+                    <h4 className="text-xs font-black text-slate-900">Direct Department Hotlines</h4>
+                    <p className="text-[10px] text-slate-400">Direct channels on /#/contact cards</p>
                   </div>
                 </div>
-
-                <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">Headquarters Facility Address</label>
-                  <textarea
-                    rows={2}
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-[#0f4c81] focus:bg-white rounded-lg px-3 py-2 text-xs text-slate-900 font-medium outline-none transition-all resize-none"
-                    placeholder="Plot-99, Sector M-42 / M-14, Mussafah Industrial Area, Abu Dhabi, UAE"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Card 2: Dynamic Regional Branches Management (Collapsible) */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-2xs overflow-hidden transition-all">
-            <div 
-              onClick={() => setIsBranchesExpanded(!isBranchesExpanded)}
-              className="p-5 md:p-6 pb-4 flex flex-wrap items-center justify-between gap-3 cursor-pointer hover:bg-slate-50/70 transition-colors select-none"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#0f4c81] flex items-center justify-center shrink-0 border border-blue-100">
-                  <MapPin size={17} />
-                </div>
-                <div>
-                  <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
-                    <span>Regional Branch Directory</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-bold">
-                      {branches.length}
-                    </span>
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Manage physical UAE branches, contact numbers, emails, addresses, and live interactive map locations.
-                  </p>
-                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#0f4c81] border border-blue-200">
+                  Dynamic Channels
+                </span>
               </div>
 
-              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  onClick={handleResetDefaultBranches}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
-                  title="Reset to 4 UAE standard branch locations"
-                >
-                  <RotateCcw size={12} />
-                  <span>Reset Defaults</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleOpenAddBranch}
-                  className="px-3.5 py-1.5 bg-[#0f4c81] hover:bg-[#1c7e9f] text-white font-extrabold text-xs rounded-lg shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  <Plus size={14} />
-                  <span>Add Branch</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsBranchesExpanded(!isBranchesExpanded)}
-                  className="p-2 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-slate-900 transition-all cursor-pointer"
-                  title={isBranchesExpanded ? "Collapse Section" : "Expand Section"}
-                >
-                  <ChevronDown size={17} className={`transition-transform duration-200 ${isBranchesExpanded ? "rotate-180" : ""}`} />
-                </button>
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between py-1 border-b border-slate-50">
+                  <span className="text-slate-400">Sales Hotline:</span>
+                  <span className="font-bold text-slate-800">
+                    {settings.departmentHotlines?.salesPhone || settings.phone || "+971 2 565 0123"}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-50">
+                  <span className="text-slate-400">Sales Email:</span>
+                  <span className="font-bold text-slate-800">
+                    {settings.departmentHotlines?.salesEmail || "sales@cooltechuae.com"}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-50">
+                  <span className="text-slate-400">Services Hotline:</span>
+                  <span className="font-bold text-slate-800">
+                    {settings.departmentHotlines?.servicesPhone || "+971 50 123 4567"}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-slate-400">Services Email:</span>
+                  <span className="font-bold text-slate-800">
+                    {settings.departmentHotlines?.servicesEmail || "service@cooltechuae.com"}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {isBranchesExpanded && (
-              <div className="p-5 md:p-6 pt-0 border-t border-slate-100 animate-in fade-in duration-150">
-                <div className="space-y-3 pt-4">
-                  {branches.length === 0 ? (
-                    <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                      <p className="text-xs font-bold text-slate-600">No regional branches configured.</p>
-                      <p className="text-[11px] text-slate-400 mt-1">The public Contact page will automatically display the full Main Facility live map.</p>
-                      <button
-                        type="button"
-                        onClick={handleResetDefaultBranches}
-                        className="mt-3 px-3 py-1.5 bg-[#0f4c81] text-white font-bold text-xs rounded-lg inline-flex items-center gap-1.5"
-                      >
-                        <RotateCcw size={12} />
-                        <span>Load Default UAE Branches</span>
-                      </button>
-                    </div>
-                  ) : (
-                    branches.map((branch, idx) => (
-                      <div
-                        key={branch.id}
-                        className={`border rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all ${
-                          branch.isActive !== false ? "bg-white border-slate-200 shadow-2xs" : "bg-slate-50 border-slate-200/60 opacity-60"
-                        }`}
-                      >
-                        {/* Left info */}
-                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#0f4c81] font-bold text-xs flex items-center justify-center shrink-0 border border-blue-100 mt-0.5">
-                            #{idx + 1}
-                          </div>
-
-                          <div className="space-y-1 min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-sans font-black text-xs text-slate-900 uppercase tracking-tight">
-                                {branch.name}
-                              </span>
-                              <span className="text-[10px] font-bold px-2 py-0.2 bg-slate-100 text-slate-700 rounded border border-slate-200">
-                                {branch.city}
-                              </span>
-                              {branch.isHeadquarters && (
-                                <span className="text-[9px] font-bold px-2 py-0.2 bg-[#0f4c81] text-white rounded">
-                                  ★ Primary HQ
-                                </span>
-                              )}
-                              {!branch.isActive && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.2 bg-amber-100 text-amber-800 rounded">
-                                  Hidden
-                                </span>
-                              )}
-                            </div>
-
-                            <p className="text-[11px] text-slate-600 truncate">
-                              <MapPin size={11} className="inline mr-1 text-slate-400" />
-                              {branch.address}
-                            </p>
-
-                            <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 font-mono pt-0.5">
-                              <span className="flex items-center gap-1">
-                                <Phone size={11} className="text-[#0f4c81]" />
-                                {branch.phone}
-                              </span>
-                              {branch.mobile && (
-                                <span className="flex items-center gap-1">
-                                  <span className="text-emerald-600 font-bold">Mob:</span>
-                                  {branch.mobile}
-                                </span>
-                              )}
-                              <span className="flex items-center gap-1">
-                                <Mail size={11} className="text-[#0f4c81]" />
-                                {branch.email}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Actions right */}
-                        <div className="flex items-center gap-1.5 self-end md:self-center shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => handleMoveBranch(branch.id, "up")}
-                            disabled={idx === 0}
-                            className="p-1.5 hover:bg-slate-100 disabled:opacity-30 border border-slate-200 rounded-lg text-slate-600 transition-colors cursor-pointer"
-                            title="Move Up"
-                          >
-                            <ArrowUp size={13} />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleMoveBranch(branch.id, "down")}
-                            disabled={idx === branches.length - 1}
-                            className="p-1.5 hover:bg-slate-100 disabled:opacity-30 border border-slate-200 rounded-lg text-slate-600 transition-colors cursor-pointer"
-                            title="Move Down"
-                          >
-                            <ArrowDown size={13} />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleToggleActiveBranch(branch)}
-                            className={`p-1.5 border rounded-lg transition-colors cursor-pointer ${
-                              branch.isActive !== false
-                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                                : "bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200"
-                            }`}
-                            title={branch.isActive !== false ? "Active (Click to hide)" : "Hidden (Click to activate)"}
-                          >
-                            {branch.isActive !== false ? <Eye size={13} /> : <EyeOff size={13} />}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditBranch(branch)}
-                            className="p-1.5 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-600 transition-colors cursor-pointer"
-                            title="Edit Branch"
-                          >
-                            <Edit3 size={13} />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteBranch(branch.id, branch.name)}
-                            className="p-1.5 hover:bg-red-50 border border-slate-200 hover:border-red-200 rounded-lg text-red-600 transition-colors cursor-pointer"
-                            title="Delete Branch"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
+            {/* Card 3: Regional Branches */}
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-3">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center font-bold">
+                    <MapPin size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900">Regional Branch Directory</h4>
+                    <p className="text-[10px] text-slate-400">Interactive live Google Maps & physical facilities</p>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* Card 3: Dynamic Contact Page FAQs & SEO Schema (Collapsible) */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-2xs overflow-hidden transition-all">
-            <div 
-              onClick={() => setIsFaqsExpanded(!isFaqsExpanded)}
-              className="p-5 md:p-6 pb-4 flex flex-wrap items-center justify-between gap-3 cursor-pointer hover:bg-slate-50/70 transition-colors select-none"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#0f4c81] flex items-center justify-center shrink-0 border border-blue-100">
-                  <MessageSquare size={17} />
-                </div>
-                <div>
-                  <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
-                    <span>Contact Page FAQs & Structured SEO Schema</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-bold">
-                      {faqs.length}
-                    </span>
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Manage questions and answers rendered on the Contact page and indexed in Google FAQ Schema.
-                  </p>
-                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-mono">
+                  {branches.length} Branches
+                </span>
               </div>
 
-              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  onClick={handleResetDefaultContactFaqs}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
-                  title="Reset to standard corporate FAQs"
-                >
-                  <RotateCcw size={12} />
-                  <span>Reset Defaults</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleOpenAddFaq}
-                  className="px-3.5 py-1.5 bg-[#0f4c81] hover:bg-[#1c7e9f] text-white font-extrabold text-xs rounded-lg shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  <Plus size={14} />
-                  <span>Add FAQ</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsFaqsExpanded(!isFaqsExpanded)}
-                  className="p-2 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-slate-900 transition-all cursor-pointer"
-                  title={isFaqsExpanded ? "Collapse Section" : "Expand Section"}
-                >
-                  <ChevronDown size={17} className={`transition-transform duration-200 ${isFaqsExpanded ? "rotate-180" : ""}`} />
-                </button>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {branches.map((b) => (
+                  <span
+                    key={b.id}
+                    className="text-[11px] font-medium px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 flex items-center gap-1.5"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+                    {b.name} ({b.city})
+                  </span>
+                ))}
               </div>
             </div>
 
-            {isFaqsExpanded && (
-              <div className="p-5 md:p-6 pt-0 border-t border-slate-100 animate-in fade-in duration-150">
-                <div className="space-y-3 pt-4">
-                  {faqs.length === 0 ? (
-                    <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                      <p className="text-xs font-bold text-slate-600">No FAQs configured for the Contact page.</p>
-                      <button
-                        type="button"
-                        onClick={handleResetDefaultContactFaqs}
-                        className="mt-3 px-3 py-1.5 bg-[#0f4c81] text-white font-bold text-xs rounded-lg inline-flex items-center gap-1.5"
-                      >
-                        <RotateCcw size={12} />
-                        <span>Load Default Corporate FAQs</span>
-                      </button>
-                    </div>
-                  ) : (
-                    faqs.map((faq, idx) => (
-                      <div
-                        key={faq.id}
-                        className={`border rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all ${
-                          faq.isActive !== false ? "bg-white border-slate-200 shadow-2xs" : "bg-slate-50 border-slate-200/60 opacity-60"
-                        }`}
-                      >
-                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#0f4c81] font-bold text-xs flex items-center justify-center shrink-0 border border-blue-100 mt-0.5">
-                            Q{idx + 1}
-                          </div>
-
-                          <div className="space-y-1 min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-bold text-xs text-slate-900">
-                                {faq.question}
-                              </span>
-                              {faq.category && (
-                                <span className="text-[10px] font-bold px-2 py-0.2 bg-blue-50 text-[#0f4c81] rounded border border-blue-100">
-                                  {faq.category}
-                                </span>
-                              )}
-                              {!faq.isActive && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.2 bg-amber-100 text-amber-800 rounded">
-                                  Hidden
-                                </span>
-                              )}
-                            </div>
-
-                            <p className="text-[11px] text-slate-600 leading-relaxed line-clamp-2">
-                              {faq.answer}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-1.5 self-end md:self-center shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => handleMoveFaq(faq.id, "up")}
-                            disabled={idx === 0}
-                            className="p-1.5 hover:bg-slate-100 disabled:opacity-30 border border-slate-200 rounded-lg text-slate-600 transition-colors cursor-pointer"
-                            title="Move Up"
-                          >
-                            <ArrowUp size={13} />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleMoveFaq(faq.id, "down")}
-                            disabled={idx === faqs.length - 1}
-                            className="p-1.5 hover:bg-slate-100 disabled:opacity-30 border border-slate-200 rounded-lg text-slate-600 transition-colors cursor-pointer"
-                            title="Move Down"
-                          >
-                            <ArrowDown size={13} />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleToggleActiveFaq(faq)}
-                            className={`p-1.5 border rounded-lg transition-colors cursor-pointer ${
-                              faq.isActive !== false
-                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                                : "bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200"
-                            }`}
-                            title={faq.isActive !== false ? "Active (Click to hide)" : "Hidden (Click to activate)"}
-                          >
-                            {faq.isActive !== false ? <Eye size={13} /> : <EyeOff size={13} />}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditFaq(faq)}
-                            className="p-1.5 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-600 transition-colors cursor-pointer"
-                            title="Edit FAQ"
-                          >
-                            <Edit3 size={13} />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteFaq(faq.id, faq.question)}
-                            className="p-1.5 hover:bg-red-50 border border-slate-200 hover:border-red-200 rounded-lg text-red-600 transition-colors cursor-pointer"
-                            title="Delete FAQ"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
+            {/* Card 4: FAQs & Structured SEO */}
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-3">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                    <HelpCircle size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900">Contact FAQs & Schema</h4>
+                    <p className="text-[10px] text-slate-400">Public FAQ accordion & Google SEO rich snippets</p>
+                  </div>
                 </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-mono">
+                  {faqs.length} FAQs
+                </span>
               </div>
-            )}
+
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Contact FAQs are rendered dynamically on the public Contact page and fed into schema.org JSON-LD structured data for rich search results.
+              </p>
+            </div>
           </div>
 
+          {/* Quick jump to Contact Center */}
+          {onNavigateToContactCenter && (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+              <div className="flex items-center gap-2.5">
+                <Info size={16} className="text-[#0f4c81] shrink-0" />
+                <span className="text-xs font-medium text-slate-700">
+                  Need to update phone numbers, emails, WhatsApp greeting, branch maps, or FAQs?
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={onNavigateToContactCenter}
+                className="px-4 py-2 bg-[#0f4c81] hover:bg-[#1c7e9f] text-white font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+              >
+                <span>Edit in Contact Center</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          )}
         </div>
       )}
 

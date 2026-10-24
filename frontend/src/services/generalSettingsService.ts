@@ -24,18 +24,36 @@ const LOCAL_STORAGE_SETTINGS_KEY = "cooltech_general_settings_v1";
 
 export const DEFAULT_PHONE_CONTACTS: DynamicContactNumber[] = [
   {
-    id: "phone-default-1",
-    title: "Procurement Hotline",
-    number: "+971 2 565 0123",
+    id: "phone-sales",
+    title: "Sales",
+    number: "+971 2 815 6111",
+    isActive: true
+  },
+  {
+    id: "phone-services",
+    title: "Services",
+    number: "+971 2 815 6161",
     isActive: true
   }
 ];
 
 export const DEFAULT_EMAIL_CONTACTS: DynamicContactEmail[] = [
   {
-    id: "email-default-1",
-    title: "Inquiries & Quotations",
+    id: "email-general",
+    title: "General Enquiry",
     email: "info@cooltechuae.com",
+    isActive: true
+  },
+  {
+    id: "email-sales",
+    title: "Sales",
+    email: "sales@cooltechuae.com",
+    isActive: true
+  },
+  {
+    id: "email-services",
+    title: "Services",
+    email: "care@cooltechuae.com",
     isActive: true
   }
 ];
@@ -90,7 +108,7 @@ export const DEFAULT_WHATSAPP_SETTINGS: WhatsAppRoutingSettings = {
 
 export const DEFAULT_DEPARTMENT_HOTLINES: DepartmentHotlines = {
   salesPhone: "+971 2 815 6111",
-  servicesEmergencyPhone: "+971 2 565 0123",
+  servicesEmergencyPhone: "+971 2 815 6161",
   mediaPressEmail: "media@cooltechuae.com",
   pressDeskPhone: "+971 2 555 1234",
   pressWhatsapp: "+971 50 123 4567",
@@ -241,7 +259,7 @@ export const DEFAULT_BRANCHES: CompanyBranch[] = [
     name: "Abu Dhabi Main Headquarters",
     city: "Abu Dhabi",
     address: "Plot-99, Sector M-42 / M-14, Mussafah Industrial Area, Abu Dhabi, UAE",
-    phone: "+971 2 565 0123",
+    phone: "+971 2 815 6111",
     mobile: "+971 50 123 4567",
     email: "info@cooltechuae.com",
     workingHours: "Monday - Saturday: 8:00 AM - 7:00 PM (GST)",
@@ -531,7 +549,7 @@ export const DEFAULT_SETTINGS: GeneralSiteSettings = {
   companyName: "Cool Technologies LLC",
   tagline: "The Experts in Commercial & Industrial Cooling",
   email: "info@cooltechuae.com",
-  phone: "+971 2 565 0123",
+  phone: "+971 2 815 6111",
   whatsapp: "+971 50 123 4567",
   address: "Mussafah M-14, Abu Dhabi, United Arab Emirates",
   locationMapUrl: "https://maps.google.com",
@@ -769,12 +787,42 @@ export function saveGeneralSettings(settings: Partial<GeneralSiteSettings>): Gen
     if (primaryPhone?.number) {
       updated.phone = primaryPhone.number.trim();
     }
+    const salesContact = settings.phoneContacts.find(p => p.title?.toLowerCase().includes("sale"));
+    const servicesContact = settings.phoneContacts.find(p => p.title?.toLowerCase().includes("service"));
+    updated.departmentHotlines = {
+      ...(updated.departmentHotlines || DEFAULT_DEPARTMENT_HOTLINES),
+      ...(salesContact?.number ? { salesPhone: salesContact.number.trim() } : {}),
+      ...(servicesContact?.number ? { servicesEmergencyPhone: servicesContact.number.trim() } : {})
+    };
   } else if (settings.phone && updated.phoneContacts && updated.phoneContacts.length > 0) {
-    // If phone was updated directly without phoneContacts, sync the primary phoneContact
+    // If phone was updated directly without phoneContacts, sync the primary phoneContact & sales hotline
     updated.phoneContacts = [
       { ...updated.phoneContacts[0], number: settings.phone.trim() },
       ...updated.phoneContacts.slice(1)
     ];
+    if (updated.departmentHotlines) {
+      updated.departmentHotlines.salesPhone = settings.phone.trim();
+    }
+  }
+
+  if (settings.departmentHotlines) {
+    updated.departmentHotlines = {
+      ...(updated.departmentHotlines || DEFAULT_DEPARTMENT_HOTLINES),
+      ...settings.departmentHotlines
+    };
+    if (settings.departmentHotlines.salesPhone) {
+      updated.phone = settings.departmentHotlines.salesPhone.trim();
+    }
+  }
+
+  if (settings.whatsapp) {
+    updated.whatsapp = settings.whatsapp.trim();
+    updated.whatsappSettings = {
+      ...(updated.whatsappSettings || DEFAULT_WHATSAPP_SETTINGS),
+      floatingPhoneNumber: settings.whatsapp.trim(),
+      contactPageWhatsappNumber: settings.whatsapp.trim(),
+      emailAutoReplyWhatsappNumber: settings.whatsapp.trim()
+    };
   }
 
   if (settings.emailContacts && settings.emailContacts.length > 0) {

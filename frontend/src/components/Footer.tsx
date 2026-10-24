@@ -43,9 +43,12 @@ export default function Footer({
     return {
       phone: s.phone || "+971 2 565 0123",
       email: s.email || "info@cooltechuae.com",
+      whatsapp: s.whatsapp || "+971 50 123 4567",
       phoneContacts: (s.phoneContacts && s.phoneContacts.length > 0 ? s.phoneContacts : DEFAULT_PHONE_CONTACTS),
       emailContacts: (s.emailContacts && s.emailContacts.length > 0 ? s.emailContacts : DEFAULT_EMAIL_CONTACTS),
-      address: s.address || "Plot-99, Sector M-42 / M-14, Mussafah Industrial Area, Abu Dhabi, UAE",
+      departmentHotlines: s.departmentHotlines,
+      whatsappSettings: s.whatsappSettings,
+      address: s.address || "Mussafah M-14, Abu Dhabi, United Arab Emirates",
       socialLinks: (s.socialLinks && s.socialLinks.length > 0 ? s.socialLinks : DEFAULT_SOCIAL_LINKS)
     };
   });
@@ -56,18 +59,23 @@ export default function Footer({
       setContactSettings({
         phone: s.phone || "+971 2 565 0123",
         email: s.email || "info@cooltechuae.com",
+        whatsapp: s.whatsapp || "+971 50 123 4567",
         phoneContacts: (s.phoneContacts && s.phoneContacts.length > 0 ? s.phoneContacts : DEFAULT_PHONE_CONTACTS),
         emailContacts: (s.emailContacts && s.emailContacts.length > 0 ? s.emailContacts : DEFAULT_EMAIL_CONTACTS),
-        address: s.address || "Plot-99, Sector M-42 / M-14, Mussafah Industrial Area, Abu Dhabi, UAE",
+        departmentHotlines: s.departmentHotlines,
+        whatsappSettings: s.whatsappSettings,
+        address: s.address || "Mussafah M-14, Abu Dhabi, United Arab Emirates",
         socialLinks: (s.socialLinks && s.socialLinks.length > 0 ? s.socialLinks : DEFAULT_SOCIAL_LINKS)
       });
     };
     window.addEventListener("cooltech_contact_settings_updated", update);
     window.addEventListener("cooltech_settings_updated", update);
+    window.addEventListener("cooltech_general_settings_updated", update);
     window.addEventListener("storage", update);
     return () => {
       window.removeEventListener("cooltech_contact_settings_updated", update);
       window.removeEventListener("cooltech_settings_updated", update);
+      window.removeEventListener("cooltech_general_settings_updated", update);
       window.removeEventListener("storage", update);
     };
   }, []);
@@ -112,6 +120,26 @@ export default function Footer({
       }, 150);
     }
   };
+
+  // Department & channel resolution matching Contact Page
+  const salesPhone = contactSettings.departmentHotlines?.salesPhone || 
+                     contactSettings.phoneContacts?.find((p) => p.title?.toLowerCase().includes("sale"))?.number || 
+                     contactSettings.phone || 
+                     "+971 2 565 0123";
+  const salesEmail = contactSettings.departmentHotlines?.salesEmail || 
+                     contactSettings.emailContacts?.find((e) => e.title?.toLowerCase().includes("sale"))?.email || 
+                     "sales@cooltechuae.com";
+
+  const servicesPhone = contactSettings.departmentHotlines?.servicesEmergencyPhone || 
+                        contactSettings.phoneContacts?.find((p) => p.title?.toLowerCase().includes("service"))?.number || 
+                        "+971 2 815 6161";
+  const servicesEmail = contactSettings.departmentHotlines?.servicesEmail || 
+                        contactSettings.emailContacts?.find((e) => e.title?.toLowerCase().includes("service") || e.email?.toLowerCase().includes("care"))?.email || 
+                        "care@cooltechuae.com";
+
+  const whatsappNumber = contactSettings.whatsappSettings?.contactPageWhatsappNumber || 
+                         contactSettings.whatsapp || 
+                         "+971 50 123 4567";
 
   return (
     <footer className="w-full bg-[#031124] text-slate-300 font-sans pt-16 pb-8 border-t border-slate-900" id="footer-section">
@@ -344,81 +372,114 @@ export default function Footer({
             Enterprise Support
           </h4>
           
-          <div className="flex flex-col gap-3.5 text-[13px] text-slate-400">
-            {/* Dynamic Contact Phone Numbers */}
-            {contactSettings.phoneContacts && contactSettings.phoneContacts.length > 0 ? (
-              contactSettings.phoneContacts
-                .filter((c) => c.isActive !== false && c.number?.trim())
-                .map((contact) => (
-                  <div key={contact.id} className="flex items-start gap-2.5">
-                    <Phone size={15} className="text-blue-500 shrink-0 mt-0.5" />
-                    <div className="flex flex-col">
-                      <span className="text-[11px] text-slate-500 uppercase font-semibold">
-                        {contact.title || "Procurement Hotline"}
-                      </span>
-                      <a
-                        href={`tel:${contact.number.replace(/[^0-9+]/g, '')}`}
-                        className="text-white font-bold hover:text-blue-400 transition-colors"
-                      >
-                        {contact.number}
-                      </a>
-                    </div>
-                  </div>
-                ))
-            ) : (
-              <div className="flex items-start gap-2.5">
-                <Phone size={15} className="text-blue-500 shrink-0 mt-0.5" />
-                <div className="flex flex-col">
-                  <span className="text-[11px] text-slate-500 uppercase font-semibold">Procurement Hotline</span>
-                  <a href={`tel:${contactSettings.phone.replace(/[^0-9+]/g, '')}`} className="text-white font-bold hover:text-blue-400 transition-colors">
-                    {contactSettings.phone}
-                  </a>
-                </div>
+          <div className="flex flex-col gap-3.5 text-[12px] text-slate-400">
+            
+            {/* 1. Telephone Number + Email ID (info@) */}
+            <div className="space-y-1.5 pb-2.5 border-b border-slate-800/50">
+              <span className="text-[10px] text-cyan-400 font-extrabold uppercase tracking-wider block">
+                Telephone &amp; General Inquiries
+              </span>
+              <div className="flex items-center gap-2">
+                <Phone size={13} className="text-blue-400 shrink-0" />
+                <a
+                  href={`tel:${contactSettings.phone.replace(/[^0-9+]/g, '')}`}
+                  className="text-white font-bold hover:text-blue-400 transition-colors font-mono text-xs"
+                >
+                  {contactSettings.phone}
+                </a>
               </div>
-            )}
-
-            {/* Dynamic Contact Email Addresses */}
-            {contactSettings.emailContacts && contactSettings.emailContacts.length > 0 ? (
-              contactSettings.emailContacts
-                .filter((c) => c.isActive !== false && c.email?.trim())
-                .map((contact) => (
-                  <div key={contact.id} className="flex items-start gap-2.5">
-                    <Mail size={15} className="text-blue-500 shrink-0 mt-0.5" />
-                    <div className="flex flex-col">
-                      <span className="text-[11px] text-slate-500 uppercase font-semibold">
-                        {contact.title || "Inquiries & Quotations"}
-                      </span>
-                      <a
-                        href={`mailto:${contact.email}`}
-                        className="text-slate-200 hover:text-white hover:underline transition-colors font-medium break-all"
-                      >
-                        {contact.email}
-                      </a>
-                    </div>
-                  </div>
-                ))
-            ) : (
-              <div className="flex items-start gap-2.5">
-                <Mail size={15} className="text-blue-500 shrink-0 mt-0.5" />
-                <div className="flex flex-col">
-                  <span className="text-[11px] text-slate-500 uppercase font-semibold">Inquiries &amp; Quotations</span>
-                  <a href={`mailto:${contactSettings.email}`} className="text-slate-200 hover:text-white hover:underline transition-colors font-medium">
-                    {contactSettings.email}
-                  </a>
-                </div>
+              <div className="flex items-center gap-2">
+                <Mail size={13} className="text-blue-400 shrink-0" />
+                <a
+                  href={`mailto:${contactSettings.email}`}
+                  className="text-slate-300 hover:text-white hover:underline transition-colors text-xs truncate"
+                >
+                  {contactSettings.email}
+                </a>
               </div>
-            )}
+            </div>
 
-            {/* HQ Address */}
-            <div className="flex items-start gap-2.5">
-              <MapPin size={15} className="text-blue-500 shrink-0 mt-0.5" />
-              <div className="flex flex-col">
-                <span className="text-[11px] text-slate-500 uppercase font-semibold">Global Headquarters</span>
-                <span className="text-slate-300 leading-tight">
+            {/* 2. Sales Mobile Number + Sales Email ID */}
+            <div className="space-y-1.5 pb-2.5 border-b border-slate-800/50">
+              <span className="text-[10px] text-cyan-400 font-extrabold uppercase tracking-wider block">
+                Sales
+              </span>
+              <div className="flex items-center gap-2">
+                <Phone size={13} className="text-blue-400 shrink-0" />
+                <a
+                  href={`tel:${salesPhone.replace(/[^0-9+]/g, '')}`}
+                  className="text-white font-bold hover:text-blue-400 transition-colors font-mono text-xs"
+                >
+                  {salesPhone}
+                </a>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail size={13} className="text-blue-400 shrink-0" />
+                <a
+                  href={`mailto:${salesEmail}`}
+                  className="text-slate-300 hover:text-white hover:underline transition-colors text-xs truncate"
+                >
+                  {salesEmail}
+                </a>
+              </div>
+            </div>
+
+            {/* 3. Service Mobile Number + Service Email ID */}
+            <div className="space-y-1.5 pb-2.5 border-b border-slate-800/50">
+              <span className="text-[10px] text-cyan-400 font-extrabold uppercase tracking-wider block">
+                Services
+              </span>
+              <div className="flex items-center gap-2">
+                <Phone size={13} className="text-blue-400 shrink-0" />
+                <a
+                  href={`tel:${servicesPhone.replace(/[^0-9+]/g, '')}`}
+                  className="text-white font-bold hover:text-blue-400 transition-colors font-mono text-xs"
+                >
+                  {servicesPhone}
+                </a>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail size={13} className="text-blue-400 shrink-0" />
+                <a
+                  href={`mailto:${servicesEmail}`}
+                  className="text-slate-300 hover:text-white hover:underline transition-colors text-xs truncate"
+                >
+                  {servicesEmail}
+                </a>
+              </div>
+            </div>
+
+            {/* 4. WhatsApp Number (Separately) */}
+            <div className="space-y-1.5 pb-2.5 border-b border-slate-800/50">
+              <span className="text-[10px] text-emerald-400 font-extrabold uppercase tracking-wider block">
+                WhatsApp
+              </span>
+              <div className="flex items-center gap-2">
+                <MessageSquare size={13} className="text-emerald-400 shrink-0" />
+                <a
+                  href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-white font-bold hover:text-emerald-300 transition-colors font-mono text-xs"
+                >
+                  {whatsappNumber}
+                </a>
+              </div>
+            </div>
+
+            {/* 5. Location */}
+            <div className="space-y-1 pt-0.5">
+              <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider block">
+                Location
+              </span>
+              <div className="flex items-start gap-2 text-xs">
+                <MapPin size={13} className="text-blue-400 shrink-0 mt-0.5" />
+                <span className="text-slate-300 leading-tight text-[11px]">
                   {contactSettings.address}
                 </span>
               </div>
             </div>
+
           </div>
 
           {/* Dynamic Social Icons */}
