@@ -10,7 +10,6 @@ import {
   ExternalLink,
   MessageSquare,
   Sparkles,
-  ShieldCheck,
   Send,
   ArrowUpRight,
   Headphones,
@@ -605,14 +604,6 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
                            "info@cooltechuae.com"
                   };
 
-                  // Additional custom lines if any
-                  const additionalPhones = activePhones.filter(
-                    (p) => p.id !== salesPhone.id && p.id !== servicesPhone.id && p.id !== customTelephonePhone?.id
-                  );
-                  const additionalEmails = activeEmails.filter(
-                    (e) => e.id !== salesEmail.id && e.id !== servicesEmail.id && e.id !== generalEmail.id
-                  );
-
                   return (
                     <div className="space-y-3.5">
                       
@@ -728,43 +719,9 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
                           </span>
                         </div>
                       </div>
-
-                      {/* Additional lines if configured */}
-                      {(additionalPhones.length > 0 || additionalEmails.length > 0) && (
-                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5 text-xs">
-                          {additionalPhones.map((p) => (
-                            <div key={p.id} className="flex items-center justify-between gap-2">
-                              <span className="font-bold text-slate-500 uppercase text-[10px]">{p.title}:</span>
-                              <a href={`tel:${p.number.replace(/[^0-9+]/g, '')}`} className="font-mono font-bold text-slate-900 hover:underline">
-                                {p.number}
-                              </a>
-                            </div>
-                          ))}
-                          {additionalEmails.map((e) => (
-                            <div key={e.id} className="flex items-center justify-between gap-2">
-                              <span className="font-bold text-slate-500 uppercase text-[10px]">{e.title}:</span>
-                              <a href={`mailto:${e.email}`} className="font-bold text-[#0f4c81] hover:underline truncate">
-                                {e.email}
-                              </a>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
                     </div>
                   );
                 })()}
-              </div>
-
-              {/* Quality & Assurance Note at bottom of card */}
-              <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#0f4c81] flex items-center justify-center shrink-0 border border-blue-100">
-                  <ShieldCheck size={16} />
-                </div>
-                <div className="text-xs leading-tight">
-                  <span className="font-bold text-slate-900 block">ISO 9001:2015 Certified Distributor</span>
-                  <span className="text-slate-500 text-[11px]">Factory-sealed equipment with genuine OEM warranty protection.</span>
-                </div>
               </div>
 
             </div>
