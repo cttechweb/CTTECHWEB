@@ -69,6 +69,7 @@ import {
   saveWorkflow as saveWorkflowDb, 
   deleteWorkflow as deleteWorkflowDb 
 } from "./services/workflowService";
+import { fetchGeneralSettings } from "./services/generalSettingsService";
 import { isAdminRoute, PRIMARY_ADMIN_ROUTE } from "./utils/adminRoute";
 import { getProductSlug } from "./utils/productSlug";
 
@@ -149,6 +150,9 @@ export default function App() {
   const [rfqsList, setRfqsList] = useState<RfqRequest[]>([]);
 
   useEffect(() => {
+    // Sync global site & contact center settings from D1 cloud database
+    fetchGeneralSettings().catch(() => {});
+
     const unsubProducts = subscribeToProducts((prods) => {
       if (Array.isArray(prods)) {
         setProductsList(prods);

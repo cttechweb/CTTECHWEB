@@ -58,6 +58,8 @@ import { uploadProductImage } from "../../services/storageService";
 import { 
   getGeneralSettings, 
   saveGeneralSettings,
+  fetchGeneralSettings,
+  syncGeneralSettingsToRemote,
   getBrandPartners, 
   addBrandPartner, 
   updateBrandPartner, 
@@ -237,21 +239,24 @@ export default function AdminGeneralSettings({ onShowToast, onNavigateToContactC
 
   useEffect(() => {
     refreshData();
+    fetchGeneralSettings().then(() => refreshData()).catch(() => {});
   }, []);
 
   // Save All Settings
-  const handleSaveAll = (customMsg?: any) => {
+  const handleSaveAll = async (customMsg?: any) => {
     const msg = typeof customMsg === "string" ? customMsg : "Settings saved successfully!";
     setIsSaving(true);
     try {
       const current = getGeneralSettings();
-      saveGeneralSettings({
+      const updated = saveGeneralSettings({
         ...current,
         brandPartners: partners,
         achievements: achievements,
         brandTickerSpeed: tickerSpeed,
         achievementBgOpacity: globalAchievementBgOpacity,
       });
+
+      await syncGeneralSettingsToRemote(updated);
 
       setIsSavedRecently(true);
       setSavedSuccessMsg(msg);

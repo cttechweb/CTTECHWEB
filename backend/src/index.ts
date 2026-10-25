@@ -99,6 +99,7 @@ import {
   handleUpdateEnquiryStatus,
   handleDeleteEnquiry
 } from "./routes/enquiries";
+import { handleGetSiteSettings, handleSaveSiteSettings } from "./routes/settings";
 import { handleCrmWebhook } from "./crm/webhookHandler";
 import { handleGetCrmStatus } from "./routes/crmStatus";
 
@@ -339,6 +340,10 @@ export default {
         response = await handleDeleteEnquiry(enquiryId, request, env);
       } else if ((path === "/api/admin/crm/health" || path === "/api/crm/status") && method === "GET") {
         response = await handleGetCrmStatus(request, env);
+      } else if ((path === "/api/settings" || path === "/api/general-settings") && method === "GET") {
+        response = await handleGetSiteSettings(request, env);
+      } else if ((path === "/api/settings" || path === "/api/general-settings") && (method === "POST" || method === "PUT")) {
+        response = await handleSaveSiteSettings(request, env);
       } else if ((path === "/api/webhooks/crm" || path === "/api/crm/webhook") && method === "POST") {
         response = await handleCrmWebhook(request, env);
       } else {

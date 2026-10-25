@@ -49,6 +49,8 @@ import {
 } from "../../types";
 import {
   getGeneralSettings,
+  fetchGeneralSettings,
+  syncGeneralSettingsToRemote,
   saveContactCenterSettings,
   DEFAULT_EMAIL_SETTINGS,
   DEFAULT_SOCIAL_LINKS,
@@ -223,6 +225,7 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
 
   useEffect(() => {
     reloadData();
+    fetchGeneralSettings().then(() => reloadData()).catch(() => {});
     window.addEventListener("cooltech_settings_updated", reloadData);
     window.addEventListener("cooltech_contact_settings_updated", reloadData);
     return () => {
@@ -232,7 +235,7 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
   }, []);
 
   // Save All Changes Master Handler
-  const handleSaveAll = (customMsg?: string) => {
+  const handleSaveAll = async (customMsg?: string) => {
     setIsSaving(true);
 
     const finalPhone = phone.trim() || salesPhone.trim();
@@ -324,11 +327,16 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
     saveBranches(branches);
     saveContactFaqs(faqs);
 
+    // Sync to remote Cloudflare D1 database so all public visitors immediately see it
+    const isSynced = await syncGeneralSettingsToRemote(payload as GeneralSiteSettings);
+
     setIsSaving(false);
     setIsSavedRecently(true);
     setTimeout(() => setIsSavedRecently(false), 2500);
 
-    const msg = customMsg || "All contact channels and coordinates saved successfully!";
+    const msg = customMsg || (isSynced
+      ? "All contact channels and coordinates saved & published live to database!"
+      : "Contact settings saved locally. Syncing with database in background.");
     if (onShowToast) onShowToast(msg);
   };
 

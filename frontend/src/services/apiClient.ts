@@ -305,6 +305,11 @@ export const apiClient = {
 
   // CRM Integration Health & Status (Admin Only)
   getCrmHealthStatus: () => apiClient.get("/api/admin/crm/health", { requiresAuth: true }),
+
+  // Global Site & Contact Center Settings
+  getSiteSettings: () => apiClient.get<{ status: string; settings: any; updatedAt?: string }>("/api/settings"),
+  saveSiteSettings: (settings: any) =>
+    apiClient.post<{ status: string; settings: any }>("/api/settings", { settings }, { requiresAuth: true }),
 };
 
 export default apiClient;

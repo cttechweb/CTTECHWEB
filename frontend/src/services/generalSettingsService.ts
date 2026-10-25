@@ -19,6 +19,7 @@ import {
   DynamicContactEmail
 } from "../types";
 import { apiClient } from "./apiClient";
+import { db, doc, getDoc, setDoc, onSnapshot } from "../lib/firebase";
 
 const LOCAL_STORAGE_SETTINGS_KEY = "cooltech_general_settings_v1";
 
@@ -585,77 +586,198 @@ function notifySettingsChange() {
 }
 
 /**
- * Fetch general site settings
+ * Normalize and merge raw or parsed settings with comprehensive defaults
+ */
+export function normalizeSettings(parsed: any): GeneralSiteSettings {
+  if (!parsed || typeof parsed !== "object") {
+    return DEFAULT_SETTINGS;
+  }
+  return {
+    ...DEFAULT_SETTINGS,
+    ...parsed,
+    storageProvider: parsed.storageProvider || "cloudflare",
+    cloudflareUploadEndpoint: parsed.cloudflareUploadEndpoint || "https://cooltech-api-worker.ctauhweb.workers.dev/api/upload",
+    cloudflarePublicDomain: parsed.cloudflarePublicDomain || "https://pub-0fd8611859e54ef6af47da7f5d49fab4.r2.dev",
+    brandPartners: parsed.brandPartners && Array.isArray(parsed.brandPartners) && parsed.brandPartners.length > 0
+      ? parsed.brandPartners
+      : DEFAULT_BRAND_PARTNERS,
+    achievements: parsed.achievements && Array.isArray(parsed.achievements) && parsed.achievements.length > 0
+      ? parsed.achievements
+      : DEFAULT_ACHIEVEMENTS,
+    branches: parsed.branches !== undefined && Array.isArray(parsed.branches)
+      ? parsed.branches
+      : DEFAULT_BRANCHES,
+    contactFaqs: parsed.contactFaqs !== undefined && Array.isArray(parsed.contactFaqs)
+      ? parsed.contactFaqs
+      : DEFAULT_CONTACT_FAQS,
+    socialLinks: parsed.socialLinks !== undefined && Array.isArray(parsed.socialLinks) && parsed.socialLinks.length > 0
+      ? parsed.socialLinks
+      : DEFAULT_SOCIAL_LINKS,
+    whatsappSettings: parsed.whatsappSettings
+      ? { ...DEFAULT_WHATSAPP_SETTINGS, ...parsed.whatsappSettings }
+      : DEFAULT_WHATSAPP_SETTINGS,
+    departmentHotlines: parsed.departmentHotlines
+      ? { ...DEFAULT_DEPARTMENT_HOTLINES, ...parsed.departmentHotlines }
+      : DEFAULT_DEPARTMENT_HOTLINES,
+    socialSeoSettings: parsed.socialSeoSettings
+      ? {
+          ...DEFAULT_SOCIAL_SEO_SETTINGS,
+          ...parsed.socialSeoSettings,
+          pagePreviews: parsed.socialSeoSettings.pagePreviews && Array.isArray(parsed.socialSeoSettings.pagePreviews) && parsed.socialSeoSettings.pagePreviews.length > 0
+            ? parsed.socialSeoSettings.pagePreviews
+            : DEFAULT_SOCIAL_SEO_SETTINGS.pagePreviews
+        }
+      : DEFAULT_SOCIAL_SEO_SETTINGS,
+    emailIntegration: parsed.emailIntegration
+      ? {
+          ...DEFAULT_EMAIL_SETTINGS,
+          ...parsed.emailIntegration,
+          brevoApiKey: (parsed.emailIntegration.brevoApiKey || "").trim() || DEFAULT_EMAIL_SETTINGS.brevoApiKey,
+          brevoSenderEmail: (parsed.emailIntegration.brevoSenderEmail || "").trim() || DEFAULT_EMAIL_SETTINGS.brevoSenderEmail,
+          brevoSenderName: (parsed.emailIntegration.brevoSenderName || "").trim() || DEFAULT_EMAIL_SETTINGS.brevoSenderName,
+          serviceId: (parsed.emailIntegration.serviceId || "").trim() || DEFAULT_EMAIL_SETTINGS.serviceId,
+          templateId: (parsed.emailIntegration.templateId || "").trim() || DEFAULT_EMAIL_SETTINGS.templateId,
+          publicKey: (parsed.emailIntegration.publicKey || "").trim() || DEFAULT_EMAIL_SETTINGS.publicKey,
+        }
+      : DEFAULT_EMAIL_SETTINGS,
+    phoneContacts: parsed.phoneContacts && Array.isArray(parsed.phoneContacts) && parsed.phoneContacts.length > 0
+      ? parsed.phoneContacts
+      : (parsed.phone
+          ? [{ id: "phone-default-migrated", title: "Procurement Hotline", number: parsed.phone, isActive: true }]
+          : DEFAULT_PHONE_CONTACTS),
+    emailContacts: parsed.emailContacts && Array.isArray(parsed.emailContacts) && parsed.emailContacts.length > 0
+      ? parsed.emailContacts
+      : (parsed.email
+          ? [{ id: "email-default-migrated", title: "Inquiries & Quotations", email: parsed.email, isActive: true }]
+          : DEFAULT_EMAIL_CONTACTS),
+  };
+}
+
+/**
+ * Fetch general site settings from local cache (synchronous, instant render)
  */
 export function getGeneralSettings(): GeneralSiteSettings {
   try {
     const saved = localStorage.getItem(LOCAL_STORAGE_SETTINGS_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      return {
-        ...DEFAULT_SETTINGS,
-        ...parsed,
-        storageProvider: parsed.storageProvider || "cloudflare",
-        cloudflareUploadEndpoint: parsed.cloudflareUploadEndpoint || "https://cooltech-api-worker.ctauhweb.workers.dev/api/upload",
-        cloudflarePublicDomain: parsed.cloudflarePublicDomain || "https://pub-0fd8611859e54ef6af47da7f5d49fab4.r2.dev",
-        brandPartners: parsed.brandPartners && Array.isArray(parsed.brandPartners) && parsed.brandPartners.length > 0
-          ? parsed.brandPartners
-          : DEFAULT_BRAND_PARTNERS,
-        achievements: parsed.achievements && Array.isArray(parsed.achievements) && parsed.achievements.length > 0
-          ? parsed.achievements
-          : DEFAULT_ACHIEVEMENTS,
-        branches: parsed.branches !== undefined && Array.isArray(parsed.branches)
-          ? parsed.branches
-          : DEFAULT_BRANCHES,
-        contactFaqs: parsed.contactFaqs !== undefined && Array.isArray(parsed.contactFaqs)
-          ? parsed.contactFaqs
-          : DEFAULT_CONTACT_FAQS,
-        socialLinks: parsed.socialLinks !== undefined && Array.isArray(parsed.socialLinks) && parsed.socialLinks.length > 0
-          ? parsed.socialLinks
-          : DEFAULT_SOCIAL_LINKS,
-        whatsappSettings: parsed.whatsappSettings
-          ? { ...DEFAULT_WHATSAPP_SETTINGS, ...parsed.whatsappSettings }
-          : DEFAULT_WHATSAPP_SETTINGS,
-        departmentHotlines: parsed.departmentHotlines
-          ? { ...DEFAULT_DEPARTMENT_HOTLINES, ...parsed.departmentHotlines }
-          : DEFAULT_DEPARTMENT_HOTLINES,
-        socialSeoSettings: parsed.socialSeoSettings
-          ? {
-              ...DEFAULT_SOCIAL_SEO_SETTINGS,
-              ...parsed.socialSeoSettings,
-              pagePreviews: parsed.socialSeoSettings.pagePreviews && Array.isArray(parsed.socialSeoSettings.pagePreviews) && parsed.socialSeoSettings.pagePreviews.length > 0
-                ? parsed.socialSeoSettings.pagePreviews
-                : DEFAULT_SOCIAL_SEO_SETTINGS.pagePreviews
-            }
-          : DEFAULT_SOCIAL_SEO_SETTINGS,
-        emailIntegration: parsed.emailIntegration
-          ? {
-              ...DEFAULT_EMAIL_SETTINGS,
-              ...parsed.emailIntegration,
-              brevoApiKey: (parsed.emailIntegration.brevoApiKey || "").trim() || DEFAULT_EMAIL_SETTINGS.brevoApiKey,
-              brevoSenderEmail: (parsed.emailIntegration.brevoSenderEmail || "").trim() || DEFAULT_EMAIL_SETTINGS.brevoSenderEmail,
-              brevoSenderName: (parsed.emailIntegration.brevoSenderName || "").trim() || DEFAULT_EMAIL_SETTINGS.brevoSenderName,
-              serviceId: (parsed.emailIntegration.serviceId || "").trim() || DEFAULT_EMAIL_SETTINGS.serviceId,
-              templateId: (parsed.emailIntegration.templateId || "").trim() || DEFAULT_EMAIL_SETTINGS.templateId,
-              publicKey: (parsed.emailIntegration.publicKey || "").trim() || DEFAULT_EMAIL_SETTINGS.publicKey,
-            }
-          : DEFAULT_EMAIL_SETTINGS,
-        phoneContacts: parsed.phoneContacts && Array.isArray(parsed.phoneContacts) && parsed.phoneContacts.length > 0
-          ? parsed.phoneContacts
-          : (parsed.phone
-              ? [{ id: "phone-default-migrated", title: "Procurement Hotline", number: parsed.phone, isActive: true }]
-              : DEFAULT_PHONE_CONTACTS),
-        emailContacts: parsed.emailContacts && Array.isArray(parsed.emailContacts) && parsed.emailContacts.length > 0
-          ? parsed.emailContacts
-          : (parsed.email
-              ? [{ id: "email-default-migrated", title: "Inquiries & Quotations", email: parsed.email, isActive: true }]
-              : DEFAULT_EMAIL_CONTACTS),
-      };
+      return normalizeSettings(parsed);
     }
   } catch (err) {
     console.warn("[GeneralSettingsService] Error reading settings from localStorage:", err);
   }
   return DEFAULT_SETTINGS;
+}
+
+let isFetchingRemote = false;
+
+/**
+ * Sync in-memory / local settings to Firebase Firestore and Cloudflare D1 (persists publicly across all browsers)
+ */
+export async function syncGeneralSettingsToRemote(settings?: GeneralSiteSettings): Promise<boolean> {
+  const dataToSave = settings || getGeneralSettings();
+  let anySuccess = false;
+
+  // 1. Persist directly to Firebase Firestore (site_settings/general) - Real-time global sync
+  try {
+    const docRef = doc(db, "site_settings", "general");
+    await setDoc(docRef, { ...dataToSave, updatedAt: new Date().toISOString() }, { merge: true });
+    anySuccess = true;
+    console.info("[GeneralSettingsService] Successfully synchronized site settings to Firebase Firestore.");
+  } catch (fsErr) {
+    console.warn("[GeneralSettingsService] Firestore settings sync notice:", fsErr);
+  }
+
+  // 2. Persist to Cloudflare D1 Backend API
+  try {
+    await apiClient.saveSiteSettings(dataToSave);
+    anySuccess = true;
+    console.info("[GeneralSettingsService] Successfully synchronized site settings to Cloudflare D1.");
+  } catch (apiErr) {
+    console.warn("[GeneralSettingsService] Cloudflare D1 Worker settings sync notice:", apiErr);
+  }
+
+  return anySuccess;
+}
+
+/**
+ * Fetch latest global site settings from Firebase Firestore and Cloudflare D1
+ * Automatically updates localStorage cache and triggers live updates across the site.
+ */
+export async function fetchGeneralSettings(): Promise<GeneralSiteSettings> {
+  if (isFetchingRemote) return getGeneralSettings();
+  isFetchingRemote = true;
+
+  try {
+    // 1. Try Firebase Firestore (instant worldwide access & fallback)
+    try {
+      const docRef = doc(db, "site_settings", "general");
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data && typeof data === "object" && Object.keys(data).length > 0) {
+          const normalized = normalizeSettings(data);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(normalized));
+          } catch {}
+          notifySettingsChange();
+          return normalized;
+        }
+      }
+    } catch (fsErr) {
+      console.warn("[GeneralSettingsService] Error reading settings from Firestore:", fsErr);
+    }
+
+    // 2. Try Cloudflare D1 Backend API
+    try {
+      const res = await apiClient.getSiteSettings();
+      if (res && res.status === "success" && res.settings && typeof res.settings === "object" && Object.keys(res.settings).length > 0) {
+        const normalized = normalizeSettings(res.settings);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(normalized));
+        } catch {}
+        notifySettingsChange();
+        return normalized;
+      }
+    } catch (apiErr) {
+      console.warn("[GeneralSettingsService] Error reading settings from D1 API:", apiErr);
+    }
+
+    // 3. If remote is completely fresh, auto-publish local settings if available
+    const local = getGeneralSettings();
+    if (typeof window !== "undefined" && localStorage.getItem(LOCAL_STORAGE_SETTINGS_KEY)) {
+      syncGeneralSettingsToRemote(local).catch(() => {});
+    }
+  } finally {
+    isFetchingRemote = false;
+  }
+
+  return getGeneralSettings();
+}
+
+// Real-time Firestore synchronization listener
+if (typeof window !== "undefined") {
+  try {
+    const docRef = doc(db, "site_settings", "general");
+    onSnapshot(docRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data && typeof data === "object") {
+          const normalized = normalizeSettings(data);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(normalized));
+          } catch {}
+          notifySettingsChange();
+        }
+      }
+    }, (err) => {
+      console.warn("[GeneralSettingsService] Firestore live listener notice:", err);
+    });
+  } catch {}
+
+  setTimeout(() => {
+    fetchGeneralSettings().catch(() => {});
+  }, 100);
 }
 
 /**
@@ -841,10 +963,21 @@ export function saveGeneralSettings(settings: Partial<GeneralSiteSettings>): Gen
   try {
     localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(updated));
     notifySettingsChange();
+    // Persist live to Cloudflare D1 database for public visibility across all devices & incognito
+    syncGeneralSettingsToRemote(updated).catch(() => {});
   } catch (err) {
     console.error("[GeneralSettingsService] Error saving settings:", err);
   }
 
+  return updated;
+}
+
+/**
+ * Asynchronously save settings and await confirmation from Cloudflare D1
+ */
+export async function saveGeneralSettingsRemote(settings: Partial<GeneralSiteSettings>): Promise<GeneralSiteSettings> {
+  const updated = saveGeneralSettings(settings);
+  await syncGeneralSettingsToRemote(updated);
   return updated;
 }
 
