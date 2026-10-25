@@ -900,41 +900,16 @@ export function saveGeneralSettings(settings: Partial<GeneralSiteSettings>): Gen
     updatedAt: new Date().toISOString()
   };
 
-  // Keep top-level phone and email in sync with the primary items if phoneContacts/emailContacts are provided
-  if (settings.phoneContacts && settings.phoneContacts.length > 0) {
-    const primaryPhone = settings.phoneContacts.find(p => p.isActive !== false && p.number?.trim()) || settings.phoneContacts[0];
-    if (primaryPhone?.number) {
-      updated.phone = primaryPhone.number.trim();
-    }
-    const salesContact = settings.phoneContacts.find(p => p.title?.toLowerCase().includes("sale"));
-    const servicesContact = settings.phoneContacts.find(p => p.title?.toLowerCase().includes("service"));
-    updated.departmentHotlines = {
-      ...(updated.departmentHotlines || DEFAULT_DEPARTMENT_HOTLINES),
-      ...(salesContact?.number ? { salesPhone: salesContact.number.trim() } : {}),
-      ...(servicesContact?.number ? { servicesEmergencyPhone: servicesContact.number.trim() } : {})
-    };
-  } else if (settings.phone && updated.phoneContacts && updated.phoneContacts.length > 0) {
-    // If phone was updated directly without phoneContacts, sync the primary phoneContact & sales hotline
-    updated.phoneContacts = [
-      { ...updated.phoneContacts[0], number: settings.phone.trim() },
-      ...updated.phoneContacts.slice(1)
-    ];
-    if (updated.departmentHotlines) {
-      updated.departmentHotlines.salesPhone = settings.phone.trim();
-    }
+  // Explicitly preserve top-level phone and email as submitted
+  if (settings.phone !== undefined) {
+    updated.phone = settings.phone.trim();
   }
 
-  if (settings.departmentHotlines) {
-    updated.departmentHotlines = {
-      ...(updated.departmentHotlines || DEFAULT_DEPARTMENT_HOTLINES),
-      ...settings.departmentHotlines
-    };
-    if (settings.departmentHotlines.salesPhone) {
-      updated.phone = settings.departmentHotlines.salesPhone.trim();
-    }
+  if (settings.email !== undefined) {
+    updated.email = settings.email.trim();
   }
 
-  if (settings.whatsapp) {
+  if (settings.whatsapp !== undefined) {
     updated.whatsapp = settings.whatsapp.trim();
     updated.whatsappSettings = {
       ...(updated.whatsappSettings || DEFAULT_WHATSAPP_SETTINGS),
@@ -944,17 +919,19 @@ export function saveGeneralSettings(settings: Partial<GeneralSiteSettings>): Gen
     };
   }
 
+  if (settings.departmentHotlines) {
+    updated.departmentHotlines = {
+      ...(updated.departmentHotlines || DEFAULT_DEPARTMENT_HOTLINES),
+      ...settings.departmentHotlines
+    };
+  }
+
+  if (settings.phoneContacts && settings.phoneContacts.length > 0) {
+    updated.phoneContacts = settings.phoneContacts;
+  }
+
   if (settings.emailContacts && settings.emailContacts.length > 0) {
-    const primaryEmail = settings.emailContacts.find(e => e.isActive !== false && e.email?.trim()) || settings.emailContacts[0];
-    if (primaryEmail?.email) {
-      updated.email = primaryEmail.email.trim();
-    }
-  } else if (settings.email && updated.emailContacts && updated.emailContacts.length > 0) {
-    // If email was updated directly without emailContacts, sync the primary emailContact
-    updated.emailContacts = [
-      { ...updated.emailContacts[0], email: settings.email.trim() },
-      ...updated.emailContacts.slice(1)
-    ];
+    updated.emailContacts = settings.emailContacts;
   }
 
   try {

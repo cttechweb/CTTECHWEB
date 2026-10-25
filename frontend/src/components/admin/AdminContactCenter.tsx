@@ -238,19 +238,25 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
   const handleSaveAll = async (customMsg?: string) => {
     setIsSaving(true);
 
-    const finalPhone = phone.trim() || salesPhone.trim();
+    const finalPhone = phone.trim();
     const finalEmail = email.trim();
     const finalWhatsapp = whatsappNumber.trim();
-    const finalSalesPhone = salesPhone.trim() || finalPhone;
+    const finalSalesPhone = salesPhone.trim();
     const finalSalesEmail = salesEmail.trim();
     const finalServicesPhone = servicesPhone.trim();
     const finalServicesEmail = servicesEmail.trim();
 
     // Construct unified phoneContacts (preserving any custom extra lines)
     const extraPhones = phoneContacts.filter(
-      (p) => p.id !== "phone-sales" && p.id !== "phone-services" && p.id !== "phone-default-migrated"
+      (p) => p.id !== "phone-primary" && p.id !== "phone-sales" && p.id !== "phone-services" && p.id !== "phone-default-migrated"
     );
     const updatedPhoneContacts: DynamicContactNumber[] = [
+      ...(finalPhone ? [{
+        id: "phone-primary",
+        title: "Procurement Hotline",
+        number: finalPhone,
+        isActive: true
+      }] : []),
       {
         id: "phone-sales",
         title: "Sales",
