@@ -43,7 +43,7 @@ export default function Footer({
     return {
       phone: s.phone || "+971 2 565 0123",
       email: s.email || "info@cooltechuae.com",
-      whatsapp: s.whatsapp || "+971 50 123 4567",
+      whatsapp: s.whatsapp || "+971 2 565 0123",
       phoneContacts: (s.phoneContacts && s.phoneContacts.length > 0 ? s.phoneContacts : DEFAULT_PHONE_CONTACTS),
       emailContacts: (s.emailContacts && s.emailContacts.length > 0 ? s.emailContacts : DEFAULT_EMAIL_CONTACTS),
       departmentHotlines: s.departmentHotlines,
@@ -59,7 +59,7 @@ export default function Footer({
       setContactSettings({
         phone: s.phone || "+971 2 565 0123",
         email: s.email || "info@cooltechuae.com",
-        whatsapp: s.whatsapp || "+971 50 123 4567",
+        whatsapp: s.whatsapp || "+971 2 565 0123",
         phoneContacts: (s.phoneContacts && s.phoneContacts.length > 0 ? s.phoneContacts : DEFAULT_PHONE_CONTACTS),
         emailContacts: (s.emailContacts && s.emailContacts.length > 0 ? s.emailContacts : DEFAULT_EMAIL_CONTACTS),
         departmentHotlines: s.departmentHotlines,
@@ -124,8 +124,7 @@ export default function Footer({
   // Department & channel resolution matching Contact Page
   const salesPhone = contactSettings.departmentHotlines?.salesPhone || 
                      contactSettings.phoneContacts?.find((p) => p.title?.toLowerCase().includes("sale"))?.number || 
-                     contactSettings.phone || 
-                     "+971 2 565 0123";
+                     "+971 2 815 6111";
   const salesEmail = contactSettings.departmentHotlines?.salesEmail || 
                      contactSettings.emailContacts?.find((e) => e.title?.toLowerCase().includes("sale"))?.email || 
                      "sales@cooltechuae.com";
@@ -139,7 +138,7 @@ export default function Footer({
 
   const whatsappNumber = contactSettings.whatsappSettings?.contactPageWhatsappNumber || 
                          contactSettings.whatsapp || 
-                         "+971 50 123 4567";
+                         "+971 2 565 0123";
 
   return (
     <footer className="w-full bg-[#031124] text-slate-300 font-sans pt-16 pb-8 border-t border-slate-900" id="footer-section">

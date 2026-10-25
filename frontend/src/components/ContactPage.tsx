@@ -560,8 +560,8 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
                   ).filter((c) => c.isActive !== false && c.email?.trim());
 
                   // 1. Telephone / Direct Mobile
-                  const customTelephonePhone = activePhones.find((p) => p.title?.toLowerCase().includes("tele") || p.title?.toLowerCase().includes("mobile"));
-                  const telephoneNumber = settings.whatsappSettings?.contactPageWhatsappNumber || settings.whatsapp || customTelephonePhone?.number || "+971 50 123 4567";
+                  const customTelephonePhone = activePhones.find((p) => p.title?.toLowerCase().includes("tele") || p.title?.toLowerCase().includes("mobile") || p.title?.toLowerCase().includes("general") || p.id === "phone-primary");
+                  const telephoneNumber = settings.whatsappSettings?.contactPageWhatsappNumber || settings.whatsapp || customTelephonePhone?.number || settings.phone || "+971 2 565 0123";
 
                   // 2. Sales Category
                   const salesPhone = {
@@ -569,8 +569,7 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
                     title: "Sales",
                     number: settings.departmentHotlines?.salesPhone || 
                             activePhones.find((p) => p.title?.toLowerCase().includes("sale"))?.number || 
-                            settings.phone || 
-                            "+971 2 565 0123"
+                            "+971 2 815 6111"
                   };
                   const salesEmail = {
                     id: "email-sales",

@@ -25,6 +25,12 @@ const LOCAL_STORAGE_SETTINGS_KEY = "cooltech_general_settings_v1";
 
 export const DEFAULT_PHONE_CONTACTS: DynamicContactNumber[] = [
   {
+    id: "phone-primary",
+    title: "General & Procurement",
+    number: "+971 2 565 0123",
+    isActive: true
+  },
+  {
     id: "phone-sales",
     title: "Sales",
     number: "+971 2 815 6111",
@@ -34,12 +40,6 @@ export const DEFAULT_PHONE_CONTACTS: DynamicContactNumber[] = [
     id: "phone-services",
     title: "Services",
     number: "+971 2 815 6161",
-    isActive: true
-  },
-  {
-    id: "phone-1792829009942",
-    title: "Telephone",
-    number: "+971 2 565 0123",
     isActive: true
   }
 ];
@@ -267,7 +267,7 @@ export const DEFAULT_BRANCHES: CompanyBranch[] = [
     city: "Abu Dhabi",
     address: "Plot-99, Sector M-42 / M-14, Mussafah Industrial Area, Abu Dhabi, UAE",
     phone: "+971 2 565 0123",
-    mobile: "+971 50 123 4567",
+    mobile: "+971 2 565 0123",
     email: "info@cooltechuae.com",
     workingHours: "Monday - Saturday: 8:00 AM - 7:00 PM (GST)",
     mapUrl: "https://maps.google.com/?q=Mussafah+Industrial+Area+Abu+Dhabi",
@@ -512,7 +512,7 @@ export const DEFAULT_SETTINGS: GeneralSiteSettings = {
   companyName: "Cool Technologies LLC",
   tagline: "The Experts in Commercial & Industrial Cooling",
   email: "info@cooltechuae.com",
-  phone: "+971 2 815 6111",
+  phone: "+971 2 565 0123",
   whatsapp: "+971 2 565 0123",
   address: "Mussafah M-14, Abu Dhabi, United Arab Emirates",
   locationMapUrl: "https://maps.google.com",
@@ -579,7 +579,12 @@ export function normalizeSettings(parsed: any): GeneralSiteSettings {
       ? { ...DEFAULT_WHATSAPP_SETTINGS, ...parsed.whatsappSettings }
       : DEFAULT_WHATSAPP_SETTINGS,
     departmentHotlines: parsed.departmentHotlines
-      ? { ...DEFAULT_DEPARTMENT_HOTLINES, ...parsed.departmentHotlines }
+      ? {
+          ...DEFAULT_DEPARTMENT_HOTLINES,
+          ...parsed.departmentHotlines,
+          salesPhone: (parsed.departmentHotlines.salesPhone || "").trim() || DEFAULT_DEPARTMENT_HOTLINES.salesPhone,
+          servicesEmergencyPhone: (parsed.departmentHotlines.servicesEmergencyPhone || "").trim() || DEFAULT_DEPARTMENT_HOTLINES.servicesEmergencyPhone,
+        }
       : DEFAULT_DEPARTMENT_HOTLINES,
     socialSeoSettings: parsed.socialSeoSettings
       ? {
@@ -685,7 +690,39 @@ export async function syncGeneralSettingsToRemote(settings?: GeneralSiteSettings
 }
 
 /**
- * Fetch latest global site settings from Cloudflare D1
+ * Guard: only allow remote data to overwrite local settings if remote is strictly newer.
+ * If local has newer changes, remote is ignored and local data is synced up to remote.
+ */
+function shouldApplyRemoteSettings(remoteData: any): boolean {
+  if (!remoteData || typeof remoteData !== "object" || Object.keys(remoteData).length === 0) {
+    return false;
+  }
+  
+  if (typeof window === "undefined") return true;
+
+  const localSaved = localStorage.getItem(LOCAL_STORAGE_SETTINGS_KEY);
+  if (!localSaved) return true;
+
+  try {
+    const local = JSON.parse(localSaved);
+    const localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
+    const remoteTime = remoteData.updatedAt ? new Date(remoteData.updatedAt).getTime() : 0;
+
+    if (remoteTime > 0 && localTime > 0 && remoteTime < localTime) {
+      console.info("[GeneralSettingsService] Local settings are newer than remote. Preserving local changes and resyncing.");
+      const currentSettings = getGeneralSettings();
+      syncGeneralSettingsToRemote(currentSettings).catch(() => {});
+      return false;
+    }
+  } catch (e) {
+    return true;
+  }
+
+  return true;
+}
+
+/**
+ * Fetch latest global site settings from Cloudflare D1 / Firestore
  * Automatically updates localStorage cache and triggers live updates across the site.
  */
 export async function fetchGeneralSettings(): Promise<GeneralSiteSettings> {
@@ -699,7 +736,7 @@ export async function fetchGeneralSettings(): Promise<GeneralSiteSettings> {
       if (res && res.status === "success" && res.workflow && res.workflow.steps) {
         const rawSteps = res.workflow.steps;
         const configData = typeof rawSteps === "string" ? JSON.parse(rawSteps) : rawSteps;
-        if (configData && typeof configData === "object" && Object.keys(configData).length > 0) {
+        if (shouldApplyRemoteSettings(configData)) {
           const normalized = normalizeSettings(configData);
           try {
             localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(normalized));
@@ -714,12 +751,14 @@ export async function fetchGeneralSettings(): Promise<GeneralSiteSettings> {
     try {
       const res = await apiClient.getSiteSettings();
       if (res && res.status === "success" && res.settings && typeof res.settings === "object" && Object.keys(res.settings).length > 0) {
-        const normalized = normalizeSettings(res.settings);
-        try {
-          localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(normalized));
-        } catch {}
-        notifySettingsChange();
-        return normalized;
+        if (shouldApplyRemoteSettings(res.settings)) {
+          const normalized = normalizeSettings(res.settings);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(normalized));
+          } catch {}
+          notifySettingsChange();
+          return normalized;
+        }
       }
     } catch (apiErr) {}
 
@@ -729,7 +768,7 @@ export async function fetchGeneralSettings(): Promise<GeneralSiteSettings> {
       const snap = await getDoc(docRef);
       if (snap.exists()) {
         const data = snap.data();
-        if (data && typeof data === "object" && Object.keys(data).length > 0) {
+        if (shouldApplyRemoteSettings(data)) {
           const normalized = normalizeSettings(data);
           try {
             localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(normalized));
@@ -759,7 +798,7 @@ if (typeof window !== "undefined") {
     onSnapshot(docRef, (snap) => {
       if (snap.exists()) {
         const data = snap.data();
-        if (data && typeof data === "object") {
+        if (shouldApplyRemoteSettings(data)) {
           const normalized = normalizeSettings(data);
           try {
             localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(normalized));

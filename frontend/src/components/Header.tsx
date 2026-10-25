@@ -66,7 +66,7 @@ export default function Header({
   const [contactSettings, setContactSettings] = useState(() => {
     const s = getGeneralSettings();
     return {
-      phone: s.phone || "+971 2 815 6111",
+      phone: s.phone || "+971 2 565 0123",
       email: s.email || "info@cooltechuae.com"
     };
   });
@@ -75,7 +75,7 @@ export default function Header({
     const updateContacts = () => {
       const s = getGeneralSettings();
       setContactSettings({
-        phone: s.phone || "+971 2 815 6111",
+        phone: s.phone || "+971 2 565 0123",
         email: s.email || "info@cooltechuae.com"
       });
     };

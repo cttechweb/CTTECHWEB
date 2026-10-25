@@ -1376,7 +1376,7 @@ export default function AdminGeneralSettings({ onShowToast, onNavigateToContactC
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-50">
                   <span className="text-slate-400">WhatsApp Business:</span>
-                  <span className="font-bold text-slate-800">{settings.whatsapp || "+971 50 123 4567"}</span>
+                  <span className="font-bold text-slate-800">{settings.whatsapp || "+971 2 565 0123"}</span>
                 </div>
                 <div className="flex justify-between py-1">
                   <span className="text-slate-400">Address:</span>
@@ -1408,7 +1408,7 @@ export default function AdminGeneralSettings({ onShowToast, onNavigateToContactC
                 <div className="flex justify-between py-1 border-b border-slate-50">
                   <span className="text-slate-400">Sales Hotline:</span>
                   <span className="font-bold text-slate-800">
-                    {settings.departmentHotlines?.salesPhone || settings.phone || "+971 2 565 0123"}
+                    {settings.departmentHotlines?.salesPhone || "+971 2 815 6111"}
                   </span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-50">
@@ -1420,7 +1420,7 @@ export default function AdminGeneralSettings({ onShowToast, onNavigateToContactC
                 <div className="flex justify-between py-1 border-b border-slate-50">
                   <span className="text-slate-400">Services Hotline:</span>
                   <span className="font-bold text-slate-800">
-                    {settings.departmentHotlines?.servicesPhone || "+971 50 123 4567"}
+                    {settings.departmentHotlines?.servicesEmergencyPhone || settings.departmentHotlines?.servicesPhone || "+971 2 815 6161"}
                   </span>
                 </div>
                 <div className="flex justify-between py-1">

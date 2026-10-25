@@ -101,13 +101,12 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
 
   // 2. Department Direct Channels (Directly reflected on /contact)
   const [whatsappNumber, setWhatsappNumber] = useState(
-    settings.whatsappSettings?.contactPageWhatsappNumber || settings.whatsapp || "+971 50 123 4567"
+    settings.whatsappSettings?.contactPageWhatsappNumber || settings.whatsapp || "+971 2 565 0123"
   );
   const [salesPhone, setSalesPhone] = useState(
     settings.departmentHotlines?.salesPhone || 
     settings.phoneContacts?.find(p => p.title?.toLowerCase().includes("sale"))?.number || 
-    settings.phone || 
-    "+971 2 565 0123"
+    "+971 2 815 6111"
   );
   const [salesEmail, setSalesEmail] = useState(
     settings.emailContacts?.find(e => e.title?.toLowerCase().includes("sale") || e.email?.toLowerCase().includes("sale"))?.email || 
@@ -191,12 +190,11 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
     setWorkingHours(s.workingHours || "Monday - Saturday: 8:00 AM - 7:00 PM (GST)");
     setLocationMapUrl(s.locationMapUrl || "");
 
-    setWhatsappNumber(s.whatsappSettings?.contactPageWhatsappNumber || s.whatsapp || "+971 50 123 4567");
+    setWhatsappNumber(s.whatsappSettings?.contactPageWhatsappNumber || s.whatsapp || "+971 2 565 0123");
     setSalesPhone(
       s.departmentHotlines?.salesPhone || 
       s.phoneContacts?.find(p => p.title?.toLowerCase().includes("sale"))?.number || 
-      s.phone || 
-      "+971 2 565 0123"
+      "+971 2 815 6111"
     );
     setSalesEmail(
       s.emailContacts?.find(e => e.title?.toLowerCase().includes("sale") || e.email?.toLowerCase().includes("sale"))?.email || 
