@@ -35,6 +35,12 @@ export const DEFAULT_PHONE_CONTACTS: DynamicContactNumber[] = [
     title: "Services",
     number: "+971 2 815 6161",
     isActive: true
+  },
+  {
+    id: "phone-1792829009942",
+    title: "Telephone",
+    number: "+971 2 565 0123",
+    isActive: true
   }
 ];
 
@@ -100,11 +106,11 @@ export const DEFAULT_SOCIAL_LINKS: DynamicSocialLink[] = [
 
 export const DEFAULT_WHATSAPP_SETTINGS: WhatsAppRoutingSettings = {
   floatingWidgetEnabled: true,
-  floatingPhoneNumber: "+971 50 123 4567",
+  floatingPhoneNumber: "+971 2 565 0123",
   floatingPrefilledMessage: "Hello Cool Technologies, I would like to inquire about commercial cooling equipment.",
   floatingButtonPosition: "bottom-right",
-  emailAutoReplyWhatsappNumber: "+971 50 123 4567",
-  contactPageWhatsappNumber: "+971 50 123 4567"
+  emailAutoReplyWhatsappNumber: "+971 2 565 0123",
+  contactPageWhatsappNumber: "+971 2 565 0123"
 };
 
 export const DEFAULT_DEPARTMENT_HOTLINES: DepartmentHotlines = {
@@ -260,7 +266,7 @@ export const DEFAULT_BRANCHES: CompanyBranch[] = [
     name: "Abu Dhabi Main Headquarters",
     city: "Abu Dhabi",
     address: "Plot-99, Sector M-42 / M-14, Mussafah Industrial Area, Abu Dhabi, UAE",
-    phone: "+971 2 815 6111",
+    phone: "+971 2 565 0123",
     mobile: "+971 50 123 4567",
     email: "info@cooltechuae.com",
     workingHours: "Monday - Saturday: 8:00 AM - 7:00 PM (GST)",
@@ -269,50 +275,6 @@ export const DEFAULT_BRANCHES: CompanyBranch[] = [
     isHeadquarters: true,
     isActive: true,
     order: 1
-  },
-  {
-    id: "branch-dubai",
-    name: "Dubai Commercial & Logistics Hub",
-    city: "Dubai",
-    address: "Street 18B, Warehouse #4, Al Quoz Industrial Area 3, Dubai, UAE",
-    phone: "+971 4 345 6789",
-    mobile: "+971 55 987 6543",
-    email: "dubai@cooltechuae.com",
-    workingHours: "Monday - Saturday: 8:30 AM - 6:30 PM (GST)",
-    mapUrl: "https://maps.google.com/?q=Al+Quoz+Industrial+Area+3+Dubai",
-    mapEmbedUrl: "https://maps.google.com/maps?q=Al+Quoz+Industrial+Area+3+Dubai+UAE&t=&z=14&ie=UTF8&iwloc=&output=embed",
-    isHeadquarters: false,
-    isActive: true,
-    order: 2
-  },
-  {
-    id: "branch-sharjah",
-    name: "Sharjah & Northern Emirates Regional Depot",
-    city: "Sharjah",
-    address: "Industrial Area 12, Behind Safeer Mall, Sharjah, UAE",
-    phone: "+971 6 534 8822",
-    mobile: "+971 52 456 7890",
-    email: "sharjah@cooltechuae.com",
-    workingHours: "Monday - Saturday: 8:00 AM - 6:00 PM (GST)",
-    mapUrl: "https://maps.google.com/?q=Industrial+Area+12+Sharjah",
-    mapEmbedUrl: "https://maps.google.com/maps?q=Industrial+Area+12+Sharjah+UAE&t=&z=14&ie=UTF8&iwloc=&output=embed",
-    isHeadquarters: false,
-    isActive: true,
-    order: 3
-  },
-  {
-    id: "branch-alain",
-    name: "Al Ain Sourcing Center",
-    city: "Al Ain",
-    address: "Sanaiya Industrial Area, Block 4, Al Ain, Abu Dhabi, UAE",
-    phone: "+971 3 766 5544",
-    email: "alain@cooltechuae.com",
-    workingHours: "Monday - Saturday: 8:00 AM - 6:00 PM (GST)",
-    mapUrl: "https://maps.google.com/?q=Sanaiya+Industrial+Al+Ain",
-    mapEmbedUrl: "https://maps.google.com/maps?q=Sanaiya+Industrial+Al+Ain+UAE&t=&z=14&ie=UTF8&iwloc=&output=embed",
-    isHeadquarters: false,
-    isActive: true,
-    order: 4
   }
 ];
 
@@ -551,7 +513,7 @@ export const DEFAULT_SETTINGS: GeneralSiteSettings = {
   tagline: "The Experts in Commercial & Industrial Cooling",
   email: "info@cooltechuae.com",
   phone: "+971 2 815 6111",
-  whatsapp: "+971 50 123 4567",
+  whatsapp: "+971 2 565 0123",
   address: "Mussafah M-14, Abu Dhabi, United Arab Emirates",
   locationMapUrl: "https://maps.google.com",
   workingHours: "Monday - Saturday: 8:00 AM - 7:00 PM (GST)",
@@ -672,36 +634,58 @@ export function getGeneralSettings(): GeneralSiteSettings {
 let isFetchingRemote = false;
 
 /**
- * Sync in-memory / local settings to Firebase Firestore and Cloudflare D1 (persists publicly across all browsers)
+ * Sync in-memory / local settings to Cloudflare D1 (persists publicly across all browsers)
  */
 export async function syncGeneralSettingsToRemote(settings?: GeneralSiteSettings): Promise<boolean> {
   const dataToSave = settings || getGeneralSettings();
   let anySuccess = false;
 
-  // 1. Persist directly to Firebase Firestore (site_settings/general) - Real-time global sync
+  // 1. Persist directly to live Cloudflare D1 via the active workflow endpoint
+  try {
+    await apiClient.updateWorkflow("wf-site-settings", {
+      id: "wf-site-settings",
+      name: "Site Settings Config",
+      slug: "site-settings",
+      description: "Global Dynamic Site Settings",
+      steps: dataToSave,
+    });
+    anySuccess = true;
+    console.info("[GeneralSettingsService] Synchronized settings to Cloudflare D1.");
+  } catch (err) {
+    try {
+      await apiClient.saveWorkflow({
+        id: "wf-site-settings",
+        name: "Site Settings Config",
+        slug: "site-settings",
+        description: "Global Dynamic Site Settings",
+        steps: dataToSave,
+      });
+      anySuccess = true;
+    } catch (saveErr) {
+      console.warn("[GeneralSettingsService] Cloudflare D1 save workflow notice:", saveErr);
+    }
+  }
+
+  // 2. Persist to dedicated /api/settings route
+  try {
+    await apiClient.saveSiteSettings(dataToSave);
+    anySuccess = true;
+  } catch (apiErr) {
+    // Expected until worker is redeployed
+  }
+
+  // 3. Persist to Firebase Firestore
   try {
     const docRef = doc(db, "site_settings", "general");
     await setDoc(docRef, { ...dataToSave, updatedAt: new Date().toISOString() }, { merge: true });
     anySuccess = true;
-    console.info("[GeneralSettingsService] Successfully synchronized site settings to Firebase Firestore.");
-  } catch (fsErr) {
-    console.warn("[GeneralSettingsService] Firestore settings sync notice:", fsErr);
-  }
-
-  // 2. Persist to Cloudflare D1 Backend API
-  try {
-    await apiClient.saveSiteSettings(dataToSave);
-    anySuccess = true;
-    console.info("[GeneralSettingsService] Successfully synchronized site settings to Cloudflare D1.");
-  } catch (apiErr) {
-    console.warn("[GeneralSettingsService] Cloudflare D1 Worker settings sync notice:", apiErr);
-  }
+  } catch (fsErr) {}
 
   return anySuccess;
 }
 
 /**
- * Fetch latest global site settings from Firebase Firestore and Cloudflare D1
+ * Fetch latest global site settings from Cloudflare D1
  * Automatically updates localStorage cache and triggers live updates across the site.
  */
 export async function fetchGeneralSettings(): Promise<GeneralSiteSettings> {
@@ -709,7 +693,37 @@ export async function fetchGeneralSettings(): Promise<GeneralSiteSettings> {
   isFetchingRemote = true;
 
   try {
-    // 1. Try Firebase Firestore (instant worldwide access & fallback)
+    // 1. Try Cloudflare D1 active workflow endpoint
+    try {
+      const res = await apiClient.getWorkflowById("wf-site-settings");
+      if (res && res.status === "success" && res.workflow && res.workflow.steps) {
+        const rawSteps = res.workflow.steps;
+        const configData = typeof rawSteps === "string" ? JSON.parse(rawSteps) : rawSteps;
+        if (configData && typeof configData === "object" && Object.keys(configData).length > 0) {
+          const normalized = normalizeSettings(configData);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(normalized));
+          } catch {}
+          notifySettingsChange();
+          return normalized;
+        }
+      }
+    } catch (err) {}
+
+    // 2. Try dedicated /api/settings
+    try {
+      const res = await apiClient.getSiteSettings();
+      if (res && res.status === "success" && res.settings && typeof res.settings === "object" && Object.keys(res.settings).length > 0) {
+        const normalized = normalizeSettings(res.settings);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(normalized));
+        } catch {}
+        notifySettingsChange();
+        return normalized;
+      }
+    } catch (apiErr) {}
+
+    // 3. Try Firebase Firestore
     try {
       const docRef = doc(db, "site_settings", "general");
       const snap = await getDoc(docRef);
@@ -724,26 +738,9 @@ export async function fetchGeneralSettings(): Promise<GeneralSiteSettings> {
           return normalized;
         }
       }
-    } catch (fsErr) {
-      console.warn("[GeneralSettingsService] Error reading settings from Firestore:", fsErr);
-    }
+    } catch (fsErr) {}
 
-    // 2. Try Cloudflare D1 Backend API
-    try {
-      const res = await apiClient.getSiteSettings();
-      if (res && res.status === "success" && res.settings && typeof res.settings === "object" && Object.keys(res.settings).length > 0) {
-        const normalized = normalizeSettings(res.settings);
-        try {
-          localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(normalized));
-        } catch {}
-        notifySettingsChange();
-        return normalized;
-      }
-    } catch (apiErr) {
-      console.warn("[GeneralSettingsService] Error reading settings from D1 API:", apiErr);
-    }
-
-    // 3. If remote is completely fresh, auto-publish local settings if available
+    // 4. If remote is fresh, auto-publish local settings if available
     const local = getGeneralSettings();
     if (typeof window !== "undefined" && localStorage.getItem(LOCAL_STORAGE_SETTINGS_KEY)) {
       syncGeneralSettingsToRemote(local).catch(() => {});
