@@ -287,11 +287,12 @@ export default function BrandsPage({ products, onSelectBrand }: BrandsPageProps)
     );
   };
 
-  // Filtered partners by search term
+  // Filtered partners by search term, preserving admin reordered sequence
   const filteredPartners = useMemo(() => {
-    if (!searchTerm.trim()) return partners;
+    const list = [...partners].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    if (!searchTerm.trim()) return list;
     const term = searchTerm.toLowerCase();
-    return partners.filter(
+    return list.filter(
       (p) =>
         p.name.toLowerCase().includes(term) ||
         (p.tagline && p.tagline.toLowerCase().includes(term))

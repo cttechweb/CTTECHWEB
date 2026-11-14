@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { 
   Search, ChevronRight, Filter, Eye, ClipboardList, X, Check, SlidersHorizontal, ArrowUpDown, Heart, ArrowLeft, Layers
 } from "lucide-react";
-import { Product, Category } from "../types";
+import { Product, Category, BrandPartner } from "../types";
 import { PRODUCTS } from "../data";
 import { getLocalCategories, getCategories } from "../services/categoryService";
 import { getLocalBrands } from "../services/brandService";
@@ -332,14 +332,34 @@ export default function ProductsPage({
     return false;
   };
 
-  // Retrieve official brands list from brand directory
-  const availableBrands = useMemo(() => {
-    const official = getLocalBrands()
-      .filter((b) => b.isActive !== false)
-      .map((b) => b.name.trim());
-    const sorted = Array.from(new Set(official)).sort((a, b) => a.localeCompare(b));
-    return ["All", ...sorted];
+  // Dynamic Partner Brands list syncing with Admin rearranged order
+  const [partnerBrands, setPartnerBrands] = useState<BrandPartner[]>(() => {
+    return getLocalBrands().filter((b) => b.isActive !== false);
+  });
+
+  useEffect(() => {
+    const handleBrandsUpdate = (e: any) => {
+      if (e?.detail && Array.isArray(e.detail)) {
+        setPartnerBrands(e.detail.filter((b: BrandPartner) => b.isActive !== false));
+      } else {
+        setPartnerBrands(getLocalBrands().filter((b) => b.isActive !== false));
+      }
+    };
+    window.addEventListener("cooltech_brands_updated", handleBrandsUpdate);
+    window.addEventListener("cooltech_settings_updated", handleBrandsUpdate);
+    return () => {
+      window.removeEventListener("cooltech_brands_updated", handleBrandsUpdate);
+      window.removeEventListener("cooltech_settings_updated", handleBrandsUpdate);
+    };
   }, []);
+
+  // Retrieve official brands list in exact admin-rearranged order
+  const availableBrands = useMemo(() => {
+    const ordered = [...partnerBrands]
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((b) => b.name.trim());
+    return ["All", ...Array.from(new Set(ordered))];
+  }, [partnerBrands]);
 
   // Pre-calculate extracted specs metadata for fast counting & filtering
   const productsWithSpecsMeta = useMemo(() => {
