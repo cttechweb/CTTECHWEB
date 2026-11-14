@@ -156,6 +156,19 @@ export default function ProductsPage({
     return "";
   };
 
+  const getInitialBrandFromHash = () => {
+    try {
+      const hash = window.location.hash || "";
+      if (hash.includes("brand=")) {
+        const match = hash.match(/brand=([^&]+)/);
+        if (match && match[1]) {
+          return decodeURIComponent(match[1]).trim();
+        }
+      }
+    } catch {}
+    return "All";
+  };
+
   // Dynamic Categories State
   const [categories, setCategories] = useState<Category[]>(getLocalCategories);
 
@@ -163,7 +176,7 @@ export default function ProductsPage({
   const [searchTerm, setSearchTerm] = useState<string>(getInitialSearchFromHash);
   const [selectedCategory, setSelectedCategory] = useState<string>(getInitialCategoryFromHash);
   const [activeMainGroup, setActiveMainGroup] = useState<string | null>(null);
-  const [selectedBrand, setSelectedBrand] = useState<string>("All");
+  const [selectedBrand, setSelectedBrand] = useState<string>(getInitialBrandFromHash);
   const [selectedBtuRanges, setSelectedBtuRanges] = useState<string[]>([]);
   const [selectedCompressorTypes, setSelectedCompressorTypes] = useState<string[]>([]);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState<boolean>(false);
@@ -206,6 +219,10 @@ export default function ProductsPage({
       const search = getInitialSearchFromHash();
       if (search) {
         setSearchTerm(search);
+      }
+      const brand = getInitialBrandFromHash();
+      if (brand !== "All") {
+        setSelectedBrand(brand);
       }
     };
     handleHash();
@@ -416,7 +433,9 @@ export default function ProductsPage({
 
     const matchesCategory = doesProductMatchCategory(product, selectedCategory);
 
-    const matchesBrand = selectedBrand === "All" || product.brand === selectedBrand;
+    const matchesBrand =
+      selectedBrand === "All" ||
+      (product.brand && product.brand.trim().toLowerCase() === selectedBrand.trim().toLowerCase());
 
     const matchesBtu = (() => {
       if (selectedBtuRanges.length === 0) return true;
@@ -438,6 +457,19 @@ export default function ProductsPage({
     return matchesSearch && matchesCategory && matchesBrand && matchesBtu && matchesCompressor;
   });
 
+  const clearBrandFilter = () => {
+    setSelectedBrand("All");
+    try {
+      const hash = window.location.hash || "";
+      if (hash.includes("brand=")) {
+        const clean = hash
+          .replace(/([?&])brand=[^&]*(&|$)/, "$1")
+          .replace(/[?&]$/, "");
+        window.location.hash = clean || "#/products";
+      }
+    } catch {}
+  };
+
   const clearAllFilters = () => {
     setSearchTerm("");
     setSelectedCategory("All");
@@ -445,6 +477,11 @@ export default function ProductsPage({
     setActiveMainGroup(null);
     setSelectedBtuRanges([]);
     setSelectedCompressorTypes([]);
+    try {
+      if (window.location.hash.includes("brand=") || window.location.hash.includes("category=") || window.location.hash.includes("search=")) {
+        window.location.hash = "#/products";
+      }
+    } catch {}
   };
 
   return (
@@ -830,7 +867,7 @@ export default function ProductsPage({
                       key={brand}
                       onClick={() => setSelectedBrand(brand)}
                       className={`px-2.5 py-1.5 rounded-lg text-xs font-extrabold border transition-all cursor-pointer ${
-                        selectedBrand === brand
+                        selectedBrand.trim().toLowerCase() === brand.trim().toLowerCase()
                           ? "bg-[#031b4e] text-white border-[#031b4e]"
                           : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
                       }`}
@@ -893,7 +930,7 @@ export default function ProductsPage({
                       <span className="font-bold">{selectedBrand}</span>
                       <button
                         type="button"
-                        onClick={() => setSelectedBrand("All")}
+                        onClick={clearBrandFilter}
                         className="text-slate-400 hover:text-slate-700 p-0.5 rounded-full hover:bg-slate-100 cursor-pointer transition-colors"
                         title="Remove brand filter"
                       >
@@ -1212,7 +1249,7 @@ export default function ProductsPage({
                       key={brand}
                       onClick={() => setSelectedBrand(brand)}
                       className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                        selectedBrand === brand
+                        selectedBrand.trim().toLowerCase() === brand.trim().toLowerCase()
                           ? "bg-[#031b4e] text-white border-[#031b4e]"
                           : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
                       }`}

@@ -1,0 +1,389 @@
+{
+  "totalItems": 10046,
+  "scrapedAt": "2026-11-04T08:30:52.684Z",
+  "sourceUrl": "https://theaccompany.ae/ac-parts-accessories",
+  "categoryCounts": {
+    "Refrigerants, Oils & Chemicals": 158,
+    "AC Compressors": 1319,
+    "Ducting": 351,
+    "Copper, Brass & Piping": 2349,
+    "AC Grills & Blowers": 88,
+    "Controls, Sensors & Thermostats": 1692,
+    "HVAC Tools": 400,
+    "V Belts": 1752,
+    "Refrigeration Circuit Components": 220,
+    "AC Fan Motors": 1599,
+    "AC Capacitors": 57,
+    "Expansion Valves & Driers": 61
+  },
+  "topBrands": [
+    {
+      "name": "LG",
+      "count": 1402
+    },
+    {
+      "name": "AC Fan Motors",
+      "count": 741
+    },
+    {
+      "name": "Copper Fittings",
+      "count": 677
+    },
+    {
+      "name": "Ducting",
+      "count": 667
+    },
+    {
+      "name": "B Belts 17mm x 11mm",
+      "count": 533
+    },
+    {
+      "name": "Danfoss",
+      "count": 457
+    },
+    {
+      "name": "A Belts 13mm x 8mm",
+      "count": 406
+    },
+    {
+      "name": "Brass Fittings",
+      "count": 396
+    },
+    {
+      "name": "AC Compressors",
+      "count": 293
+    },
+    {
+      "name": "Controls, Sensors & Electronics",
+      "count": 279
+    },
+    {
+      "name": "HVAC Tools",
+      "count": 261
+    },
+    {
+      "name": "AX Cogged Belts 13mm x 8mm",
+      "count": 243
+    },
+    {
+      "name": "BX Cogged Section 17mm x 11mm",
+      "count": 235
+    },
+    {
+      "name": "Refrigeration Circuit Components",
+      "count": 190
+    },
+    {
+      "name": "Copeland",
+      "count": 186
+    },
+    {
+      "name": "Tecumseh",
+      "count": 167
+    },
+    {
+      "name": "3.3 Inch Motors",
+      "count": 161
+    },
+    {
+      "name": "Expansion Valves",
+      "count": 158
+    },
+    {
+      "name": "V Belts",
+      "count": 154
+    },
+    {
+      "name": "Yellow Jacket",
+      "count": 145
+    },
+    {
+      "name": "C Belts 22mm x 14mm",
+      "count": 141
+    },
+    {
+      "name": "General",
+      "count": 125
+    },
+    {
+      "name": "Sanyo",
+      "count": 118
+    },
+    {
+      "name": "Panasonic",
+      "count": 102
+    },
+    {
+      "name": "Dampers & Access Doors",
+      "count": 88
+    },
+    {
+      "name": "Honeywell",
+      "count": 85
+    },
+    {
+      "name": "5 Inch Motors",
+      "count": 78
+    },
+    {
+      "name": "Value",
+      "count": 76
+    },
+    {
+      "name": "Castel",
+      "count": 70
+    },
+    {
+      "name": "Carrier",
+      "count": 69
+    },
+    {
+      "name": "Mueller",
+      "count": 65
+    },
+    {
+      "name": "AC Grills & Blowers",
+      "count": 65
+    },
+    {
+      "name": "O General",
+      "count": 58
+    },
+    {
+      "name": "AC Cleaning Chemicals",
+      "count": 57
+    },
+    {
+      "name": "Embraco",
+      "count": 54
+    },
+    {
+      "name": "Hitachi",
+      "count": 54
+    },
+    {
+      "name": "Blue Star",
+      "count": 53
+    },
+    {
+      "name": "AC Temperature Sensors",
+      "count": 52
+    },
+    {
+      "name": "Daikin",
+      "count": 51
+    },
+    {
+      "name": "Mitsubishi",
+      "count": 50
+    },
+    {
+      "name": "AC Fan Blades",
+      "count": 49
+    },
+    {
+      "name": "Bristol",
+      "count": 47
+    },
+    {
+      "name": "D Belts 32mm x 19mm",
+      "count": 40
+    },
+    {
+      "name": "4.4 Inch Motors",
+      "count": 40
+    },
+    {
+      "name": "Samsung",
+      "count": 39
+    },
+    {
+      "name": "Voltas",
+      "count": 38
+    },
+    {
+      "name": "Refrigerant Leak Detector",
+      "count": 35
+    },
+    {
+      "name": "Toshiba",
+      "count": 34
+    },
+    {
+      "name": "Brass Fitting",
+      "count": 33
+    },
+    {
+      "name": "Mitsubishi Electric",
+      "count": 32
+    },
+    {
+      "name": "Midea",
+      "count": 23
+    },
+    {
+      "name": "Gree",
+      "count": 22
+    },
+    {
+      "name": "Flaring & Swaging Tools",
+      "count": 22
+    },
+    {
+      "name": "Westpoint",
+      "count": 20
+    },
+    {
+      "name": "Rothenberger",
+      "count": 19
+    },
+    {
+      "name": "Copper Coils & Lengths",
+      "count": 18
+    },
+    {
+      "name": "Refrigerants, Oils & Chemicals",
+      "count": 17
+    },
+    {
+      "name": "HVAC Measuring Instruments",
+      "count": 17
+    },
+    {
+      "name": "Hioki Clamp Meters",
+      "count": 17
+    },
+    {
+      "name": "Trane",
+      "count": 16
+    },
+    {
+      "name": "Copper Tube Cutters",
+      "count": 15
+    },
+    {
+      "name": "AC Capacitors",
+      "count": 15
+    },
+    {
+      "name": "5.6 Inch Motors",
+      "count": 14
+    },
+    {
+      "name": "Harris",
+      "count": 13
+    },
+    {
+      "name": "Liquid Moisture Indicators",
+      "count": 12
+    },
+    {
+      "name": "Brazing Welding Alloy",
+      "count": 11
+    },
+    {
+      "name": "Air Conditioning Charging Valves & Taps",
+      "count": 11
+    },
+    {
+      "name": "Attenuators & Silencers",
+      "count": 10
+    },
+    {
+      "name": "Dixell",
+      "count": 9
+    },
+    {
+      "name": "Akai",
+      "count": 8
+    },
+    {
+      "name": "TCL",
+      "count": 8
+    },
+    {
+      "name": "Inficon",
+      "count": 8
+    },
+    {
+      "name": "Charging Hose",
+      "count": 7
+    },
+    {
+      "name": "Expander Tools",
+      "count": 7
+    },
+    {
+      "name": "Compressor Crankcase Heater",
+      "count": 6
+    },
+    {
+      "name": "Uncategorized",
+      "count": 6
+    },
+    {
+      "name": "Oil Separator",
+      "count": 6
+    },
+    {
+      "name": "Filter Drier",
+      "count": 6
+    },
+    {
+      "name": "AC Remote Controls",
+      "count": 5
+    },
+    {
+      "name": "Mastercool",
+      "count": 5
+    },
+    {
+      "name": "Bompani",
+      "count": 4
+    },
+    {
+      "name": "Bitzer",
+      "count": 4
+    },
+    {
+      "name": "Floron",
+      "count": 3
+    },
+    {
+      "name": "Totaline",
+      "count": 3
+    },
+    {
+      "name": "Airturn Track Vane",
+      "count": 2
+    },
+    {
+      "name": "Fieldpiece",
+      "count": 2
+    },
+    {
+      "name": "Refron",
+      "count": 1
+    },
+    {
+      "name": "Mafron",
+      "count": 1
+    },
+    {
+      "name": "Admiral",
+      "count": 1
+    },
+    {
+      "name": "Air Curtain",
+      "count": 1
+    },
+    {
+      "name": "Testo",
+      "count": 1
+    },
+    {
+      "name": "Supco",
+      "count": 1
+    }
+  ]
+}

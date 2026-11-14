@@ -26,6 +26,7 @@ import {
   CheckCircle,
   HelpCircle,
   ShoppingCart,
+  ClipboardList,
   Mail,
   FileCheck,
   Share2,
@@ -79,10 +80,22 @@ export default function ProductDetailPage({
   // States
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [activeTab, setActiveTab] = useState<"features" | "specs" | "apps" | "docs">("features");
-  const quantity = product.minOrderQty || 1;
+  const [isAddedToQuote, setIsAddedToQuote] = useState<boolean>(false);
   const [copied, setCopied] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isCopiedLink, setIsCopiedLink] = useState(false);
+
+  useEffect(() => {
+    setIsAddedToQuote(false);
+  }, [productId, product]);
+
+  const handleAddToQuote = () => {
+    if (onAddToCart && product) {
+      onAddToCart(product, product.minOrderQty || 1);
+      setIsAddedToQuote(true);
+      setTimeout(() => setIsAddedToQuote(false), 2000);
+    }
+  };
 
   // Sync address bar to SEO slug if accessed via ID or legacy route
   useEffect(() => {
@@ -630,52 +643,63 @@ export default function ProductDetailPage({
               )}
             </div>
 
-            {/* Procurement / Cart and RFQ Actions Container */}
-            <div className="flex flex-col sm:flex-row items-stretch gap-3 border-t border-slate-100 pt-5 mt-2">
-              
-              {/* Add to Procurement Button */}
-              <button
-                onClick={() => {
-                  const prodParam = encodeURIComponent(`${product.name}${product.modelId ? ` (${product.modelId})` : ""}`);
-                  window.location.hash = `#/contact?category=equipment_quotation&product=${prodParam}`;
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="w-full sm:flex-1 h-12 min-h-[48px] shrink-0 bg-[#2596be] hover:bg-[#1c7e9f] text-white rounded-xl text-xs font-black tracking-wider uppercase shadow-md hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
-                id="detail-add-to-cart-btn"
-              >
-                <Mail size={16} />
-                <span>Product Enquiry</span>
-              </button>
+            {/* Procurement / Quote and RFQ Actions Container */}
+            <div className="border-t border-slate-100 pt-5 mt-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                
+                {/* Add to Quote Button (Matching ProductCard styling) */}
+                <button
+                  type="button"
+                  onClick={handleAddToQuote}
+                  className={`w-full sm:flex-1 h-12 min-h-[48px] rounded-xl text-xs font-black tracking-wider uppercase transition-all shadow-sm hover:shadow-md active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer ${
+                    isAddedToQuote
+                      ? "bg-emerald-600 text-white"
+                      : "bg-[#2596be] hover:bg-[#1c7e9f] text-white"
+                  }`}
+                  id="detail-add-to-quote-btn"
+                >
+                  {isAddedToQuote ? (
+                    <>
+                      <Check size={16} className="text-white stroke-[3]" />
+                      <span>Added to Quote!</span>
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardList size={16} />
+                      <span>Add to Quote</span>
+                    </>
+                  )}
+                </button>
 
-              {/* Direct WhatsApp Order */}
-              <button
-                type="button"
-                onClick={() => openProductWhatsAppOrder(product, quantity)}
-                className="w-full sm:w-auto sm:px-6 h-12 min-h-[48px] shrink-0 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl text-xs font-black tracking-wider uppercase transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-                id="detail-whatsapp-order-btn"
-                title="Order or Inquire directly via WhatsApp"
-              >
-                <img src="/whatsapp-official.png" alt="WhatsApp" className="w-4 h-4 object-contain shrink-0" />
-                <span>Order via WhatsApp</span>
-              </button>
+                {/* Direct WhatsApp Order */}
+                <button
+                  type="button"
+                  onClick={() => openProductWhatsAppOrder(product, product.minOrderQty || 1)}
+                  className="w-full sm:w-auto sm:px-6 h-12 min-h-[48px] shrink-0 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl text-xs font-black tracking-wider uppercase transition-all shadow-sm hover:shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                  id="detail-whatsapp-order-btn"
+                  title="Order or Inquire directly via WhatsApp"
+                >
+                  <img src="/whatsapp-official.png" alt="WhatsApp" className="w-4 h-4 object-contain shrink-0" />
+                  <span>Order via WhatsApp</span>
+                </button>
 
-              {/* Download Brochure Button - Switches to Documents section and scrolls smoothly */}
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("docs");
-                  const el = document.getElementById("product-detailed-specifications-section");
-                  if (el) {
-                    el.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }
-                }}
-                className="w-full sm:w-auto sm:px-5 h-12 min-h-[48px] shrink-0 border border-slate-200 hover:border-[#2596be] hover:text-[#2596be] text-slate-600 rounded-xl text-xs font-black tracking-wider uppercase transition-all flex items-center justify-center gap-2 bg-white cursor-pointer active:scale-95 shadow-2xs hover:shadow-sm"
-                id="detail-download-brochure-btn"
-              >
-                <Download size={15} />
-                <span>Download Brochure</span>
-              </button>
+                {/* Make an Enquiry Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const prodParam = encodeURIComponent(`${product.name}${product.modelId ? ` (${product.modelId})` : ""}`);
+                    window.location.hash = `#/contact?category=equipment_quotation&product=${prodParam}`;
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="w-full sm:w-auto sm:px-5 h-12 min-h-[48px] shrink-0 border border-slate-200 hover:border-[#2596be] hover:text-[#2596be] text-slate-700 bg-white rounded-xl text-xs font-black tracking-wider uppercase transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs hover:shadow-sm active:scale-95"
+                  id="detail-make-enquiry-btn"
+                  title="Make an enquiry for this equipment"
+                >
+                  <Mail size={15} />
+                  <span>Make an Enquiry</span>
+                </button>
 
+              </div>
             </div>
           </div>
         </div>

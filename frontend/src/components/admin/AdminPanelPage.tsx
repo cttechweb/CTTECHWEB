@@ -5,7 +5,7 @@ import {
   Tag, Layers, Check, X, AlertCircle, GitBranch, Users, Globe,
   FileCode, CheckSquare, Zap, Cpu, SearchCheck, RefreshCw, EyeOff, Eye, 
   FileSpreadsheet, FileText, MessageSquare, ShoppingBag, ClipboardSignature, Building2, Settings, Briefcase,
-  ChevronLeft, ChevronRight, Headphones
+  ChevronLeft, ChevronRight, Headphones, Star
 } from "lucide-react";
 import { Product, ServiceItem, Workflow, BlogPost, OrderRequest, RfqRequest, Category } from "../../types";
 import { ReviewItem } from "../../types/review";
@@ -24,7 +24,11 @@ import AdminContactCenter from "./AdminContactCenter";
 import AdminCategoryManager from "./AdminCategoryManager";
 import AdminCareersManager from "./AdminCareersManager";
 import AdminRetailerApplicationsManager from "./AdminRetailerApplicationsManager";
+import AdminBrandsManager from "./AdminBrandsManager";
+import AdminSparePartsManager from "./AdminSparePartsManager";
+import { getSpareParts } from "../../services/sparePartsService";
 import { getLocalCategories, getCategories } from "../../services/categoryService";
+import { getLocalBrands } from "../../services/brandService";
 import { getLocalJobPostings } from "../../services/careersService";
 import DirhamSymbol from "../common/DirhamSymbol";
 
@@ -43,6 +47,7 @@ interface AdminPanelPageProps {
   onAddService: (service: ServiceItem) => void;
   onUpdateService: (service: ServiceItem) => void;
   onDeleteService: (serviceId: string) => void;
+  onResetDefaultServices?: () => void;
   onAddWorkflow: (workflow: Workflow) => void;
   onUpdateWorkflow: (workflow: Workflow) => void;
   onDeleteWorkflow: (workflowId: string) => void;
@@ -72,6 +77,7 @@ export default function AdminPanelPage({
   onAddService,
   onUpdateService,
   onDeleteService,
+  onResetDefaultServices,
   onAddWorkflow,
   onUpdateWorkflow,
   onDeleteWorkflow,
@@ -86,13 +92,43 @@ export default function AdminPanelPage({
   onShowToast
 }: AdminPanelPageProps) {
   const [activeTab, setActiveTab] = useState<
-    "orders" | "retailer-apps" | "enquiries" | "products" | "services" | "blogs" | "reviews" | "careers" | "wizard-tags" | "users" | "seo" | "settings" | "contact-center"
+    "orders" | "retailer-apps" | "enquiries" | "products" | "brands" | "services" | "spare-parts" | "blogs" | "reviews" | "careers" | "wizard-tags" | "users" | "seo" | "settings" | "contact-center"
   >("orders");
+
+  // Dynamic Spare Parts Count State
+  const [sparePartsCount, setSparePartsCount] = useState<number>(() => {
+    return getSpareParts().length;
+  });
+
+  React.useEffect(() => {
+    const handleSparePartsUpdate = () => {
+      setSparePartsCount(getSpareParts().length);
+    };
+    window.addEventListener("cooltech_spare_parts_updated", handleSparePartsUpdate);
+    return () => window.removeEventListener("cooltech_spare_parts_updated", handleSparePartsUpdate);
+  }, []);
 
   // Dynamic Careers Count State
   const [activeJobsCount, setActiveJobsCount] = useState<number>(() => {
     return getLocalJobPostings().filter((j) => j.isActive).length;
   });
+
+  // Dynamic Brands Count State
+  const [brandsCount, setBrandsCount] = useState<number>(() => {
+    return getLocalBrands().length;
+  });
+
+  React.useEffect(() => {
+    const handleBrandUpdate = (e: any) => {
+      if (e?.detail && Array.isArray(e.detail)) {
+        setBrandsCount(e.detail.length);
+      } else {
+        setBrandsCount(getLocalBrands().length);
+      }
+    };
+    window.addEventListener("cooltech_brands_updated", handleBrandUpdate);
+    return () => window.removeEventListener("cooltech_brands_updated", handleBrandUpdate);
+  }, []);
 
   // Product Catalog Sub-Tab ("inventory" vs "categories")
   const [productSubTab, setProductSubTab] = useState<"inventory" | "categories">("inventory");
@@ -193,6 +229,36 @@ export default function AdminPanelPage({
       }
     });
     if (onShowToast) onShowToast(`Updated stock status for ${selectedProductIds.length} products!`);
+    setSelectedProductIds([]);
+  };
+
+  const handleToggleFeatured = (product: Product) => {
+    const updated = { ...product, isFeatured: !product.isFeatured };
+    onUpdateProduct(updated);
+    if (onShowToast) {
+      onShowToast(
+        updated.isFeatured 
+          ? `"${product.name}" is now featured on the homepage.`
+          : `"${product.name}" removed from homepage featured products.`
+      );
+    }
+  };
+
+  const handleBulkSetFeatured = (featured: boolean) => {
+    if (selectedProductIds.length === 0) return;
+    selectedProductIds.forEach((id) => {
+      const prod = products.find((p) => p.id === id);
+      if (prod) {
+        onUpdateProduct({ ...prod, isFeatured: featured });
+      }
+    });
+    if (onShowToast) {
+      onShowToast(
+        featured
+          ? `Featured ${selectedProductIds.length} products on homepage!`
+          : `Unfeatured ${selectedProductIds.length} products from homepage.`
+      );
+    }
     setSelectedProductIds([]);
   };
 
@@ -436,6 +502,25 @@ export default function AdminPanelPage({
             </button>
 
             <button
+              onClick={() => setActiveTab("brands")}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                activeTab === "brands"
+                  ? "bg-[#0f4c81] text-white font-extrabold shadow-sm"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Layers size={16} />
+                <span>Brands Directory</span>
+              </div>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${
+                activeTab === "brands" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600 border border-slate-200"
+              }`}>
+                {brandsCount}
+              </span>
+            </button>
+
+            <button
               onClick={() => setActiveTab("services")}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
                 activeTab === "services"
@@ -451,6 +536,25 @@ export default function AdminPanelPage({
                 activeTab === "services" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600 border border-slate-200"
               }`}>
                 {services.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("spare-parts")}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                activeTab === "spare-parts"
+                  ? "bg-[#0f4c81] text-white font-extrabold shadow-sm"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Zap size={16} />
+                <span>Spare Parts Catalog</span>
+              </div>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${
+                activeTab === "spare-parts" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600 border border-slate-200"
+              }`}>
+                {sparePartsCount}
               </span>
             </button>
 
@@ -622,6 +726,7 @@ export default function AdminPanelPage({
               {activeTab === "enquiries" && "General Enquiries & Lead Pipeline"}
               {activeTab === "products" && (productSubTab === "inventory" ? "Product Catalog Manager" : "Product Categories Manager")}
               {activeTab === "services" && "Services & Operations Manager"}
+              {activeTab === "spare-parts" && "AC Spare Parts & Accessories Manager"}
               {activeTab === "blogs" && "Blog & Dynamic Content Hub"}
               {activeTab === "wizard-tags" && "Visual Selection Assistant Builder"}
               {activeTab === "users" && "User Accounts & Role-Based Permissions (RBAC)"}
@@ -635,6 +740,7 @@ export default function AdminPanelPage({
               {activeTab === "enquiries" && "Unified customer inquiries, product support tickets, and CRM-synchronized submissions"}
               {activeTab === "products" && (productSubTab === "inventory" ? "Manage full commercial specs, price display toggles, and catalog items" : "Create and organize dynamic HVAC sourcing categories, subtitles, and SEO catalogs")}
               {activeTab === "services" && "Manage HVAC maintenance, installation, and field service contracts"}
+              {activeTab === "spare-parts" && "Wholesale HVAC replacement component sourcing, OEM part numbers, and live Excel / CSV catalog synchronization"}
               {activeTab === "blogs" && "Create technical engineering guides and manage SEO schemas"}
               {activeTab === "wizard-tags" && "Design interactive equipment decision tree workflows"}
               {activeTab === "users" && "View registered client accounts, roles, and verified B2B credentials"}
@@ -838,6 +944,26 @@ export default function AdminPanelPage({
 
                     <button
                       type="button"
+                      onClick={() => handleBulkSetFeatured(true)}
+                      className="px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/30 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                      title="Feature selected products on homepage"
+                    >
+                      <Star size={13} className="fill-amber-400 text-amber-400" />
+                      <span>Feature</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleBulkSetFeatured(false)}
+                      className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                      title="Unfeature selected products"
+                    >
+                      <Star size={13} className="text-slate-400" />
+                      <span>Unfeature</span>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={handleBulkDeleteSelected}
                       className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
                       title="Delete all selected products"
@@ -908,7 +1034,15 @@ export default function AdminPanelPage({
                                 }}
                               />
                               <div>
-                                <div className="font-bold text-slate-900 text-xs">{p.name}</div>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <div className="font-bold text-slate-900 text-xs">{p.name}</div>
+                                  {p.isFeatured && (
+                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-50 text-amber-800 border border-amber-200">
+                                      <Star size={9} className="fill-amber-400 text-amber-500" />
+                                      Featured
+                                    </span>
+                                  )}
+                                </div>
                                 {p.modelId && <div className="text-[10px] font-mono text-slate-400">SKU: {p.modelId}</div>}
                               </div>
                             </div>
@@ -957,6 +1091,18 @@ export default function AdminPanelPage({
 
                           <td className="px-4 py-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleFeatured(p)}
+                                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                                  p.isFeatured
+                                    ? "text-amber-500 bg-amber-50 hover:bg-amber-100 ring-1 ring-amber-300/60"
+                                    : "text-slate-300 hover:text-amber-500 hover:bg-amber-50"
+                                }`}
+                                title={p.isFeatured ? "Featured on Homepage (Click to unfeature)" : "Feature on Homepage"}
+                              >
+                                <Star size={15} className={p.isFeatured ? "fill-amber-400 text-amber-500" : ""} />
+                              </button>
                               <button
                                 onClick={() => handleOpenEditProduct(p)}
                                 className="p-1.5 rounded-lg text-slate-500 hover:text-[#0f4c81] hover:bg-blue-50 transition-colors cursor-pointer"
@@ -1050,29 +1196,111 @@ export default function AdminPanelPage({
         </div>
       )}
 
+      {/* BRANDS MANAGEMENT TAB */}
+      {activeTab === "brands" && (
+        <AdminBrandsManager
+          products={products}
+          onShowToast={onShowToast}
+          onNavigateToProducts={(brandName) => {
+            setActiveTab("products");
+            setProductSubTab("inventory");
+            if (brandName) {
+              setSearchTerm(brandName);
+            }
+          }}
+        />
+      )}
+
       {/* SERVICES TAB */}
       {activeTab === "services" && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {/* Header Action Banner */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-white border border-slate-200 rounded-2xl shadow-2xs">
+            <div>
+              <h2 className="text-base font-extrabold text-slate-900">AC &amp; HVAC Engineering Services</h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Manage services displayed on the public <span className="font-mono text-[#0f4c81] font-bold">/#/services</span> page. All changes are dynamic.
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5">
+              {onResetDefaultServices && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm("Reset all services to the 7 default professional AC & HVAC services?")) {
+                      onResetDefaultServices();
+                      if (onShowToast) onShowToast("Reset services to default list.");
+                    }
+                  }}
+                  className="px-3 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+                  title="Restore standard 7 AC services"
+                >
+                  <RefreshCw size={13} />
+                  <span>Reset Defaults</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleOpenAddService}
+                className="px-4 py-2 bg-[#0f4c81] hover:bg-[#0c3d69] text-white font-extrabold text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Plus size={15} />
+                <span>Add Service</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {paginatedServices.map((s) => (
-              <div key={s.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-[#0f4c81] bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">
-                    {s.category}
-                  </span>
-                  <div className="flex gap-1">
-                    <button onClick={() => handleOpenEditService(s)} className="p-1.5 rounded text-slate-500 hover:text-[#0f4c81] hover:bg-blue-50">
+              <div key={s.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md transition-all flex flex-col group">
+                <div className="relative h-44 bg-slate-100 overflow-hidden">
+                  <img src={s.image} alt={s.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                    {s.badge && (
+                      <span className="text-[10px] font-black uppercase text-[#0f4c81] bg-white/95 backdrop-blur-xs px-2.5 py-0.5 rounded-md shadow-xs border border-slate-200/60">
+                        {s.badge}
+                      </span>
+                    )}
+                  </div>
+                  <div className="absolute top-2.5 right-2.5 flex items-center gap-1 bg-white/90 backdrop-blur-xs rounded-lg p-1 shadow-xs">
+                    <button 
+                      type="button" 
+                      onClick={() => handleOpenEditService(s)} 
+                      className="p-1.5 rounded-md text-slate-600 hover:text-[#0f4c81] hover:bg-blue-50 transition-colors cursor-pointer"
+                      title="Edit Service"
+                    >
                       <Edit3 size={13} />
                     </button>
-                    <button onClick={() => handleDeleteServiceConfirm(s)} className="p-1.5 rounded text-slate-400 hover:text-red-600 hover:bg-red-50">
+                    <button 
+                      type="button" 
+                      onClick={() => handleDeleteServiceConfirm(s)} 
+                      className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                      title="Delete Service"
+                    >
                       <Trash2 size={13} />
                     </button>
                   </div>
                 </div>
 
-                <h3 className="font-extrabold text-sm text-slate-900">{s.title}</h3>
-                <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">{s.tagline}</p>
-                <div className="text-[10px] text-slate-400 font-mono">SLA: {s.specs?.sla || "24/7"} • Warranty: {s.specs?.warranty || "1-Year"}</div>
+                <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                  <div>
+                    <h3 className="font-extrabold text-sm text-slate-900 group-hover:text-[#0f4c81] transition-colors">{s.title}</h3>
+                    <p className="text-xs text-slate-500 mt-1 line-clamp-3 leading-relaxed">{s.description}</p>
+                  </div>
+                  <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                    <span className={`font-bold flex items-center gap-1.5 ${s.isActive !== false ? "text-emerald-600" : "text-slate-400"}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${s.isActive !== false ? "bg-emerald-500" : "bg-slate-400"}`}></span>
+                      {s.isActive !== false ? "Active on Site" : "Draft / Hidden"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditService(s)}
+                      className="text-xs font-bold text-[#0f4c81] hover:underline cursor-pointer"
+                    >
+                      Edit Details →
+                    </button>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -1123,6 +1351,11 @@ export default function AdminPanelPage({
           )}
         </div>
       )}
+
+          {/* DYNAMIC AC SPARE PARTS & ACCESSORIES TAB */}
+          {activeTab === "spare-parts" && (
+            <AdminSparePartsManager onShowToast={onShowToast} />
+          )}
 
           {/* DYNAMIC BLOGS & CONTENT HUB TAB */}
           {activeTab === "blogs" && (

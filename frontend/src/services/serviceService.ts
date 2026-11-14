@@ -17,28 +17,150 @@ const TEMPLATE_SERVICE_IDS = new Set([
   "cassette-ac-servicing", "package-unit-replacement"
 ]);
 
-const LOCAL_STORAGE_KEY = "cooltech_services_v1";
+export const DEFAULT_SERVICES: ServiceItem[] = [
+  {
+    id: "ac-maintenance",
+    title: "AC Maintenance",
+    description: "Preventive AC maintenance, inspection, cleaning, and performance checks for reliable cooling.",
+    image: "/images/services/ac_maintenance.jpg",
+    badge: "Maintenance",
+    category: "Maintenance",
+    isActive: true,
+    order: 1
+  },
+  {
+    id: "ac-repair",
+    title: "AC Repair",
+    description: "AC repair support for cooling issues, electrical faults, leakage, compressor concerns, and urgent breakdowns.",
+    image: "/images/services/ac_repair.jpg",
+    badge: "Repair",
+    category: "Maintenance",
+    isActive: true,
+    order: 2
+  },
+  {
+    id: "ac-installation",
+    title: "AC Installation",
+    description: "Professional AC installation for homes, villas, offices, and commercial spaces across the UAE.",
+    image: "/images/services/ac_installation.jpg",
+    badge: "Installation",
+    category: "Installation",
+    isActive: true,
+    order: 3
+  },
+  {
+    id: "ac-gas-refilling",
+    title: "AC Gas Refilling",
+    description: "AC gas refilling and refrigerant support with diagnosis for leaks and cooling performance.",
+    image: "/images/services/ac_gas_refilling.jpg",
+    badge: "Gas Refill",
+    category: "Maintenance",
+    isActive: true,
+    order: 4
+  },
+  {
+    id: "annual-maintenance-contract",
+    title: "Annual Maintenance Contract",
+    description: "AMC plans for residential, commercial, and multi-site HVAC maintenance requirements.",
+    image: "/images/services/ac_amc_contract.jpg",
+    badge: "Contract",
+    category: "Maintenance",
+    isActive: true,
+    order: 5
+  },
+  {
+    id: "duct-cleaning",
+    title: "Duct Cleaning",
+    description: "Duct cleaning support for better airflow, healthier indoor air, and improved HVAC efficiency.",
+    image: "/images/services/duct_cleaning.jpg",
+    badge: "Ducting",
+    category: "Ducting",
+    isActive: true,
+    order: 6
+  },
+  {
+    id: "hvac-consultation",
+    title: "HVAC Consultation",
+    description: "HVAC consultation for product selection, project planning, and commercial cooling needs.",
+    image: "/images/services/hvac_consultation.jpg",
+    badge: "Consultation",
+    category: "Consultation",
+    isActive: true,
+    order: 7
+  },
+  {
+    id: "indoor-air-quality-duct-sanitization",
+    title: "Indoor Air Quality & Duct Microbiological Sanitization",
+    description: "UV-C light installation, HEPA scrubbing & antibacterial fogging for sterile indoor climate environments.",
+    image: "/images/services/air_quality_sanitization.jpg",
+    badge: "Cleaning",
+    category: "Cleaning",
+    isActive: true,
+    order: 8
+  },
+  {
+    id: "heavy-compressor-overhaul",
+    title: "Heavy Compressor Overhaul & Motor Rewinding",
+    description: "Precision re-machining, valve plate replacement & stator rewinding for commercial compressors.",
+    image: "/images/services/compressor_overhaul.jpg",
+    badge: "Maintenance",
+    category: "Maintenance",
+    isActive: true,
+    order: 9
+  },
+  {
+    id: "industrial-chiller-plant-overhaul",
+    title: "Industrial Chiller Plant Overhaul",
+    description: "Turnkey overhaul, tube bundle descaling, and condenser servicing for air and water cooled chillers.",
+    image: "/images/services/chiller_overhaul.jpg",
+    badge: "Chillers",
+    category: "Chillers",
+    isActive: true,
+    order: 10
+  },
+  {
+    id: "vrf-system-servicing",
+    title: "VRF / VRV System Servicing",
+    description: "Specialized diagnostics, branch controller inspection, and inverter tuning for multi-zone VRF systems.",
+    image: "/images/services/vrf_servicing.jpg",
+    badge: "Installation",
+    category: "Installation",
+    isActive: true,
+    order: 11
+  }
+];
+
+const LOCAL_STORAGE_KEY_V5 = "cooltech_services_v5";
 
 export function getLocalServicesCache(): ServiceItem[] {
   try {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY_V5);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) {
-        return parsed.filter((s: ServiceItem) => s && s.id && !TEMPLATE_SERVICE_IDS.has(s.id));
+      if (Array.isArray(parsed) && parsed.length >= 7) {
+        return parsed;
       }
     }
-    return STATIC_SERVICES;
-  } catch {
-    return STATIC_SERVICES;
-  }
+  } catch {}
+
+  // Automatically save and return complete DEFAULT_SERVICES
+  saveLocalServicesCache(DEFAULT_SERVICES);
+  return DEFAULT_SERVICES;
 }
 
-function saveLocalServicesCache(services: ServiceItem[]) {
+export function saveLocalServicesCache(services: ServiceItem[]) {
   try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(services));
+    localStorage.setItem(LOCAL_STORAGE_KEY_V5, JSON.stringify(services));
+    localStorage.setItem("cooltech_services_v4", JSON.stringify(services));
+    localStorage.setItem("cooltech_services_v2", JSON.stringify(services));
+    localStorage.setItem("cooltech_services_v1", JSON.stringify(services));
     window.dispatchEvent(new CustomEvent("cooltech_services_updated", { detail: services }));
   } catch {}
+}
+
+export function resetDefaultServices(): ServiceItem[] {
+  saveLocalServicesCache(DEFAULT_SERVICES);
+  return DEFAULT_SERVICES;
 }
 
 /**

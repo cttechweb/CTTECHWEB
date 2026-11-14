@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { 
-  Linkedin, Twitter, Facebook, Sparkles, 
-  Phone, Mail, MapPin, ArrowUpRight, Instagram, Youtube, MessageSquare, Globe 
+import {
+  Linkedin, Twitter, Facebook, Sparkles,
+  Phone, Mail, MapPin, ArrowUpRight, Instagram, Youtube, MessageSquare, Globe
 } from "lucide-react";
-import { 
-  getGeneralSettings, 
-  DEFAULT_SOCIAL_LINKS, 
-  DEFAULT_PHONE_CONTACTS, 
-  DEFAULT_EMAIL_CONTACTS 
+import {
+  getGeneralSettings,
+  DEFAULT_SOCIAL_LINKS,
+  DEFAULT_PHONE_CONTACTS,
+  DEFAULT_EMAIL_CONTACTS
 } from "../services/generalSettingsService";
-import { DynamicSocialLink, DynamicContactNumber, DynamicContactEmail } from "../types";
+import { getCategories, getLocalCategories } from "../services/categoryService";
+import { getLocalServicesCache, subscribeToServices } from "../services/serviceService";
+import { DynamicSocialLink, DynamicContactNumber, DynamicContactEmail, Category, ServiceItem } from "../types";
 // @ts-ignore
 import logo from "../assets/images/Cool Technologies Logo.png";
 
@@ -25,8 +27,8 @@ interface FooterProps {
   onOpenPrivacy?: () => void;
 }
 
-export default function Footer({ 
-  onCategorySelect, 
+export default function Footer({
+  onCategorySelect,
   onOpenQuote,
   onOpenBlog,
   onOpenCareer,
@@ -80,12 +82,51 @@ export default function Footer({
     };
   }, []);
 
+  const [categories, setCategories] = useState<Category[]>(() => {
+    return getLocalCategories().filter((c) => c.status !== "inactive");
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    getCategories().then((cats) => {
+      if (isMounted && cats && cats.length > 0) {
+        setCategories(cats.filter((c) => c.status !== "inactive"));
+      }
+    });
+
+    const onCategoriesUpdated = (e: any) => {
+      const updated = e.detail || getLocalCategories();
+      if (Array.isArray(updated)) {
+        setCategories(updated.filter((c: Category) => c.status !== "inactive"));
+      }
+    };
+
+    window.addEventListener("cooltech_categories_updated", onCategoriesUpdated);
+    window.addEventListener("storage", onCategoriesUpdated);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("cooltech_categories_updated", onCategoriesUpdated);
+      window.removeEventListener("storage", onCategoriesUpdated);
+    };
+  }, []);
+
+  const [services, setServices] = useState<ServiceItem[]>(() => {
+    return getLocalServicesCache().filter((s) => s.isActive !== false);
+  });
+
+  useEffect(() => {
+    const unsubscribe = subscribeToServices((updated) => {
+      if (Array.isArray(updated) && updated.length > 0) {
+        setServices(updated.filter((s) => s.isActive !== false));
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const handleCategoryClick = (cat: string | null) => {
     onCategorySelect(cat);
-    // If not in products list view, redirect to products or scroll
-    if (window.location.hash !== "#/products") {
-      window.location.hash = "#/products";
-    }
+    const targetHash = cat ? `#/products?category=${encodeURIComponent(cat)}` : "#/products";
+    window.location.hash = targetHash;
     setTimeout(() => {
       const catalogElement = document.getElementById("product-catalog");
       if (catalogElement) {
@@ -122,35 +163,35 @@ export default function Footer({
   };
 
   // Department & channel resolution matching Contact Page
-  const salesPhone = contactSettings.departmentHotlines?.salesPhone || 
-                     contactSettings.phoneContacts?.find((p) => p.title?.toLowerCase().includes("sale"))?.number || 
-                     "+971 2 815 6111";
-  const salesEmail = contactSettings.departmentHotlines?.salesEmail || 
-                     contactSettings.emailContacts?.find((e) => e.title?.toLowerCase().includes("sale"))?.email || 
-                     "sales@cooltechuae.com";
+  const salesPhone = contactSettings.departmentHotlines?.salesPhone ||
+    contactSettings.phoneContacts?.find((p) => p.title?.toLowerCase().includes("sale"))?.number ||
+    "+971 2 815 6111";
+  const salesEmail = contactSettings.departmentHotlines?.salesEmail ||
+    contactSettings.emailContacts?.find((e) => e.title?.toLowerCase().includes("sale"))?.email ||
+    "sales@cooltechuae.com";
 
-  const servicesPhone = contactSettings.departmentHotlines?.servicesEmergencyPhone || 
-                        contactSettings.phoneContacts?.find((p) => p.title?.toLowerCase().includes("service"))?.number || 
-                        "+971 2 815 6161";
-  const servicesEmail = contactSettings.departmentHotlines?.servicesEmail || 
-                        contactSettings.emailContacts?.find((e) => e.title?.toLowerCase().includes("service") || e.email?.toLowerCase().includes("care"))?.email || 
-                        "care@cooltechuae.com";
+  const servicesPhone = contactSettings.departmentHotlines?.servicesEmergencyPhone ||
+    contactSettings.phoneContacts?.find((p) => p.title?.toLowerCase().includes("service"))?.number ||
+    "+971 2 815 6161";
+  const servicesEmail = contactSettings.departmentHotlines?.servicesEmail ||
+    contactSettings.emailContacts?.find((e) => e.title?.toLowerCase().includes("service") || e.email?.toLowerCase().includes("care"))?.email ||
+    "care@cooltechuae.com";
 
-  const whatsappNumber = contactSettings.whatsappSettings?.contactPageWhatsappNumber || 
-                         contactSettings.whatsapp || 
-                         "+971 2 565 0123";
+  const whatsappNumber = contactSettings.whatsappSettings?.contactPageWhatsappNumber ||
+    contactSettings.whatsapp ||
+    "+971 2 565 0123";
 
   return (
     <footer className="w-full bg-[#031124] text-slate-300 font-sans pt-16 pb-8 border-t border-slate-900" id="footer-section">
-      <div className="max-w-[1280px] mx-auto px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-12 w-full">
-        
-        {/* Column 1: Company Profile (4 cols) */}
-        <div className="lg:col-span-4 text-left flex flex-col justify-between">
+      <div className="max-w-[1280px] mx-auto px-6 sm:px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-6 xl:gap-8 w-full">
+
+        {/* Column 1: Company Profile (3 cols) */}
+        <div className="lg:col-span-3 text-left flex flex-col justify-between">
           <div>
             <div className="mb-5">
-              <img 
-                src={logo} 
-                alt="Cool Technologies Logo" 
+              <img
+                src={logo}
+                alt="Cool Technologies Logo"
                 className="h-10 w-auto object-contain select-none filter brightness-105"
                 referrerPolicy="no-referrer"
               />
@@ -161,63 +202,30 @@ export default function Footer({
           </div>
         </div>
 
-        {/* Column 2: Product Categories (3 cols) */}
-        <div className="lg:col-span-3 text-left">
+        {/* Column 2: Product Categories (2 cols) */}
+        <div className="lg:col-span-2 text-left">
           <h4 className="text-white text-xs font-bold uppercase tracking-wider border-b border-slate-800/80 pb-2 mb-4">
-            Industrial Categories
+            Categories
           </h4>
           <ul className="flex flex-col gap-2.5 text-[13px] text-slate-400 font-medium">
-            <li>
-              <button 
-                onClick={() => handleCategoryClick(null)} 
-                className="hover:text-white hover:underline transition-colors cursor-pointer text-left"
-              >
-                All Procurements
-              </button>
-            </li>
-            <li>
-              <button 
-                onClick={() => handleCategoryClick("Air Conditioners")} 
-                className="hover:text-white hover:underline transition-colors cursor-pointer text-left"
-              >
-                Air Conditioners
-              </button>
-            </li>
-            <li>
-              <button 
-                onClick={() => handleCategoryClick("HVAC Systems")} 
-                className="hover:text-white hover:underline transition-colors cursor-pointer text-left"
-              >
-                HVAC Systems & Chillers
-              </button>
-            </li>
-            <li>
-              <button 
-                onClick={() => handleCategoryClick("Compressors")} 
-                className="hover:text-white hover:underline transition-colors cursor-pointer text-left"
-              >
-                Industrial Compressors
-              </button>
-            </li>
-            <li>
-              <button 
-                onClick={() => handleCategoryClick("Coils & Heat Exchangers")} 
-                className="hover:text-white hover:underline transition-colors cursor-pointer text-left"
-              >
-                Condenser & Evaporator Coils
-              </button>
-            </li>
-            <li>
-              <button 
-                onClick={() => handleCategoryClick("Controls & Thermostats")} 
-                className="hover:text-white hover:underline transition-colors cursor-pointer text-left"
-              >
-                Sensors, Thermostats & Valves
-              </button>
-            </li>
-            <li className="pt-1">
-              <a 
-                href="#/categories" 
+            {categories.map((cat) => (
+              <li key={cat.id || cat.slug || cat.name}>
+                <a
+                  href={`#/products?category=${encodeURIComponent(cat.name)}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleCategoryClick(cat.name);
+                  }}
+                  className="hover:text-white hover:underline transition-colors cursor-pointer text-left block truncate"
+                  title={cat.name}
+                >
+                  {cat.name}
+                </a>
+              </li>
+            ))}
+            <li className="pt-1 border-t border-slate-800/40 mt-1">
+              <a
+                href="#/categories"
                 onClick={(e) => {
                   e.preventDefault();
                   window.location.hash = "#/categories";
@@ -231,15 +239,53 @@ export default function Footer({
           </ul>
         </div>
 
-        {/* Column 3: Corporate Pages (2 cols) */}
+        {/* Column 3: Services (2 cols) */}
         <div className="lg:col-span-2 text-left">
           <h4 className="text-white text-xs font-bold uppercase tracking-wider border-b border-slate-800/80 pb-2 mb-4">
-            Corporate Hub
+            Services
+          </h4>
+          <ul className="flex flex-col gap-2.5 text-[13px] text-slate-400 font-medium">
+            {services.map((svc) => (
+              <li key={svc.id}>
+                <a
+                  href="#/services"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.location.hash = "#/services";
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="hover:text-white hover:underline transition-colors cursor-pointer text-left block truncate"
+                  title={svc.title}
+                >
+                  {svc.title}
+                </a>
+              </li>
+            ))}
+            <li className="pt-1 border-t border-slate-800/40 mt-1">
+              <a
+                href="#/services"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.location.hash = "#/services";
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="text-cyan-400 font-bold hover:text-cyan-300 transition-colors flex items-center gap-1"
+              >
+                <span>Explore All Services →</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        {/* Column 4: Corporate Pages (2 cols) */}
+        <div className="lg:col-span-2 text-left">
+          <h4 className="text-white text-xs font-bold uppercase tracking-wider border-b border-slate-800/80 pb-2 mb-4">
+            Discover
           </h4>
           <ul className="flex flex-col gap-2.5 text-[13px] text-slate-400 font-medium">
             <li>
-              <a 
-                href="#/products" 
+              <a
+                href="#/products"
                 onClick={(e) => {
                   e.preventDefault();
                   handlePageClick("products");
@@ -250,8 +296,8 @@ export default function Footer({
               </a>
             </li>
             <li>
-              <a 
-                href="#/services" 
+              <a
+                href="#/services"
                 onClick={(e) => {
                   e.preventDefault();
                   window.location.hash = "#/services";
@@ -263,8 +309,34 @@ export default function Footer({
               </a>
             </li>
             <li>
-              <a 
-                href="#/" 
+              <a
+                href="#/spare-parts"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.location.hash = "#/spare-parts";
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="hover:text-white hover:underline transition-colors cursor-pointer text-left block"
+              >
+                Spare Parts Catalog
+              </a>
+            </li>
+            <li>
+              <a
+                href="#/brands"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.location.hash = "#/brands";
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="hover:text-white hover:underline transition-colors cursor-pointer text-left block"
+              >
+                Brand Directory
+              </a>
+            </li>
+            <li>
+              <a
+                href="#/"
                 onClick={(e) => {
                   e.preventDefault();
                   handleScrollToId("product-catalog");
@@ -275,8 +347,8 @@ export default function Footer({
               </a>
             </li>
             <li>
-              <a 
-                href="#/about" 
+              <a
+                href="#/about"
                 onClick={(e) => {
                   e.preventDefault();
                   if (onOpenAbout) onOpenAbout();
@@ -287,8 +359,8 @@ export default function Footer({
               </a>
             </li>
             <li>
-              <a 
-                href="#/contact" 
+              <a
+                href="#/contact"
                 onClick={(e) => {
                   e.preventDefault();
                   window.location.hash = "#/contact";
@@ -300,8 +372,8 @@ export default function Footer({
               </a>
             </li>
             <li>
-              <a 
-                href="#/blog" 
+              <a
+                href="#/blog"
                 onClick={(e) => {
                   e.preventDefault();
                   if (onOpenBlog) onOpenBlog();
@@ -313,8 +385,8 @@ export default function Footer({
               </a>
             </li>
             <li>
-              <a 
-                href="#/careers" 
+              <a
+                href="#/careers"
                 onClick={(e) => {
                   e.preventDefault();
                   if (onOpenCareer) onOpenCareer();
@@ -325,8 +397,8 @@ export default function Footer({
               </a>
             </li>
             <li>
-              <a 
-                href="#/contact?category=product_support" 
+              <a
+                href="#/contact?category=product_support"
                 onClick={(e) => {
                   e.preventDefault();
                   window.location.hash = "#/contact?category=product_support";
@@ -337,9 +409,10 @@ export default function Footer({
                 Product Support
               </a>
             </li>
+            {/* Media link temporarily hidden
             <li>
-              <a 
-                href="#/media" 
+              <a
+                href="#/media"
                 onClick={(e) => {
                   e.preventDefault();
                   if (onOpenMedia) onOpenMedia();
@@ -350,9 +423,10 @@ export default function Footer({
                 <ArrowUpRight size={12} className="opacity-65" />
               </a>
             </li>
+            */}
             <li>
-              <a 
-                href="#/management" 
+              <a
+                href="#/management"
                 onClick={(e) => {
                   e.preventDefault();
                   if (onOpenManagement) onOpenManagement();
@@ -368,15 +442,15 @@ export default function Footer({
         {/* Column 4: Contact & Enterprise Support (3 cols) */}
         <div className="lg:col-span-3 text-left">
           <h4 className="text-white text-xs font-bold uppercase tracking-wider border-b border-slate-800/80 pb-2 mb-4">
-            Enterprise Support
+            Contact Details
           </h4>
-          
+
           <div className="flex flex-col gap-3.5 text-[12px] text-slate-400">
-            
+
             {/* 1. Telephone Number + Email ID (info@) */}
             <div className="space-y-1.5 pb-2.5 border-b border-slate-800/50">
               <span className="text-[10px] text-cyan-400 font-extrabold uppercase tracking-wider block">
-                Telephone &amp; General Inquiries
+                General Inquiries
               </span>
               <div className="flex items-center gap-2">
                 <Phone size={13} className="text-blue-400 shrink-0" />
@@ -527,10 +601,7 @@ export default function Footer({
       {/* Footer Bottom Fine Print */}
       <div className="max-w-[1280px] mx-auto px-8 mt-12 pt-6 border-t border-slate-900 text-[11px] text-slate-500 flex flex-col md:flex-row justify-between items-center gap-4 w-full">
         <div className="text-center md:text-left">
-          <p>© {currentYear} Cool Technologies. All Rights Reserved. ISO 9001:2015 Registered Supplier.</p>
-          <p className="mt-1 text-[10px] text-slate-600 leading-normal max-w-4xl">
-            All manufacturer logos, brand trademarks (Daikin, Midea, Mitsubishi, LG, Carrier, Honeywell) are the properties of their respective registered owners and used solely for identification purposes.
-          </p>
+          <p>© {currentYear} Cool Technologies. All Rights Reserved. ICV Certified Supplier.</p>
         </div>
         <div className="flex flex-wrap gap-5 font-semibold text-slate-400 justify-center md:justify-end text-xs">
           <button

@@ -494,23 +494,9 @@ export default function Header({
           {!isSearchExpanded ? (
             /* STATE A: Navigation Links are displayed */
             <div className="flex items-center animate-in fade-in slide-in-from-left-3 duration-200">
-              <nav className="flex items-center gap-[40px] text-[14px] font-semibold text-slate-700 tracking-wide">
+              <nav className="flex items-center gap-6 xl:gap-8 text-[14px] font-semibold text-slate-700 tracking-wide">
                 
-                {/* 1. Home Page (Direct) */}
-                <button 
-                  onClick={() => {
-                    onCategorySelect(null);
-                    onSearchChange("");
-                    window.location.hash = "#/";
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="hover:text-blue-700 transition-colors py-1.5 relative group font-semibold text-[14px] text-slate-700 cursor-pointer"
-                >
-                  Home
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-700 transition-all group-hover:w-full"></span>
-                </button>
-
-                {/* 2. Products & Support Dropdown (Hover Triggered) */}
+                {/* 1. Products & Support Dropdown (Hover Triggered) */}
                 <div className="relative group py-2">
                   <button 
                     onClick={() => {
@@ -565,11 +551,27 @@ export default function Header({
                       <HelpCircle size={16} className="text-blue-600 shrink-0" />
                       <div>
                         <p className="text-slate-800 font-black text-xs">Product Support</p>
-                        <p className="text-[10px] text-slate-400 font-bold leading-none mt-0.5">Brochures, Manuals & Warranty</p>
+                        <p className="text-[10px] text-slate-400 font-bold leading-none mt-0.5">Brochures, Manuals &amp; Warranty</p>
                       </div>
                     </button>
                   </div>
                 </div>
+
+                {/* 2. Brands Page (Direct Top-Level Link) */}
+                <button 
+                  onClick={() => {
+                    window.location.hash = "#/brands";
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className={`hover:text-blue-700 transition-colors py-1.5 relative group font-semibold text-[14px] cursor-pointer whitespace-nowrap select-none ${
+                    window.location.hash === "#/brands" ? "text-blue-700 font-bold" : "text-slate-700"
+                  }`}
+                >
+                  Brands
+                  <span className={`absolute bottom-0 left-0 h-0.5 bg-blue-700 transition-all ${
+                    window.location.hash === "#/brands" ? "w-full" : "w-0 group-hover:w-full"
+                  }`}></span>
+                </button>
 
                 {/* 3. Services Page (Direct Top-Level Link) */}
                 <button 
@@ -577,16 +579,35 @@ export default function Header({
                     window.location.hash = "#/services";
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
-                  className="hover:text-blue-700 transition-colors py-1.5 relative group font-semibold text-[14px] text-slate-700 cursor-pointer"
+                  className={`hover:text-blue-700 transition-colors py-1.5 relative group font-semibold text-[14px] cursor-pointer whitespace-nowrap select-none ${
+                    window.location.hash === "#/services" ? "text-blue-700 font-bold" : "text-slate-700"
+                  }`}
                 >
                   Services
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-700 transition-all group-hover:w-full"></span>
+                  <span className={`absolute bottom-0 left-0 h-0.5 bg-blue-700 transition-all ${
+                    window.location.hash === "#/services" ? "w-full" : "w-0 group-hover:w-full"
+                  }`}></span>
                 </button>
 
+                {/* 4. Spare Parts Page (Direct Top-Level Link) */}
+                <button 
+                  onClick={() => {
+                    window.location.hash = "#/spare-parts";
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className={`hover:text-blue-700 transition-colors py-1.5 relative group font-semibold text-[14px] cursor-pointer whitespace-nowrap select-none ${
+                    window.location.hash.startsWith("#/spare-parts") ? "text-blue-700 font-bold" : "text-slate-700"
+                  }`}
+                >
+                  Spare Parts
+                  <span className={`absolute bottom-0 left-0 h-0.5 bg-blue-700 transition-all ${
+                    window.location.hash.startsWith("#/spare-parts") ? "w-full" : "w-0 group-hover:w-full"
+                  }`}></span>
+                </button>
 
-                {/* 4. Company & Info Dropdown (Hover Triggered) */}
+                {/* 5. Company & Info Dropdown (Hover Triggered - Includes Blog) */}
                 <div className="relative group py-2">
-                  <button className="flex items-center gap-1.5 hover:text-blue-700 transition-colors py-1.5 font-semibold text-[14px] text-slate-700 tracking-wide select-none cursor-pointer">
+                  <button className="flex items-center gap-1.5 hover:text-blue-700 transition-colors py-1.5 font-semibold text-[14px] text-slate-700 tracking-wide select-none cursor-pointer whitespace-nowrap">
                     <span>Company</span>
                     <ChevronDown size={14} className="text-slate-400 group-hover:rotate-180 transition-transform duration-200" />
                   </button>
@@ -619,6 +640,7 @@ export default function Header({
                       </div>
                     </button>
 
+                    {/* Media page temporarily hidden
                     <button
                       onClick={handleMediaClick}
                       className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-slate-700 transition-colors text-left cursor-pointer"
@@ -626,9 +648,10 @@ export default function Header({
                       <FileText size={16} className="text-blue-600 shrink-0" />
                       <div>
                         <p className="text-slate-800 font-black text-xs">Media</p>
-                        <p className="text-[10px] text-slate-400 font-bold leading-none mt-0.5">Press kits, news releases & assets</p>
+                        <p className="text-[10px] text-slate-400 font-bold leading-none mt-0.5">Press kits, news releases &amp; assets</p>
                       </div>
                     </button>
+                    */}
 
                     <button
                       onClick={onOpenCareer}
@@ -637,20 +660,22 @@ export default function Header({
                       <Briefcase size={16} className="text-blue-600 shrink-0" />
                       <div>
                         <p className="text-slate-800 font-black text-xs">Careers</p>
-                        <p className="text-[10px] text-slate-400 font-bold leading-none mt-0.5">Engineering & logistics openings</p>
+                        <p className="text-[10px] text-slate-400 font-bold leading-none mt-0.5">Engineering &amp; logistics openings</p>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={onOpenBlog}
+                      className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-slate-700 transition-colors text-left cursor-pointer border-t border-slate-50 mt-1 pt-2"
+                    >
+                      <BookOpen size={16} className="text-blue-600 shrink-0" />
+                      <div>
+                        <p className="text-slate-800 font-black text-xs">Blog &amp; Insights</p>
+                        <p className="text-[10px] text-slate-400 font-bold leading-none mt-0.5">Technical HVAC engineering guides</p>
                       </div>
                     </button>
                   </div>
                 </div>
-
-                {/* 5. Blog (Direct Top-Level Link) */}
-                <button 
-                  onClick={onOpenBlog}
-                  className="hover:text-blue-700 transition-colors py-1.5 relative group font-semibold text-[14px] text-slate-700 cursor-pointer"
-                >
-                  Blog
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-700 transition-all group-hover:w-full"></span>
-                </button>
 
                 {/* 6. Contact Us (Direct Top-Level Link) */}
                 <button 
@@ -662,7 +687,7 @@ export default function Header({
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }
                   }}
-                  className={`hover:text-blue-700 transition-colors py-1.5 relative group font-semibold text-[14px] cursor-pointer ${
+                  className={`hover:text-blue-700 transition-colors py-1.5 relative group font-semibold text-[14px] cursor-pointer whitespace-nowrap select-none ${
                     window.location.hash === "#/contact" ? "text-blue-700 font-bold" : "text-slate-700"
                   }`}
                 >
@@ -1055,22 +1080,7 @@ export default function Header({
       {isMobileMenuOpen && (
         <div className="lg:hidden absolute top-full left-0 w-full bg-white border-b border-slate-200 shadow-lg py-4 px-6 z-40 animate-in slide-in-from-top-4 duration-200">
           <div className="flex flex-col gap-4 text-xs font-bold text-slate-800">
-            {/* Home Link (Direct) */}
-            <button 
-              onClick={() => {
-                onCategorySelect(null);
-                onSearchChange("");
-                setIsMobileMenuOpen(false);
-                window.location.hash = "#/";
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-              className="text-left py-2 border-b border-slate-50 hover:text-blue-700 flex items-center gap-2"
-            >
-              <Wind size={15} className="text-blue-600" />
-              <span>Home</span>
-            </button>
-
-            {/* Products Accordion Group */}
+            {/* 1. Products & Sourcing Group */}
             <div className="space-y-1">
               <p className="text-[10px] uppercase tracking-wider text-slate-400 font-extrabold mt-1">Products & Sourcing</p>
               <button 
@@ -1107,7 +1117,23 @@ export default function Header({
               </button>
             </div>
 
-            {/* Services Page Group */}
+            {/* 2. AC Brands Group */}
+            <div className="space-y-1">
+              <p className="text-[10px] uppercase tracking-wider text-slate-400 font-extrabold mt-2">AC Brands</p>
+              <button 
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  window.location.hash = "#/brands";
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="w-full text-left py-2 border-b border-slate-50 hover:text-blue-700 pl-2 flex items-center gap-2"
+              >
+                <Layers size={14} className="text-blue-600" />
+                <span>Brands</span>
+              </button>
+            </div>
+
+            {/* 3. Services Group */}
             <div className="space-y-1">
               <p className="text-[10px] uppercase tracking-wider text-slate-400 font-extrabold mt-2">Services & Maintenance</p>
               <button 
@@ -1119,11 +1145,27 @@ export default function Header({
                 className="w-full text-left py-2 border-b border-slate-50 hover:text-blue-700 pl-2 flex items-center gap-2"
               >
                 <Wrench size={14} className="text-blue-600" />
-                <span>Services Page</span>
+                <span>Services</span>
               </button>
             </div>
 
-            {/* Company & Resources Group */}
+            {/* 4. Spare Parts Group */}
+            <div className="space-y-1">
+              <p className="text-[10px] uppercase tracking-wider text-slate-400 font-extrabold mt-2">AC Parts & Accessories</p>
+              <button 
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  window.location.hash = "#/spare-parts";
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="w-full text-left py-2 border-b border-slate-50 hover:text-blue-700 pl-2 flex items-center gap-2 font-bold text-blue-700"
+              >
+                <Zap size={14} className="text-blue-600" />
+                <span>Spare Parts</span>
+              </button>
+            </div>
+
+            {/* 5. Company & Resources Group */}
             <div className="space-y-1">
               <p className="text-[10px] uppercase tracking-wider text-slate-400 font-extrabold mt-2">Company Directory</p>
               <button 
@@ -1146,6 +1188,7 @@ export default function Header({
                 <Users size={14} className="text-blue-600" />
                 <span>Management</span>
               </button>
+              {/* Media page temporarily hidden
               <button 
                 onClick={() => {
                   setIsMobileMenuOpen(false);
@@ -1156,6 +1199,7 @@ export default function Header({
                 <FileText size={14} className="text-blue-600" />
                 <span>Media</span>
               </button>
+              */}
               <button 
                 onClick={() => {
                   setIsMobileMenuOpen(false);
@@ -1166,20 +1210,19 @@ export default function Header({
                 <Briefcase size={14} className="text-blue-600" />
                 <span>Career</span>
               </button>
+              <button 
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  onOpenBlog();
+                }}
+                className="w-full text-left py-2 border-b border-slate-50 hover:text-blue-700 pl-2 flex items-center gap-2 font-bold"
+              >
+                <BookOpen size={14} className="text-blue-600" />
+                <span>Blog &amp; Insights</span>
+              </button>
             </div>
 
-            {/* Direct Links on Mobile */}
-            <button 
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                onOpenBlog();
-              }}
-              className="text-left py-2 border-b border-slate-50 hover:text-blue-700 flex items-center gap-2 font-bold"
-            >
-              <BookOpen size={15} className="text-blue-600" />
-              <span>Blog</span>
-            </button>
-
+            {/* 6. Contact Link */}
             <button 
               onClick={() => {
                 setIsMobileMenuOpen(false);
@@ -1195,7 +1238,7 @@ export default function Header({
               }`}
             >
               <Phone size={15} className="text-blue-600" />
-              <span>Contact Us</span>
+              <span>Contact</span>
             </button>
 
 

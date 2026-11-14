@@ -35,7 +35,8 @@ import {
   Youtube,
   SendHorizontal,
   Headphones,
-  CheckCircle2
+  CheckCircle2,
+  Tag
 } from "lucide-react";
 import {
   GeneralSiteSettings,
@@ -45,7 +46,8 @@ import {
   DynamicContactNumber,
   DynamicContactEmail,
   CompanyBranch,
-  ContactFaqItem
+  ContactFaqItem,
+  EnquiryTypeOption
 } from "../../types";
 import {
   getGeneralSettings,
@@ -71,7 +73,14 @@ import {
   updateContactFaq,
   deleteContactFaq,
   moveContactFaq,
-  resetDefaultContactFaqs
+  resetDefaultContactFaqs,
+  getEnquiryTypes,
+  saveEnquiryTypes,
+  addEnquiryType,
+  updateEnquiryType,
+  deleteEnquiryType,
+  moveEnquiryType,
+  resetDefaultEnquiryTypes
 } from "../../services/generalSettingsService";
 import { sendTestEmail } from "../../services/emailService";
 
@@ -79,7 +88,7 @@ interface AdminContactCenterProps {
   onShowToast?: (message: string) => void;
 }
 
-type SubmoduleTab = "channels" | "branches" | "faqs" | "whatsapp" | "mail" | "social";
+type SubmoduleTab = "channels" | "enquiry_types" | "branches" | "faqs" | "whatsapp" | "mail" | "social";
 
 export default function AdminContactCenter({ onShowToast }: AdminContactCenterProps) {
   const [activeSubmodule, setActiveSubmodule] = useState<SubmoduleTab>("channels");
@@ -160,6 +169,14 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
   const [faqCategory, setFaqCategory] = useState("General");
   const [faqIsActive, setFaqIsActive] = useState(true);
 
+  // 4b. Enquiry Types State
+  const [enquiryTypes, setEnquiryTypes] = useState<EnquiryTypeOption[]>(getEnquiryTypes());
+  const [isEnquiryTypeModalOpen, setIsEnquiryTypeModalOpen] = useState(false);
+  const [editingEnquiryType, setEditingEnquiryType] = useState<EnquiryTypeOption | null>(null);
+  const [enquiryTypeLabel, setEnquiryTypeLabel] = useState("");
+  const [enquiryTypeValue, setEnquiryTypeValue] = useState("");
+  const [enquiryTypeIsActive, setEnquiryTypeIsActive] = useState(true);
+
   // 5. WhatsApp Hub
   const [whatsappSettings, setWhatsappSettings] = useState<WhatsAppRoutingSettings>(
     settings.whatsappSettings || DEFAULT_WHATSAPP_SETTINGS
@@ -219,6 +236,7 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
 
     setBranches(getBranches());
     setFaqs(getContactFaqs());
+    setEnquiryTypes(getEnquiryTypes());
   };
 
   useEffect(() => {
@@ -327,9 +345,11 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
       contactFaqs: faqs
     };
 
+    payload.enquiryTypes = enquiryTypes;
     saveContactCenterSettings(payload);
     saveBranches(branches);
     saveContactFaqs(faqs);
+    saveEnquiryTypes(enquiryTypes);
 
     // Sync to remote Cloudflare D1 database so all public visitors immediately see it
     const isSynced = await syncGeneralSettingsToRemote(payload as GeneralSiteSettings);
@@ -512,6 +532,77 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
     }
   };
 
+  // Enquiry Types Handlers
+  const handleOpenAddEnquiryType = () => {
+    setEditingEnquiryType(null);
+    setEnquiryTypeLabel("");
+    setEnquiryTypeValue("");
+    setEnquiryTypeIsActive(true);
+    setIsEnquiryTypeModalOpen(true);
+  };
+
+  const handleOpenEditEnquiryType = (item: EnquiryTypeOption) => {
+    setEditingEnquiryType(item);
+    setEnquiryTypeLabel(item.label);
+    setEnquiryTypeValue(item.value);
+    setEnquiryTypeIsActive(item.isActive !== false);
+    setIsEnquiryTypeModalOpen(true);
+  };
+
+  const handleSaveEnquiryType = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!enquiryTypeLabel.trim()) {
+      alert("Please provide an enquiry type label.");
+      return;
+    }
+
+    const val = enquiryTypeValue.trim() || enquiryTypeLabel.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
+
+    if (editingEnquiryType) {
+      updateEnquiryType(editingEnquiryType.id, {
+        label: enquiryTypeLabel.trim(),
+        value: val,
+        isActive: enquiryTypeIsActive
+      });
+      if (onShowToast) onShowToast(`Updated enquiry type "${enquiryTypeLabel.trim()}".`);
+    } else {
+      addEnquiryType({
+        label: enquiryTypeLabel.trim(),
+        value: val,
+        isActive: enquiryTypeIsActive
+      });
+      if (onShowToast) onShowToast(`Added new enquiry type "${enquiryTypeLabel.trim()}".`);
+    }
+    setEnquiryTypes(getEnquiryTypes());
+    setIsEnquiryTypeModalOpen(false);
+  };
+
+  const handleDeleteEnquiryType = (id: string, label: string) => {
+    if (window.confirm(`Are you sure you want to delete enquiry type "${label}"?`)) {
+      deleteEnquiryType(id);
+      setEnquiryTypes(getEnquiryTypes());
+      if (onShowToast) onShowToast(`Deleted enquiry type "${label}".`);
+    }
+  };
+
+  const handleToggleEnquiryTypeActive = (item: EnquiryTypeOption) => {
+    updateEnquiryType(item.id, { isActive: !item.isActive });
+    setEnquiryTypes(getEnquiryTypes());
+  };
+
+  const handleMoveEnquiryType = (id: string, direction: "up" | "down") => {
+    const updated = moveEnquiryType(id, direction);
+    setEnquiryTypes(updated);
+  };
+
+  const handleResetDefaultEnquiryTypes = () => {
+    if (window.confirm("Reset enquiry form categories to the default 5 options?")) {
+      resetDefaultEnquiryTypes();
+      setEnquiryTypes(getEnquiryTypes());
+      if (onShowToast) onShowToast("Reset enquiry types to factory defaults.");
+    }
+  };
+
   // Additional Contact Lines Handlers
   const handleAddPhoneContact = () => {
     const newPhone: DynamicContactNumber = {
@@ -646,6 +737,7 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
 
   const SUBMODULES = [
     { id: "channels" as SubmoduleTab, label: "Direct Channels & Coordinates", icon: <Phone size={15} /> },
+    { id: "enquiry_types" as SubmoduleTab, label: "Enquiry Form Types", icon: <Tag size={15} /> },
     { id: "branches" as SubmoduleTab, label: "Regional Branches", icon: <MapPin size={15} /> },
     { id: "faqs" as SubmoduleTab, label: "Contact FAQs", icon: <HelpCircle size={15} /> },
     { id: "whatsapp" as SubmoduleTab, label: "WhatsApp Routing", icon: <MessageSquare size={15} /> },
@@ -1062,6 +1154,175 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
                   )}
                 </div>
 
+              </div>
+            )}
+
+            {/* ───────────────────────────────────────────────────────────
+                SUBMODULE: ENQUIRY FORM TYPES & CATEGORIES
+            ─────────────────────────────────────────────────────────── */}
+            {activeSubmodule === "enquiry_types" && (
+              <div className="max-w-4xl space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200">
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                      <Tag size={14} className="text-[#0f4c81]" />
+                      <span>Contact Enquiry Form Types</span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-bold">
+                        {enquiryTypes.length}
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Customize the enquiry types in the Contact Enquiry dropdown. Add new types, edit labels, or remove items.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleResetDefaultEnquiryTypes}
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+                    >
+                      <RotateCcw size={12} />
+                      <span>Reset Defaults</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleOpenAddEnquiryType}
+                      className="px-3.5 py-1.5 bg-[#0f4c81] hover:bg-[#1c7e9f] text-white font-extrabold text-xs rounded-lg shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Plus size={14} />
+                      <span>Add Enquiry Type</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Live Dropdown Preview */}
+                <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <CheckCircle2 size={13} className="text-emerald-600" />
+                      Live Form Preview on Contact Page
+                    </span>
+                    <a
+                      href="#/contact"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] font-bold text-[#0f4c81] hover:underline flex items-center gap-1"
+                    >
+                      <span>Open Contact Page</span>
+                      <ExternalLink size={11} />
+                    </a>
+                  </div>
+                  <div className="max-w-md bg-white border border-slate-300 rounded-lg p-3 shadow-2xs">
+                    <label className="text-[11px] font-semibold text-slate-600 block mb-1">
+                      Enquiry Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      disabled
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-md bg-slate-50 text-slate-700 cursor-not-allowed font-medium"
+                    >
+                      {enquiryTypes.filter(t => t.isActive !== false).map((t) => (
+                        <option key={t.id}>{t.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Enquiry Types List Table */}
+                <div className="space-y-2.5">
+                  {enquiryTypes.length === 0 ? (
+                    <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                      <p className="text-xs font-bold text-slate-600">No enquiry types defined.</p>
+                      <button
+                        type="button"
+                        onClick={handleResetDefaultEnquiryTypes}
+                        className="mt-3 px-3 py-1.5 bg-[#0f4c81] text-white font-bold text-xs rounded-lg inline-flex items-center gap-1.5"
+                      >
+                        <RotateCcw size={12} />
+                        <span>Load Default 5 Types</span>
+                      </button>
+                    </div>
+                  ) : (
+                    enquiryTypes.map((item, idx) => (
+                      <div
+                        key={item.id}
+                        className={`border rounded-xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all ${
+                          item.isActive !== false ? "bg-white border-slate-200 shadow-2xs" : "bg-slate-50 border-slate-200/60 opacity-60"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <span className="w-6 h-6 rounded-md bg-slate-100 text-slate-600 font-bold text-[11px] flex items-center justify-center shrink-0">
+                            {idx + 1}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-xs text-slate-900">
+                                {item.label}
+                              </span>
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                                value: {item.value}
+                              </span>
+                              {item.isActive === false && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded">
+                                  Disabled
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleEnquiryTypeActive(item)}
+                            className={`px-2 py-1 text-[11px] font-bold rounded-lg border transition-colors cursor-pointer ${
+                              item.isActive !== false
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                                : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
+                            }`}
+                            title={item.isActive !== false ? "Click to disable from form" : "Click to enable on form"}
+                          >
+                            {item.isActive !== false ? "Active" : "Disabled"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveEnquiryType(item.id, "up")}
+                            disabled={idx === 0}
+                            className="p-1.5 hover:bg-slate-100 disabled:opacity-30 border border-slate-200 rounded-lg text-slate-600 transition-colors cursor-pointer"
+                            title="Move Up"
+                          >
+                            <ArrowUp size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveEnquiryType(item.id, "down")}
+                            disabled={idx === enquiryTypes.length - 1}
+                            className="p-1.5 hover:bg-slate-100 disabled:opacity-30 border border-slate-200 rounded-lg text-slate-600 transition-colors cursor-pointer"
+                            title="Move Down"
+                          >
+                            <ArrowDown size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditEnquiryType(item)}
+                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            <Edit3 size={12} />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteEnquiryType(item.id, item.label)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            title="Delete enquiry type"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             )}
 
@@ -1791,6 +2052,93 @@ export default function AdminContactCenter({ onShowToast }: AdminContactCenterPr
                   className="px-5 py-2 bg-[#0f4c81] hover:bg-[#1c7e9f] text-white font-black text-xs rounded-xl shadow-xs"
                 >
                   Save FAQ
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          ENQUIRY TYPE EDIT / ADD MODAL
+      ───────────────────────────────────────────────────────────── */}
+      {isEnquiryTypeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full shadow-2xl p-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                <Tag size={16} className="text-[#0f4c81]" />
+                <span>{editingEnquiryType ? "Edit Enquiry Type" : "Add New Enquiry Type"}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsEnquiryTypeModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEnquiryType} className="space-y-4 pt-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Display Label *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={enquiryTypeLabel}
+                  onChange={(e) => {
+                    setEnquiryTypeLabel(e.target.value);
+                    if (!editingEnquiryType) {
+                      setEnquiryTypeValue(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "_"));
+                    }
+                  }}
+                  placeholder="e.g. Energy Audit & ESMA Compliance"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#0f4c81]"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">This is the text visitors see in the Contact form dropdown.</p>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Internal Value / Slug
+                </label>
+                <input
+                  type="text"
+                  value={enquiryTypeValue}
+                  onChange={(e) => setEnquiryTypeValue(e.target.value)}
+                  placeholder="e.g. energy_audit"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:border-[#0f4c81]"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">Technical key stored in the database enquiry record.</p>
+              </div>
+
+              <div className="pt-2">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={enquiryTypeIsActive}
+                    onChange={(e) => setEnquiryTypeIsActive(e.target.checked)}
+                    className="rounded text-[#0f4c81] cursor-pointer"
+                  />
+                  <span>Show as Active Option in Form</span>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsEnquiryTypeModalOpen(false)}
+                  className="px-4 py-2 border border-slate-200 text-slate-600 font-bold text-xs rounded-xl hover:bg-slate-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#0f4c81] hover:bg-[#1c7e9f] text-white font-black text-xs rounded-xl shadow-xs cursor-pointer"
+                >
+                  Save Enquiry Type
                 </button>
               </div>
             </form>

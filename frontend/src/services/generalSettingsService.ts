@@ -3,12 +3,12 @@
    Handles dynamic global configurations, brand partners, and achievements.
 ───────────────────────────────────────────────────────────────── */
 
-import { 
-  BrandPartner, 
-  GeneralSiteSettings, 
-  AchievementMilestone, 
-  CompanyBranch, 
-  ContactFaqItem, 
+import {
+  BrandPartner,
+  GeneralSiteSettings,
+  AchievementMilestone,
+  CompanyBranch,
+  ContactFaqItem,
   EmailIntegrationSettings,
   DynamicSocialLink,
   WhatsAppRoutingSettings,
@@ -16,7 +16,8 @@ import {
   SocialSeoPreviewSettings,
   PageSocialPreview,
   DynamicContactNumber,
-  DynamicContactEmail
+  DynamicContactEmail,
+  EnquiryTypeOption
 } from "../types";
 import { apiClient } from "./apiClient";
 import { db, doc, getDoc, setDoc, onSnapshot } from "../lib/firebase";
@@ -117,8 +118,8 @@ export const DEFAULT_DEPARTMENT_HOTLINES: DepartmentHotlines = {
   salesPhone: "+971 2 815 6111",
   servicesEmergencyPhone: "+971 2 815 6161",
   mediaPressEmail: "media@cooltechuae.com",
-  pressDeskPhone: "+971 2 555 1234",
-  pressWhatsapp: "+971 50 123 4567",
+  pressDeskPhone: "+971 2 565 0123",
+  pressWhatsapp: "+971 2 565 0123",
   legalEmail: "legal@cooltechuae.com",
   privacyEmail: "privacy@cooltechuae.com"
 };
@@ -280,77 +281,428 @@ export const DEFAULT_BRANCHES: CompanyBranch[] = [
 
 export const DEFAULT_BRAND_PARTNERS: BrandPartner[] = [
   {
-    id: "brand-daikin",
-    name: "DAIKIN",
-    displayType: "text",
-    tagline: "Air Conditioning",
-    websiteUrl: "https://www.daikin.com",
+    id: "brand-admiral",
+    name: "Admiral",
+    displayType: "image",
+    logo: "/images/brands/Admiral.png",
+    logoUrl: "/images/brands/Admiral.png",
     order: 1,
     isActive: true
   },
   {
-    id: "brand-midea",
-    name: "Midea",
-    displayType: "text",
-    tagline: "Commercial HVAC",
-    websiteUrl: "https://www.midea.com",
+    id: "brand-aftron",
+    name: "Aftron",
+    displayType: "image",
+    logo: "/images/brands/Aftron.png",
+    logoUrl: "/images/brands/Aftron.png",
     order: 2,
     isActive: true
   },
   {
-    id: "brand-panasonic",
-    name: "Panasonic",
-    displayType: "text",
-    tagline: "Cooling & Heating",
-    websiteUrl: "https://www.panasonic.com",
+    id: "brand-akai",
+    name: "Akai",
+    displayType: "image",
+    logo: "/images/brands/AKAI.png",
+    logoUrl: "/images/brands/AKAI.png",
     order: 3,
     isActive: true
   },
   {
-    id: "brand-mitsubishi",
-    name: "MITSUBISHI HEAVY INDUSTRIES",
-    displayType: "text",
-    tagline: "Heavy Industries",
-    websiteUrl: "https://www.mhi.com",
+    id: "brand-ariston",
+    name: "Ariston",
+    displayType: "image",
+    logo: "/images/brands/Ariston.png",
+    logoUrl: "/images/brands/Ariston.png",
     order: 4,
     isActive: true
   },
   {
-    id: "brand-lg",
-    name: "LG",
-    displayType: "text",
-    tagline: "Electronics & Air",
-    websiteUrl: "https://www.lg.com",
+    id: "brand-aux",
+    name: "AUX",
+    displayType: "image",
+    logo: "/images/brands/AUX.png",
+    logoUrl: "/images/brands/AUX.png",
     order: 5,
     isActive: true
   },
   {
-    id: "brand-samsung",
-    name: "SAMSUNG",
-    displayType: "text",
-    tagline: "Climate Solutions",
-    websiteUrl: "https://www.samsung.com",
+    id: "brand-bluestar",
+    name: "Blue Star",
+    displayType: "image",
+    logo: "/images/brands/BlueStar.png",
+    logoUrl: "/images/brands/BlueStar.png",
     order: 6,
     isActive: true
   },
   {
-    id: "brand-york",
-    name: "YORK",
-    displayType: "text",
-    tagline: "Chillers & AHU",
-    websiteUrl: "https://www.york.com",
+    id: "brand-bompani",
+    name: "Bompani",
+    displayType: "image",
+    logo: "/images/brands/Bompani.png",
+    logoUrl: "/images/brands/Bompani.png",
     order: 7,
+    isActive: true
+  },
+  {
+    id: "brand-brema",
+    name: "Brema",
+    displayType: "image",
+    logo: "/images/brands/Brema.png",
+    logoUrl: "/images/brands/Brema.png",
+    order: 8,
+    isActive: true
+  },
+  {
+    id: "brand-burco",
+    name: "Burco",
+    displayType: "image",
+    logo: "/images/brands/Burco.png",
+    logoUrl: "/images/brands/Burco.png",
+    order: 9,
     isActive: true
   },
   {
     id: "brand-carrier",
     name: "Carrier",
-    displayType: "text",
-    tagline: "Turn to the Experts",
-    websiteUrl: "https://www.carrier.com",
-    order: 8,
+    displayType: "image",
+    logo: "/images/brands/Carrier.png",
+    logoUrl: "/images/brands/Carrier.png",
+    order: 10,
     isActive: true
-  }
+  },
+  {
+    id: "brand-clivet",
+    name: "Clivet",
+    displayType: "image",
+    logo: "/images/brands/Clivet.png",
+    logoUrl: "/images/brands/Clivet.png",
+    order: 11,
+    isActive: true
+  },
+  {
+    id: "brand-coolex",
+    name: "Coolex",
+    displayType: "image",
+    logo: "/images/brands/Coolex.png",
+    logoUrl: "/images/brands/Coolex.png",
+    order: 12,
+    isActive: true
+  },
+  {
+    id: "brand-daikin",
+    name: "Daikin",
+    displayType: "image",
+    logo: "/images/brands/Daikin.png",
+    logoUrl: "/images/brands/Daikin.png",
+    order: 13,
+    isActive: true
+  },
+  {
+    id: "brand-electrolux",
+    name: "Electrolux",
+    displayType: "image",
+    logo: "/images/brands/Electrolux.png",
+    logoUrl: "/images/brands/Electrolux.png",
+    order: 14,
+    isActive: true
+  },
+  {
+    id: "brand-frego",
+    name: "Frego",
+    displayType: "image",
+    logo: "/images/brands/FREGO.png",
+    logoUrl: "/images/brands/FREGO.png",
+    order: 15,
+    isActive: true
+  },
+  {
+    id: "brand-gemcool",
+    name: "GemCool",
+    displayType: "image",
+    logo: "/images/brands/GemCool.png",
+    logoUrl: "/images/brands/GemCool.png",
+    order: 16,
+    isActive: true
+  },
+  {
+    id: "brand-general",
+    name: "General",
+    displayType: "image",
+    logo: "/images/brands/GENERAL.png",
+    logoUrl: "/images/brands/GENERAL.png",
+    order: 17,
+    isActive: true
+  },
+  {
+    id: "brand-gnrl",
+    name: "GNRL",
+    displayType: "image",
+    logo: "/images/brands/GNRL.png",
+    logoUrl: "/images/brands/GNRL.png",
+    order: 18,
+    isActive: true
+  },
+  {
+    id: "brand-gree",
+    name: "Gree",
+    displayType: "image",
+    logo: "/images/brands/GREE.png",
+    logoUrl: "/images/brands/GREE.png",
+    order: 19,
+    isActive: true
+  },
+  {
+    id: "brand-haier",
+    name: "Haier",
+    displayType: "image",
+    logo: "/images/brands/Haier.png",
+    logoUrl: "/images/brands/Haier.png",
+    order: 20,
+    isActive: true
+  },
+  {
+    id: "brand-hisense",
+    name: "Hisense",
+    displayType: "image",
+    logo: "/images/brands/Hisense.png",
+    logoUrl: "/images/brands/Hisense.png",
+    order: 21,
+    isActive: true
+  },
+  {
+    id: "brand-hitachi",
+    name: "Hitachi",
+    displayType: "image",
+    logo: "/images/brands/Hitachi.png",
+    logoUrl: "/images/brands/Hitachi.png",
+    order: 22,
+    isActive: true
+  },
+  {
+    id: "brand-indesit",
+    name: "Indesit",
+    displayType: "image",
+    logo: "/images/brands/Indesit.png",
+    logoUrl: "/images/brands/Indesit.png",
+    order: 23,
+    isActive: true
+  },
+  {
+    id: "brand-jetcool",
+    name: "Jetcool",
+    displayType: "image",
+    logo: "/images/brands/Jetcool.png",
+    logoUrl: "/images/brands/Jetcool.png",
+    order: 24,
+    isActive: true
+  },
+  {
+    id: "brand-kelon",
+    name: "Kelon",
+    displayType: "image",
+    logo: "/images/brands/KELON.png",
+    logoUrl: "/images/brands/KELON.png",
+    order: 25,
+    isActive: true
+  },
+  {
+    id: "brand-lg",
+    name: "LG",
+    displayType: "image",
+    logo: "/images/brands/LG.png",
+    logoUrl: "/images/brands/LG.png",
+    order: 26,
+    isActive: true
+  },
+  {
+    id: "brand-lloyd",
+    name: "Lloyd",
+    displayType: "image",
+    logo: "/images/brands/LLOYD.png",
+    logoUrl: "/images/brands/LLOYD.png",
+    order: 27,
+    isActive: true
+  },
+  {
+    id: "brand-midea",
+    name: "Midea",
+    displayType: "image",
+    logo: "/images/brands/Midea.png",
+    logoUrl: "/images/brands/Midea.png",
+    order: 28,
+    isActive: true
+  },
+  {
+    id: "brand-mitsubishi",
+    name: "Mitsubishi",
+    displayType: "image",
+    logo: "/images/brands/Mitsubishi.png",
+    logoUrl: "/images/brands/Mitsubishi.png",
+    order: 29,
+    isActive: true
+  },
+  {
+    id: "brand-nikai",
+    name: "Nikai",
+    displayType: "image",
+    logo: "/images/brands/Nikai.png",
+    logoUrl: "/images/brands/Nikai.png",
+    order: 30,
+    isActive: true
+  },
+  {
+    id: "brand-nobel",
+    name: "Nobel",
+    displayType: "image",
+    logo: "/images/brands/Nobel.png",
+    logoUrl: "/images/brands/Nobel.png",
+    order: 31,
+    isActive: true
+  },
+  {
+    id: "brand-olefini",
+    name: "Olefini",
+    displayType: "image",
+    logo: "/images/brands/Olefini.png",
+    logoUrl: "/images/brands/Olefini.png",
+    order: 32,
+    isActive: true
+  },
+  {
+    id: "brand-philips",
+    name: "Philips",
+    displayType: "image",
+    logo: "/images/brands/Philips.png",
+    logoUrl: "/images/brands/Philips.png",
+    order: 33,
+    isActive: true
+  },
+  {
+    id: "brand-polycon",
+    name: "Polycon",
+    displayType: "image",
+    logo: "/images/brands/Polycon.png",
+    logoUrl: "/images/brands/Polycon.png",
+    order: 34,
+    isActive: true
+  },
+  {
+    id: "brand-rheem",
+    name: "Rheem",
+    displayType: "image",
+    logo: "/images/brands/Rheem.png",
+    logoUrl: "/images/brands/Rheem.png",
+    order: 35,
+    isActive: true
+  },
+  {
+    id: "brand-samsung",
+    name: "Samsung",
+    displayType: "image",
+    logo: "/images/brands/SAMSUNG.png",
+    logoUrl: "/images/brands/SAMSUNG.png",
+    order: 36,
+    isActive: true
+  },
+  {
+    id: "brand-siemens",
+    name: "Siemens",
+    displayType: "image",
+    logo: "/images/brands/SIEMENS.png",
+    logoUrl: "/images/brands/SIEMENS.png",
+    order: 37,
+    isActive: true
+  },
+  {
+    id: "brand-skm",
+    name: "SKM",
+    displayType: "image",
+    logo: "/images/brands/SKM.png",
+    logoUrl: "/images/brands/SKM.png",
+    order: 38,
+    isActive: true
+  },
+  {
+    id: "brand-super-general",
+    name: "Super General",
+    displayType: "image",
+    logo: "/images/brands/Super_General.png",
+    logoUrl: "/images/brands/Super_General.png",
+    order: 39,
+    isActive: true
+  },
+  {
+    id: "brand-symphony",
+    name: "Symphony",
+    displayType: "image",
+    logo: "/images/brands/Symphony.png",
+    logoUrl: "/images/brands/Symphony.png",
+    order: 40,
+    isActive: true
+  },
+  {
+    id: "brand-tcl",
+    name: "TCL",
+    displayType: "image",
+    logo: "/images/brands/TCL.png",
+    logoUrl: "/images/brands/TCL.png",
+    order: 41,
+    isActive: true
+  },
+  {
+    id: "brand-toshiba",
+    name: "Toshiba",
+    displayType: "image",
+    logo: "/images/brands/Toshiba.png",
+    logoUrl: "/images/brands/Toshiba.png",
+    order: 42,
+    isActive: true
+  },
+  {
+    id: "brand-trane",
+    name: "Trane",
+    displayType: "image",
+    logo: "/images/brands/Trane.png",
+    logoUrl: "/images/brands/Trane.png",
+    order: 43,
+    isActive: true
+  },
+  {
+    id: "brand-trosten",
+    name: "Trosten",
+    displayType: "image",
+    logo: "/images/brands/TROSTEN.png",
+    logoUrl: "/images/brands/TROSTEN.png",
+    order: 44,
+    isActive: true
+  },
+  {
+    id: "brand-westpoint",
+    name: "Westpoint",
+    displayType: "image",
+    logo: "/images/brands/WESTPOINT.png",
+    logoUrl: "/images/brands/WESTPOINT.png",
+    order: 45,
+    isActive: true
+  },
+  {
+    id: "brand-whirlpool",
+    name: "Whirlpool",
+    displayType: "image",
+    logo: "/images/brands/Whirlpool.png",
+    logoUrl: "/images/brands/Whirlpool.png",
+    order: 46,
+    isActive: true
+  },
+  {
+    id: "brand-york",
+    name: "York",
+    displayType: "image",
+    logo: "/images/brands/York.png",
+    logoUrl: "/images/brands/York.png",
+    order: 47,
+    isActive: true
+  },
 ];
 
 export const DEFAULT_ACHIEVEMENTS: AchievementMilestone[] = [
@@ -557,10 +909,19 @@ export function normalizeSettings(parsed: any): GeneralSiteSettings {
   return {
     ...DEFAULT_SETTINGS,
     ...parsed,
+    phone: (parsed.phone && !parsed.phone.includes("555 1234") && !parsed.phone.includes("555-COOL"))
+      ? parsed.phone
+      : DEFAULT_SETTINGS.phone,
+    whatsapp: (parsed.whatsapp && !parsed.whatsapp.includes("123 4567"))
+      ? parsed.whatsapp
+      : DEFAULT_SETTINGS.whatsapp,
+    email: (parsed.email && !parsed.email.includes("cooltechnologies.com"))
+      ? parsed.email
+      : DEFAULT_SETTINGS.email,
     storageProvider: parsed.storageProvider || "cloudflare",
     cloudflareUploadEndpoint: parsed.cloudflareUploadEndpoint || "https://cooltech-api-worker.ctauhweb.workers.dev/api/upload",
     cloudflarePublicDomain: parsed.cloudflarePublicDomain || "https://pub-0fd8611859e54ef6af47da7f5d49fab4.r2.dev",
-    brandPartners: parsed.brandPartners && Array.isArray(parsed.brandPartners) && parsed.brandPartners.length > 0
+    brandPartners: parsed.brandPartners && Array.isArray(parsed.brandPartners) && parsed.brandPartners.length >= 40
       ? parsed.brandPartners
       : DEFAULT_BRAND_PARTNERS,
     achievements: parsed.achievements && Array.isArray(parsed.achievements) && parsed.achievements.length > 0
@@ -576,47 +937,77 @@ export function normalizeSettings(parsed: any): GeneralSiteSettings {
       ? parsed.socialLinks
       : DEFAULT_SOCIAL_LINKS,
     whatsappSettings: parsed.whatsappSettings
-      ? { ...DEFAULT_WHATSAPP_SETTINGS, ...parsed.whatsappSettings }
+      ? {
+        ...DEFAULT_WHATSAPP_SETTINGS,
+        ...parsed.whatsappSettings,
+        floatingPhoneNumber: (parsed.whatsappSettings.floatingPhoneNumber && !parsed.whatsappSettings.floatingPhoneNumber.includes("123 4567"))
+          ? parsed.whatsappSettings.floatingPhoneNumber.trim()
+          : DEFAULT_WHATSAPP_SETTINGS.floatingPhoneNumber,
+        emailAutoReplyWhatsappNumber: (parsed.whatsappSettings.emailAutoReplyWhatsappNumber && !parsed.whatsappSettings.emailAutoReplyWhatsappNumber.includes("123 4567"))
+          ? parsed.whatsappSettings.emailAutoReplyWhatsappNumber.trim()
+          : DEFAULT_WHATSAPP_SETTINGS.emailAutoReplyWhatsappNumber,
+        contactPageWhatsappNumber: (parsed.whatsappSettings.contactPageWhatsappNumber && !parsed.whatsappSettings.contactPageWhatsappNumber.includes("123 4567"))
+          ? parsed.whatsappSettings.contactPageWhatsappNumber.trim()
+          : DEFAULT_WHATSAPP_SETTINGS.contactPageWhatsappNumber,
+      }
       : DEFAULT_WHATSAPP_SETTINGS,
     departmentHotlines: parsed.departmentHotlines
       ? {
-          ...DEFAULT_DEPARTMENT_HOTLINES,
-          ...parsed.departmentHotlines,
-          salesPhone: (parsed.departmentHotlines.salesPhone || "").trim() || DEFAULT_DEPARTMENT_HOTLINES.salesPhone,
-          servicesEmergencyPhone: (parsed.departmentHotlines.servicesEmergencyPhone || "").trim() || DEFAULT_DEPARTMENT_HOTLINES.servicesEmergencyPhone,
-        }
+        ...DEFAULT_DEPARTMENT_HOTLINES,
+        ...parsed.departmentHotlines,
+        salesPhone: (parsed.departmentHotlines.salesPhone || "").trim() || DEFAULT_DEPARTMENT_HOTLINES.salesPhone,
+        servicesEmergencyPhone: (parsed.departmentHotlines.servicesEmergencyPhone || "").trim() || DEFAULT_DEPARTMENT_HOTLINES.servicesEmergencyPhone,
+        pressDeskPhone: (parsed.departmentHotlines.pressDeskPhone && !parsed.departmentHotlines.pressDeskPhone.includes("555 1234"))
+          ? parsed.departmentHotlines.pressDeskPhone.trim()
+          : DEFAULT_DEPARTMENT_HOTLINES.pressDeskPhone,
+        pressWhatsapp: (parsed.departmentHotlines.pressWhatsapp && !parsed.departmentHotlines.pressWhatsapp.includes("123 4567"))
+          ? parsed.departmentHotlines.pressWhatsapp.trim()
+          : DEFAULT_DEPARTMENT_HOTLINES.pressWhatsapp,
+        legalEmail: (parsed.departmentHotlines.legalEmail && !parsed.departmentHotlines.legalEmail.includes("cooltechnologies.com"))
+          ? parsed.departmentHotlines.legalEmail.trim()
+          : DEFAULT_DEPARTMENT_HOTLINES.legalEmail,
+        privacyEmail: (parsed.departmentHotlines.privacyEmail && !parsed.departmentHotlines.privacyEmail.includes("cooltechnologies.com"))
+          ? parsed.departmentHotlines.privacyEmail.trim()
+          : DEFAULT_DEPARTMENT_HOTLINES.privacyEmail,
+      }
       : DEFAULT_DEPARTMENT_HOTLINES,
     socialSeoSettings: parsed.socialSeoSettings
       ? {
-          ...DEFAULT_SOCIAL_SEO_SETTINGS,
-          ...parsed.socialSeoSettings,
-          pagePreviews: parsed.socialSeoSettings.pagePreviews && Array.isArray(parsed.socialSeoSettings.pagePreviews) && parsed.socialSeoSettings.pagePreviews.length > 0
-            ? parsed.socialSeoSettings.pagePreviews
-            : DEFAULT_SOCIAL_SEO_SETTINGS.pagePreviews
-        }
+        ...DEFAULT_SOCIAL_SEO_SETTINGS,
+        ...parsed.socialSeoSettings,
+        pagePreviews: parsed.socialSeoSettings.pagePreviews && Array.isArray(parsed.socialSeoSettings.pagePreviews) && parsed.socialSeoSettings.pagePreviews.length > 0
+          ? parsed.socialSeoSettings.pagePreviews
+          : DEFAULT_SOCIAL_SEO_SETTINGS.pagePreviews
+      }
       : DEFAULT_SOCIAL_SEO_SETTINGS,
     emailIntegration: parsed.emailIntegration
       ? {
-          ...DEFAULT_EMAIL_SETTINGS,
-          ...parsed.emailIntegration,
-          brevoApiKey: (parsed.emailIntegration.brevoApiKey || "").trim() || DEFAULT_EMAIL_SETTINGS.brevoApiKey,
-          brevoSenderEmail: (parsed.emailIntegration.brevoSenderEmail || "").trim() || DEFAULT_EMAIL_SETTINGS.brevoSenderEmail,
-          brevoSenderName: (parsed.emailIntegration.brevoSenderName || "").trim() || DEFAULT_EMAIL_SETTINGS.brevoSenderName,
-          serviceId: (parsed.emailIntegration.serviceId || "").trim() || DEFAULT_EMAIL_SETTINGS.serviceId,
-          templateId: (parsed.emailIntegration.templateId || "").trim() || DEFAULT_EMAIL_SETTINGS.templateId,
-          publicKey: (parsed.emailIntegration.publicKey || "").trim() || DEFAULT_EMAIL_SETTINGS.publicKey,
-        }
+        ...DEFAULT_EMAIL_SETTINGS,
+        ...parsed.emailIntegration,
+        brevoApiKey: (parsed.emailIntegration.brevoApiKey || "").trim() || DEFAULT_EMAIL_SETTINGS.brevoApiKey,
+        brevoSenderEmail: (parsed.emailIntegration.brevoSenderEmail || "").trim() || DEFAULT_EMAIL_SETTINGS.brevoSenderEmail,
+        brevoSenderName: (parsed.emailIntegration.brevoSenderName || "").trim() || DEFAULT_EMAIL_SETTINGS.brevoSenderName,
+        serviceId: (parsed.emailIntegration.serviceId || "").trim() || DEFAULT_EMAIL_SETTINGS.serviceId,
+        templateId: (parsed.emailIntegration.templateId || "").trim() || DEFAULT_EMAIL_SETTINGS.templateId,
+        publicKey: (parsed.emailIntegration.publicKey || "").trim() || DEFAULT_EMAIL_SETTINGS.publicKey,
+      }
       : DEFAULT_EMAIL_SETTINGS,
     phoneContacts: parsed.phoneContacts && Array.isArray(parsed.phoneContacts) && parsed.phoneContacts.length > 0
-      ? parsed.phoneContacts
+      ? parsed.phoneContacts.map(p => ({
+          ...p,
+          number: (p.number && (p.number.includes("555 1234") || p.number.includes("555-COOL"))) ? "+971 2 565 0123" : p.number
+        }))
       : (parsed.phone
-          ? [{ id: "phone-default-migrated", title: "Procurement Hotline", number: parsed.phone, isActive: true }]
-          : DEFAULT_PHONE_CONTACTS),
+        ? [{ id: "phone-default-migrated", title: "Procurement Hotline", number: parsed.phone.includes("555 1234") ? "+971 2 565 0123" : parsed.phone, isActive: true }]
+        : DEFAULT_PHONE_CONTACTS),
     emailContacts: parsed.emailContacts && Array.isArray(parsed.emailContacts) && parsed.emailContacts.length > 0
-      ? parsed.emailContacts
+      ? parsed.emailContacts.map(e => ({
+          ...e,
+          email: (e.email && e.email.includes("cooltechnologies.com")) ? "info@cooltechuae.com" : e.email
+        }))
       : (parsed.email
-          ? [{ id: "email-default-migrated", title: "Inquiries & Quotations", email: parsed.email, isActive: true }]
-          : DEFAULT_EMAIL_CONTACTS),
+        ? [{ id: "email-default-migrated", title: "Inquiries & Quotations", email: parsed.email.includes("cooltechnologies.com") ? "info@cooltechuae.com" : parsed.email, isActive: true }]
+        : DEFAULT_EMAIL_CONTACTS),
   };
 }
 
@@ -628,7 +1019,14 @@ export function getGeneralSettings(): GeneralSiteSettings {
     const saved = localStorage.getItem(LOCAL_STORAGE_SETTINGS_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      return normalizeSettings(parsed);
+      const normalized = normalizeSettings(parsed);
+      // Auto-purge any stale dummy phone/email cached in browser localStorage
+      if (saved.includes("555 1234") || saved.includes("123 4567") || saved.includes("555-COOL") || saved.includes("cooltechnologies.com")) {
+        try {
+          localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(normalized));
+        } catch (_) {}
+      }
+      return normalized;
     }
   } catch (err) {
     console.warn("[GeneralSettingsService] Error reading settings from localStorage:", err);
@@ -684,7 +1082,7 @@ export async function syncGeneralSettingsToRemote(settings?: GeneralSiteSettings
     const docRef = doc(db, "site_settings", "general");
     await setDoc(docRef, { ...dataToSave, updatedAt: new Date().toISOString() }, { merge: true });
     anySuccess = true;
-  } catch (fsErr) {}
+  } catch (fsErr) { }
 
   return anySuccess;
 }
@@ -697,7 +1095,7 @@ function shouldApplyRemoteSettings(remoteData: any): boolean {
   if (!remoteData || typeof remoteData !== "object" || Object.keys(remoteData).length === 0) {
     return false;
   }
-  
+
   if (typeof window === "undefined") return true;
 
   const localSaved = localStorage.getItem(LOCAL_STORAGE_SETTINGS_KEY);
@@ -711,7 +1109,7 @@ function shouldApplyRemoteSettings(remoteData: any): boolean {
     if (remoteTime > 0 && localTime > 0 && remoteTime < localTime) {
       console.info("[GeneralSettingsService] Local settings are newer than remote. Preserving local changes and resyncing.");
       const currentSettings = getGeneralSettings();
-      syncGeneralSettingsToRemote(currentSettings).catch(() => {});
+      syncGeneralSettingsToRemote(currentSettings).catch(() => { });
       return false;
     }
   } catch (e) {
@@ -740,12 +1138,12 @@ export async function fetchGeneralSettings(): Promise<GeneralSiteSettings> {
           const normalized = normalizeSettings(configData);
           try {
             localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(normalized));
-          } catch {}
+          } catch { }
           notifySettingsChange();
           return normalized;
         }
       }
-    } catch (err) {}
+    } catch (err) { }
 
     // 2. Try dedicated /api/settings
     try {
@@ -755,12 +1153,12 @@ export async function fetchGeneralSettings(): Promise<GeneralSiteSettings> {
           const normalized = normalizeSettings(res.settings);
           try {
             localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(normalized));
-          } catch {}
+          } catch { }
           notifySettingsChange();
           return normalized;
         }
       }
-    } catch (apiErr) {}
+    } catch (apiErr) { }
 
     // 3. Try Firebase Firestore
     try {
@@ -772,17 +1170,17 @@ export async function fetchGeneralSettings(): Promise<GeneralSiteSettings> {
           const normalized = normalizeSettings(data);
           try {
             localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(normalized));
-          } catch {}
+          } catch { }
           notifySettingsChange();
           return normalized;
         }
       }
-    } catch (fsErr) {}
+    } catch (fsErr) { }
 
     // 4. If remote is fresh, auto-publish local settings if available
     const local = getGeneralSettings();
     if (typeof window !== "undefined" && localStorage.getItem(LOCAL_STORAGE_SETTINGS_KEY)) {
-      syncGeneralSettingsToRemote(local).catch(() => {});
+      syncGeneralSettingsToRemote(local).catch(() => { });
     }
   } finally {
     isFetchingRemote = false;
@@ -802,17 +1200,17 @@ if (typeof window !== "undefined") {
           const normalized = normalizeSettings(data);
           try {
             localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(normalized));
-          } catch {}
+          } catch { }
           notifySettingsChange();
         }
       }
     }, (err) => {
       console.warn("[GeneralSettingsService] Firestore live listener notice:", err);
     });
-  } catch {}
+  } catch { }
 
   setTimeout(() => {
-    fetchGeneralSettings().catch(() => {});
+    fetchGeneralSettings().catch(() => { });
   }, 100);
 }
 
@@ -977,7 +1375,7 @@ export function saveGeneralSettings(settings: Partial<GeneralSiteSettings>): Gen
     localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(updated));
     notifySettingsChange();
     // Persist live to Cloudflare D1 database for public visibility across all devices & incognito
-    syncGeneralSettingsToRemote(updated).catch(() => {});
+    syncGeneralSettingsToRemote(updated).catch(() => { });
   } catch (err) {
     console.error("[GeneralSettingsService] Error saving settings:", err);
   }
@@ -1013,7 +1411,7 @@ export function saveBrandPartners(partners: BrandPartner[]): BrandPartner[] {
   });
   // Sync to Cloudflare D1
   partners.forEach((p) => {
-    apiClient.createBrand(p).catch(() => {});
+    apiClient.createBrand(p).catch(() => { });
   });
   return partners;
 }
@@ -1031,7 +1429,7 @@ export function addBrandPartner(partner: Omit<BrandPartner, "id" | "createdAt" |
 
   partners.push(newPartner);
   saveBrandPartners(partners);
-  apiClient.createBrand(newPartner).catch(() => {});
+  apiClient.createBrand(newPartner).catch(() => { });
   return newPartner;
 }
 
@@ -1044,7 +1442,7 @@ export function updateBrandPartner(partner: BrandPartner): BrandPartner {
       updatedAt: new Date().toISOString()
     };
     saveBrandPartners(partners);
-    apiClient.updateBrand(partner.id, partners[index]).catch(() => {});
+    apiClient.updateBrand(partner.id, partners[index]).catch(() => { });
   }
   return partner;
 }
@@ -1055,7 +1453,7 @@ export function deleteBrandPartner(id: string): boolean {
   if (filtered.length !== partners.length) {
     const reordered = filtered.map((p, idx) => ({ ...p, order: idx + 1 }));
     saveBrandPartners(reordered);
-    apiClient.deactivateBrand(id).catch(() => {});
+    apiClient.deactivateBrand(id).catch(() => { });
     return true;
   }
   return false;
@@ -1336,3 +1734,96 @@ export function resetDefaultContactFaqs(): ContactFaqItem[] {
   saveContactFaqs(DEFAULT_CONTACT_FAQS);
   return DEFAULT_CONTACT_FAQS;
 }
+
+/* ─────────────────────────────────────────────────────────────────
+   Dynamic Enquiry Types / Categories (Contact Form Customization)
+───────────────────────────────────────────────────────────────── */
+
+export const DEFAULT_ENQUIRY_TYPES: EnquiryTypeOption[] = [
+  { id: "enq-product-support", value: "product_support", label: "Product Support", isActive: true, order: 1 },
+  { id: "enq-equipment-quotation", value: "equipment_quotation", label: "HVAC Equipment Quotation & Sourcing", isActive: true, order: 2 },
+  { id: "enq-service-maintenance", value: "service_maintenance", label: "Service & Maintenance Query", isActive: true, order: 3 },
+  { id: "enq-warranty-parts", value: "warranty_parts", label: "Warranty & Spare Parts Claim", isActive: true, order: 4 },
+  { id: "enq-general-enquiry", value: "general_enquiry", label: "General Business & Partnership Enquiry", isActive: true, order: 5 }
+];
+
+export function getEnquiryTypes(): EnquiryTypeOption[] {
+  const s = getGeneralSettings();
+  if (s.enquiryTypes !== undefined && Array.isArray(s.enquiryTypes) && s.enquiryTypes.length > 0) {
+    return [...s.enquiryTypes].sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+  return DEFAULT_ENQUIRY_TYPES;
+}
+
+export function saveEnquiryTypes(types: EnquiryTypeOption[]): void {
+  const current = getGeneralSettings();
+  const sorted = [...types].map((t, idx) => ({ ...t, order: idx + 1 }));
+  saveGeneralSettings({
+    ...current,
+    enquiryTypes: sorted
+  });
+  window.dispatchEvent(new CustomEvent("cooltech_enquiry_types_updated", { detail: sorted }));
+}
+
+export function addEnquiryType(item: Omit<EnquiryTypeOption, "id" | "order">): EnquiryTypeOption {
+  const items = getEnquiryTypes();
+  const value = item.value?.trim() || item.label.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+  const newType: EnquiryTypeOption = {
+    ...item,
+    id: `enq-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    value,
+    isActive: item.isActive !== false,
+    order: items.length + 1
+  };
+  saveEnquiryTypes([...items, newType]);
+  return newType;
+}
+
+export function updateEnquiryType(id: string, updates: Partial<EnquiryTypeOption>): EnquiryTypeOption | null {
+  const items = getEnquiryTypes();
+  const index = items.findIndex((t) => t.id === id);
+  if (index === -1) return null;
+
+  const updated: EnquiryTypeOption = {
+    ...items[index],
+    ...updates
+  };
+  items[index] = updated;
+  saveEnquiryTypes(items);
+  return updated;
+}
+
+export function deleteEnquiryType(id: string): boolean {
+  const items = getEnquiryTypes();
+  const filtered = items.filter((t) => t.id !== id);
+  if (filtered.length !== items.length) {
+    saveEnquiryTypes(filtered);
+    return true;
+  }
+  return false;
+}
+
+export function moveEnquiryType(id: string, direction: "up" | "down"): EnquiryTypeOption[] {
+  const items = getEnquiryTypes();
+  const index = items.findIndex((t) => t.id === id);
+  if (index === -1) return items;
+
+  if (direction === "up" && index > 0) {
+    const temp = items[index];
+    items[index] = items[index - 1];
+    items[index - 1] = temp;
+  } else if (direction === "down" && index < items.length - 1) {
+    const temp = items[index];
+    items[index] = items[index + 1];
+    items[index + 1] = temp;
+  }
+
+  saveEnquiryTypes(items);
+  return getEnquiryTypes();
+}
+
+export function resetDefaultEnquiryTypes(): EnquiryTypeOption[] {
+  saveEnquiryTypes(DEFAULT_ENQUIRY_TYPES);
+  return DEFAULT_ENQUIRY_TYPES;
+}
+

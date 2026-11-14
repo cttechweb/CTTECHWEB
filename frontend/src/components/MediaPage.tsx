@@ -38,7 +38,7 @@ import {
 // @ts-ignore
 import logo from "../assets/images/Cool Technologies Logo.png";
 // @ts-ignore
-import hqImage from "../assets/images/cool_tech_hq_1784538496855.jpg";
+import hqImage from "../assets/images/cool_tech_hq_1784538496855.jpg?v=2";
 // @ts-ignore
 import heroImage from "../assets/images/hvac_hero_banner_1784350809012.jpg";
 // @ts-ignore
@@ -588,8 +588,12 @@ export default function MediaPage({ onOpenQuote }: MediaPageProps) {
     const s = getGeneralSettings();
     return {
       pressEmail: s.departmentHotlines?.mediaPressEmail || s.departmentHotlines?.pressEmail || s.emailIntegration?.defaultReceivingEmail || "media@cooltechuae.com / press@cooltechuae.com",
-      pressPhone: s.departmentHotlines?.pressDeskPhone || "+971 2 555 1234 (Ext. 401 - Corporate Desk)",
-      pressWhatsapp: s.departmentHotlines?.pressWhatsapp || s.whatsappSettings?.floatingPhoneNumber || "+971 50 123 4567",
+      pressPhone: (s.departmentHotlines?.pressDeskPhone && !s.departmentHotlines.pressDeskPhone.includes("555 1234"))
+        ? s.departmentHotlines.pressDeskPhone
+        : "+971 2 565 0123",
+      pressWhatsapp: (s.departmentHotlines?.pressWhatsapp && !s.departmentHotlines.pressWhatsapp.includes("123 4567"))
+        ? s.departmentHotlines.pressWhatsapp
+        : (s.whatsappSettings?.floatingPhoneNumber || "+971 2 565 0123"),
       address: s.address || "Plot 99, ICAD III, Industrial City of Abu Dhabi, UAE"
     };
   });
@@ -599,8 +603,12 @@ export default function MediaPage({ onOpenQuote }: MediaPageProps) {
       const s = getGeneralSettings();
       setMediaContacts({
         pressEmail: s.departmentHotlines?.mediaPressEmail || s.departmentHotlines?.pressEmail || s.emailIntegration?.defaultReceivingEmail || "media@cooltechuae.com / press@cooltechuae.com",
-        pressPhone: s.departmentHotlines?.pressDeskPhone || "+971 2 555 1234 (Ext. 401 - Corporate Desk)",
-        pressWhatsapp: s.departmentHotlines?.pressWhatsapp || s.whatsappSettings?.floatingPhoneNumber || "+971 50 123 4567",
+        pressPhone: (s.departmentHotlines?.pressDeskPhone && !s.departmentHotlines.pressDeskPhone.includes("555 1234"))
+          ? s.departmentHotlines.pressDeskPhone
+          : "+971 2 565 0123",
+        pressWhatsapp: (s.departmentHotlines?.pressWhatsapp && !s.departmentHotlines.pressWhatsapp.includes("123 4567"))
+          ? s.departmentHotlines.pressWhatsapp
+          : (s.whatsappSettings?.floatingPhoneNumber || "+971 2 565 0123"),
         address: s.address || "Plot 99, ICAD III, Industrial City of Abu Dhabi, UAE"
       });
     };
@@ -676,51 +684,61 @@ export default function MediaPage({ onOpenQuote }: MediaPageProps) {
     <div className="bg-white text-slate-800 min-h-screen font-sans antialiased">
       
       {/* -------------------------------------------------
-          1. HERO BANNER
+          1. HERO HEADER (Minimal White Background)
       ------------------------------------------------- */}
-      <section className="relative bg-[#031b4e] text-white py-14 lg:py-20 border-b border-slate-800 overflow-hidden">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#2596be_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none"></div>
-        
-        <div className="max-w-7xl mx-auto px-4 relative z-10">
-          <div className="max-w-3xl space-y-4 text-center sm:text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-cyan-500/15 border border-cyan-400/20 text-cyan-300 rounded-full text-[11px] font-bold uppercase tracking-wider">
-              <Newspaper size={13} className="text-[#2596be]" />
-              <span>Official B2B Press Room & Corporate Newsroom</span>
-            </div>
+      <section className="bg-white border-b border-slate-200 py-10 sm:py-14">
+        <div className="max-w-7xl mx-auto px-4">
+          
+          {/* Breadcrumbs */}
+          <nav className="flex items-center gap-2 text-xs text-slate-500 font-semibold mb-6">
+            <button 
+              onClick={() => {
+                window.location.hash = "#/";
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="hover:text-[#2596be] transition-colors cursor-pointer"
+            >
+              Home
+            </button>
+            <ChevronRight size={12} className="text-slate-400" />
+            <span className="text-[#031b4e] font-bold uppercase tracking-wider">Media Center</span>
+          </nav>
 
-            <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight uppercase">
+          <div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#031b4e] tracking-tight uppercase font-sans">
               Media <span className="text-[#2596be]">Center</span>
             </h1>
 
-            <p className="text-slate-300 text-xs sm:text-base leading-relaxed font-normal max-w-2xl">
-              Welcome to the Cool Technologies Corporate Media Center. Access official company press releases, high-resolution project galleries, executive announcements, downloadable B2B technical resources, and corporate press contacts.
+            <p className="text-slate-600 text-xs sm:text-sm md:text-base font-normal mt-3 max-w-3xl leading-relaxed">
+              Official press releases, project galleries, company announcements, downloadable B2B technical resources, and media contacts.
             </p>
 
             {/* Quick Navigation Pills */}
-            <div className="flex flex-wrap items-center gap-2 pt-2">
-              <a href="#featured-section" className="text-[11px] font-bold bg-white/10 hover:bg-[#2596be] text-white px-3 py-1.5 rounded-lg transition-colors border border-white/10">
+            <div className="flex flex-wrap items-center gap-2 pt-5">
+              <a href="#featured-section" className="text-xs font-bold bg-slate-100 hover:bg-[#2596be] hover:text-white text-slate-700 px-3.5 py-1.5 rounded-lg transition-colors border border-slate-200">
                 Featured News
               </a>
-              <a href="#news-section" className="text-[11px] font-bold bg-white/10 hover:bg-[#2596be] text-white px-3 py-1.5 rounded-lg transition-colors border border-white/10">
+              <a href="#news-section" className="text-xs font-bold bg-slate-100 hover:bg-[#2596be] hover:text-white text-slate-700 px-3.5 py-1.5 rounded-lg transition-colors border border-slate-200">
                 Company News
               </a>
-              <a href="#gallery-section" className="text-[11px] font-bold bg-white/10 hover:bg-[#2596be] text-white px-3 py-1.5 rounded-lg transition-colors border border-white/10">
+              <a href="#gallery-section" className="text-xs font-bold bg-slate-100 hover:bg-[#2596be] hover:text-white text-slate-700 px-3.5 py-1.5 rounded-lg transition-colors border border-slate-200">
                 Project Gallery
               </a>
-              <a href="#video-section" className="text-[11px] font-bold bg-white/10 hover:bg-[#2596be] text-white px-3 py-1.5 rounded-lg transition-colors border border-white/10">
+              <a href="#video-section" className="text-xs font-bold bg-slate-100 hover:bg-[#2596be] hover:text-white text-slate-700 px-3.5 py-1.5 rounded-lg transition-colors border border-slate-200">
                 Video Gallery
               </a>
-              <a href="#awards-section" className="text-[11px] font-bold bg-white/10 hover:bg-[#2596be] text-white px-3 py-1.5 rounded-lg transition-colors border border-white/10">
+              <a href="#awards-section" className="text-xs font-bold bg-slate-100 hover:bg-[#2596be] hover:text-white text-slate-700 px-3.5 py-1.5 rounded-lg transition-colors border border-slate-200">
                 Awards
               </a>
-              <a href="#downloads-section" className="text-[11px] font-bold bg-white/10 hover:bg-[#2596be] text-white px-3 py-1.5 rounded-lg transition-colors border border-white/10">
+              <a href="#downloads-section" className="text-xs font-bold bg-slate-100 hover:bg-[#2596be] hover:text-white text-slate-700 px-3.5 py-1.5 rounded-lg transition-colors border border-slate-200">
                 Download Center
               </a>
-              <a href="#contact-section" className="text-[11px] font-bold bg-[#2596be] hover:bg-[#1c7e9f] text-white px-3 py-1.5 rounded-lg transition-colors">
+              <a href="#contact-section" className="text-xs font-bold bg-[#031b4e] hover:bg-[#2596be] text-white px-3.5 py-1.5 rounded-lg transition-colors">
                 Media Contact
               </a>
             </div>
           </div>
+
         </div>
       </section>
 
@@ -1668,7 +1686,7 @@ export default function MediaPage({ onOpenQuote }: MediaPageProps) {
                       type="text"
                       value={inquiryPhone}
                       onChange={(e) => setInquiryPhone(e.target.value)}
-                      placeholder="+971 50 123 4567"
+                      placeholder="+971 2 565 0123"
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#2596be]"
                     />
                   </div>

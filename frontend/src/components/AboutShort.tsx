@@ -1,7 +1,7 @@
 import React from "react";
 import { ArrowRight, Award, ShieldCheck, Compass } from "lucide-react";
 // @ts-ignore
-import hqImage from "../assets/images/cool_tech_hq_1784538496855.jpg";
+import hqImage from "../assets/images/cool_tech_hq_1784538496855.jpg?v=2";
 
 interface AboutShortProps {
   onOpenAbout: () => void;

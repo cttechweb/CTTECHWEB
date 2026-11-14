@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "motion/react";
-import { 
-  Building, ShieldCheck, Award, Zap, HeartHandshake, 
+import {
+  Building, ShieldCheck, Award, Zap, HeartHandshake,
   Settings, Star, Compass, ArrowRight, CheckCircle2, ChevronRight, ChevronDown, Trophy,
   Target, Eye, Phone, Mail, MessageSquare, MapPin, Users, Package, Layers,
   Activity, ExternalLink, Sparkles, Clock, Globe, Wrench, Droplet, Wind,
   Thermometer, Briefcase, GraduationCap, Hospital, Home, HardHat, Warehouse,
-  Building2, Factory, Utensils, Hotel, Check, Shield, ThumbsUp, Truck
+  Building2, Factory, Utensils, Hotel, Check, Shield, ThumbsUp, Truck, Landmark
 } from "lucide-react";
 
 // @ts-ignore
-import hqImage from "../assets/images/cool_tech_hq_1784538496855.jpg";
+import hqImage from "../assets/images/cool_tech_hq_1784538496855.jpg?v=2";
 // @ts-ignore
 import heroBanner from "../assets/images/hvac_hero_banner_1784350809012.jpg";
 // @ts-ignore
@@ -34,6 +33,7 @@ import { AchievementMilestone } from "../types";
 interface AboutPageProps {
   onOpenQuote?: (prefilledProduct?: string) => void;
   onCategorySelect?: (categoryId: string | null) => void;
+  onOpenLogin?: (mode?: "login" | "signup" | "retailer") => void;
 }
 
 // Brand partner data verified from official documents
@@ -62,6 +62,45 @@ const BRAND_PARTNERS = [
   { name: "O General", category: "Tropical Air Conditioners", tag: "Premium Partner" },
   { name: "Daewoo", category: "Cooling Equipment", tag: "Authorized Partner" },
   { name: "Brema", category: "Commercial Ice Makers", tag: "Exclusive Channel" }
+];
+
+// Major landmark projects where Cool Technologies supplied, installed, and maintained cooling solutions
+const MAJOR_PROJECTS = [
+  {
+    name: "Dubai Expo 2020",
+    client: "Global Mega Event & Pavilion Infrastructure",
+    description: "Full supply, specialized water cooling equipment, air conditioning units, and critical cooling appliances for pavilions and visitor facilities.",
+    tag: "Landmark Project",
+    category: "International Infrastructure"
+  },
+  {
+    name: "The Legoland – Dubai Parks & Resorts",
+    client: "Dubai Parks and Resorts Entertainment Destination",
+    description: "Turnkey climate systems, high-capacity commercial water chillers, water drinking stations, and continuous cooling appliance maintenance.",
+    tag: "Entertainment & Leisure",
+    category: "Theme Park & Resort"
+  },
+  {
+    name: "Abu Dhabi International Airport",
+    client: "Aviation Infrastructure & Terminal Complex",
+    description: "High-reliability commercial air conditioning equipment, terminal utility cooling, and mission-critical water chilling plant components.",
+    tag: "Aviation Infrastructure",
+    category: "Transport & Civil"
+  },
+  {
+    name: "Etihad Railway (Etihad Rail)",
+    client: "UAE National Railway Network",
+    description: "Durable field cooling installations, facility temperature control equipment, heavy-duty water coolers, and station utility appliances.",
+    tag: "National Rail Network",
+    category: "Strategic Infrastructure"
+  },
+  {
+    name: "Various ADNOC Oil Field Projects",
+    client: "Abu Dhabi National Oil Company (ADNOC)",
+    description: "Extreme ambient (+54°C) desert cooling solutions, oil field worker camp water chillers, industrial HVAC systems, and heavy-duty appliances.",
+    tag: "Oil & Gas Industrial",
+    category: "Energy & Petrochemical"
+  }
 ];
 
 function getTimelineIcon(iconName?: string, color?: string) {
@@ -95,7 +134,7 @@ function getTimelineIcon(iconName?: string, color?: string) {
   }
 }
 
-export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPageProps) {
+export default function AboutPage({ onOpenQuote, onCategorySelect, onOpenLogin }: AboutPageProps) {
   // Dynamic Years in Business (Established 2012 -> 2026 = 14, 2027 = 15, etc.)
   const currentYear = new Date().getFullYear();
   const yearsInBusiness = Math.max(1, currentYear - 2012);
@@ -153,123 +192,75 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
 
   return (
     <div className="w-full bg-[#f8fafc] text-slate-800 animate-fade-in font-sans">
-      
+
       {/* -------------------------------------------------
-          1. HERO SECTION (Large corporate banner)
+          1. MINIMAL HERO SECTION (Clean White Background)
       ------------------------------------------------- */}
-      <section className="relative bg-[#031b4e] text-white overflow-hidden py-16 lg:py-24 border-b border-slate-800">
-        {/* Industrial Background Image with Gradient Overlay */}
-        <div className="absolute inset-0 z-0 opacity-25">
-          <img 
-            src={heroBanner} 
-            alt="Industrial Cooling Infrastructure" 
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#031b4e] via-[#031b4e]/90 to-[#0a3154]/80"></div>
-        </div>
+      <section className="bg-white border-b border-slate-200 py-10 sm:py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Decorative Grid Pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-20 pointer-events-none z-0" />
-
-        <div className="max-w-7xl mx-auto px-4 relative z-10">
-          
-          {/* Professional Breadcrumb */}
-          <nav className="flex items-center gap-2 text-xs font-semibold text-blue-200/80 mb-6 uppercase tracking-wider">
-            <button 
+          {/* Clean Breadcrumb */}
+          <nav className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-3" aria-label="Breadcrumb">
+            <button
               onClick={() => {
                 window.location.hash = "#/";
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              className="hover:text-white transition-colors cursor-pointer flex items-center gap-1"
+              className="hover:text-[#2596be] transition-colors cursor-pointer"
             >
               Home
             </button>
-            <ChevronRight size={12} className="text-blue-400" />
-            <span className="text-white font-black">About Us</span>
+            <ChevronRight size={12} className="text-slate-400" />
+            <span className="text-[#031b4e] font-bold uppercase tracking-wider">About Us</span>
           </nav>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            
-            {/* Left Main Hero Text */}
-            <div className="lg:col-span-8 space-y-6">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-500/10 border border-blue-400/30 text-blue-300 text-xs font-black uppercase tracking-widest backdrop-blur-md">
-                <Sparkles size={13} className="text-blue-400" />
-                <span>Established 2012 • Abu Dhabi, UAE</span>
-              </div>
-
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white uppercase tracking-tight leading-none">
-                About <span className="text-[#2596be]">Cool Technologies</span>
-              </h1>
-
-              <p className="text-slate-300 text-base sm:text-lg leading-relaxed font-normal max-w-3xl">
-                Cool Technologies LLC is the United Arab Emirates' leading authorized distributor and B2B engineering partner for industrial climate control systems, heavy water chillers, commercial VRF air conditioning, and wholesale cooling equipment.
-              </p>
-            </div>
-
-            {/* Right Trust Stat Card */}
-            <div className="lg:col-span-4 hidden lg:block">
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 text-white space-y-5">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-[#2596be] flex items-center justify-center text-white shrink-0 shadow-md">
-                    <Building size={28} />
-                  </div>
-                  <div>
-                    <p className="text-3xl font-black text-white leading-none">{yearsInBusiness}+ Years</p>
-                    <p className="text-xs text-blue-200 font-bold uppercase tracking-wider mt-1">UAE Market Leadership</p>
-                  </div>
-                </div>
-
-                <div className="h-px bg-white/10 w-full"></div>
-
-                <div className="space-y-2.5 text-xs text-slate-300">
-                  <div className="flex items-center gap-2 font-medium">
-                    <CheckCircle2 size={14} className="text-[#2596be] shrink-0" />
-                    <span>30+ Authorized Global OEM Brands</span>
-                  </div>
-                  <div className="flex items-center gap-2 font-medium">
-                    <CheckCircle2 size={14} className="text-[#2596be] shrink-0" />
-                    <span>Proprietary <strong>COOLTECH</strong> Water Coolers</span>
-                  </div>
-                  <div className="flex items-center gap-2 font-medium">
-                    <CheckCircle2 size={14} className="text-[#2596be] shrink-0" />
-                    <span>ISO 9001:2015 Registered Supplier</span>
-                  </div>
-                  <div className="flex items-center gap-2 font-medium">
-                    <CheckCircle2 size={14} className="text-[#2596be] shrink-0" />
-                    <span>Mussafah Industrial Logistics Facility</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
+          <div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#031b4e] tracking-tight uppercase font-sans">
+              About <span className="text-[#2596be]">Cool Technologies LLC</span>
+            </h1>
+            <p className="text-slate-600 text-xs sm:text-sm md:text-base font-normal mt-3 max-w-3xl leading-relaxed">
+              The United Arab Emirates’ premier wholesale distributor of cooling equipment representing more than 30 leading global brands, and the proud manufacturer of our signature <strong className="text-slate-900 font-semibold">COOLTECH</strong> water coolers and water tank chillers.
+            </p>
           </div>
+
         </div>
       </section>
 
       {/* -------------------------------------------------
-          2. COMPANY OVERVIEW
+          2. COMPANY OVERVIEW ("Who We Are & What We Do")
       ------------------------------------------------- */}
       <section className="py-16 bg-white border-b border-slate-100" id="overview-section">
         <div className="max-w-7xl mx-auto px-4">
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            
-            {/* Left HQ Image & Overlaid Badge */}
+
+            {/* Left Corporate Image & Nationwide Network Badge */}
             <div className="lg:col-span-5 relative">
               <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200 bg-slate-100 group">
-                <img 
-                  src={hqImage} 
-                  alt="Cool Technologies Headquarters Abu Dhabi" 
-                  className="w-full h-[420px] object-cover group-hover:scale-105 transition-transform duration-700"
+                <img
+                  src={hqImage}
+                  alt="Cool Technologies Corporate Office UAE"
+                  className="w-full h-[450px] object-cover group-hover:scale-105 transition-transform duration-700"
                 />
-                
-                {/* Floating Badge */}
+
+                {/* Floating Nationwide Logistics Badge */}
                 <div className="absolute bottom-6 left-6 right-6 bg-[#031b4e]/95 backdrop-blur-md text-white p-5 rounded-2xl border border-white/10 shadow-xl">
-                  <p className="text-[10px] text-blue-400 font-black uppercase tracking-widest">Headquarters & Logistics</p>
-                  <p className="text-sm font-bold text-white mt-1">Plot-99, M42, Mussafah Industrial, Abu Dhabi, UAE</p>
-                  <div className="flex items-center gap-4 mt-3 text-[11px] text-slate-300 font-medium">
-                    <span className="flex items-center gap-1"><Phone size={12} className="text-[#2596be]" /> +971 2 555 1234</span>
-                    <span className="flex items-center gap-1"><Mail size={12} className="text-[#2596be]" /> info@cooltechuae.com</span>
+                  <div className="flex items-center gap-2">
+                    <Truck size={14} className="text-cyan-400" />
+                    <p className="text-[10px] text-blue-400 font-black uppercase tracking-widest">
+                      Nationwide Distribution & Engineering Network
+                    </p>
+                  </div>
+                  <p className="text-sm font-bold text-white mt-1">
+                    Serving Abu Dhabi, Al Ain, Dubai & Northern Emirates
+                  </p>
+                  <div className="flex items-center gap-4 mt-3 text-[11px] text-slate-300 font-medium pt-2 border-t border-white/10">
+                    <a href={`tel:${(siteSettings.phone || "+971 2 565 0123").replace(/[^0-9+]/g, '')}`} className="flex items-center gap-1 hover:text-white transition-colors">
+                      <Phone size={12} className="text-[#2596be]" /> {siteSettings.phone || "+971 2 565 0123"}
+                    </a>
+                    <a href={`mailto:${siteSettings.email || "info@cooltechuae.com"}`} className="flex items-center gap-1 hover:text-white transition-colors">
+                      <Mail size={12} className="text-[#2596be]" /> {siteSettings.email || "info@cooltechuae.com"}
+                    </a>
                   </div>
                 </div>
               </div>
@@ -286,59 +277,73 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
                 </h2>
               </div>
 
-              <p className="text-slate-600 text-sm sm:text-base leading-relaxed font-semibold">
-                Founded in the Emirate of Abu Dhabi in 2012, Cool Technologies LLC has established itself as one of the premier suppliers of industrial cooling equipment, commercial temperature control appliances, and HVAC systems in the United Arab Emirates. Over {yearsInBusiness} years of dedicated service, we have partnered with over 30 leading global manufacturers to supply high-performance climate systems to individuals, large-scale industrial plants, and government institutions.
-              </p>
+              <div className="space-y-4 text-slate-600 text-sm sm:text-base leading-relaxed">
+                <p className="font-semibold text-slate-800">
+                  Established in Abu Dhabi in 2012, <strong>Cool Technologies LLC</strong> has established itself as one of the UAE’s premier wholesale distributors of industrial cooling equipment, commercial temperature control appliances, and HVAC systems.
+                </p>
+                <p>
+                  Representing more than <strong>30 leading global manufacturers</strong>, our extensive portfolio covers air conditioners, commercial water coolers, water tank chillers, and related appliances. We provide complete <strong>supply, installation, and maintenance services</strong>, giving our clients a single, dependable partner for all their cooling needs.
+                </p>
+                <p className="p-4 bg-blue-50/60 rounded-2xl border border-blue-100 text-[#031b4e] font-medium text-sm">
+                  Alongside our distribution business, we manufacture and market our own signature brand, <strong className="font-black text-[#2596be]">COOLTECH</strong>, offering water coolers and water tank chillers engineered specifically for high performance, rugged durability, and long-term value under demanding Middle East climates.
+                </p>
+              </div>
 
-              {/* 4 Overview Pillar Cards */}
+              {/* 4 Strategic Overview Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-200 transition-colors">
+                
+                {/* Expertise */}
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 hover:border-blue-300 transition-colors">
                   <div className="flex items-center gap-2.5 mb-1.5">
                     <div className="w-8 h-8 rounded-lg bg-blue-100 text-[#031b4e] flex items-center justify-center shrink-0">
                       <Wrench size={16} />
                     </div>
                     <h3 className="font-extrabold text-xs text-[#031b4e] uppercase tracking-wider">Our Expertise</h3>
                   </div>
-                  <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                    Direct factory wholesale sourcing, VRF multi-zone ACs, water chillers, and 24/7 overhauling.
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                    Technically and professionally qualified, dedicated staff with deep industry experience. Well-organized and systematic industry experts providing customized technical assistance.
                   </p>
                 </div>
 
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-200 transition-colors">
+                {/* Experience */}
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 hover:border-blue-300 transition-colors">
                   <div className="flex items-center gap-2.5 mb-1.5">
                     <div className="w-8 h-8 rounded-lg bg-blue-100 text-[#031b4e] flex items-center justify-center shrink-0">
                       <Clock size={16} />
                     </div>
                     <h3 className="font-extrabold text-xs text-[#031b4e] uppercase tracking-wider">Our Experience</h3>
                   </div>
-                  <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                    {yearsInBusiness}+ years of industrial climate control leadership across UAE and GCC territories.
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                    14+ years in the region catering to major landmark projects including Dubai Expo 2020, The Legoland, Abu Dhabi International Airport, Etihad Railway, and ADNOC oil field operations.
                   </p>
                 </div>
 
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-200 transition-colors">
+                {/* Industries */}
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 hover:border-blue-300 transition-colors">
                   <div className="flex items-center gap-2.5 mb-1.5">
                     <div className="w-8 h-8 rounded-lg bg-blue-100 text-[#031b4e] flex items-center justify-center shrink-0">
                       <Building2 size={16} />
                     </div>
                     <h3 className="font-extrabold text-xs text-[#031b4e] uppercase tracking-wider">Our Industries</h3>
                   </div>
-                  <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                    Government civil infrastructure, labor camps, commercial towers, healthcare, and manufacturing.
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                    Building, infrastructure, industrial and oil field constructions, labour accommodation camps, schools, hospitals, government institutions, and Rulers' private departments.
                   </p>
                 </div>
 
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-200 transition-colors">
+                {/* Market Presence */}
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 hover:border-blue-300 transition-colors">
                   <div className="flex items-center gap-2.5 mb-1.5">
                     <div className="w-8 h-8 rounded-lg bg-blue-100 text-[#031b4e] flex items-center justify-center shrink-0">
                       <Globe size={16} />
                     </div>
                     <h3 className="font-extrabold text-xs text-[#031b4e] uppercase tracking-wider">Market Presence</h3>
                   </div>
-                  <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                    Headquartered in Abu Dhabi with express distribution networks across Dubai, Sharjah & GCC.
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                    Comprehensive coverage across all Emirates of the U.A.E.: Abu Dhabi, Al Ain, Dubai, and Northern Emirates (Sharjah, Ajman, RAK, Fujairah & UAQ).
                   </p>
                 </div>
+
               </div>
 
             </div>
@@ -349,11 +354,428 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
       </section>
 
       {/* -------------------------------------------------
-          3. COMPANY STORY (Dynamic Timeline Style)
+          3. PROPRIETARY BRAND SPOTLIGHT: COOLTECH
       ------------------------------------------------- */}
-      <section className="py-16 bg-slate-50 border-b border-slate-200" id="story-section">
+      <section className="py-16 bg-gradient-to-b from-slate-50 to-white border-b border-slate-200" id="cooltech-brand-section">
         <div className="max-w-7xl mx-auto px-4">
-          
+
+          <div className="bg-[#031b4e] text-white rounded-3xl p-8 sm:p-12 relative overflow-hidden shadow-xl border border-blue-900">
+            {/* Background Graphic Accents */}
+            <div className="absolute -right-20 -bottom-20 w-96 h-96 bg-[#2596be]/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -left-20 -top-20 w-80 h-80 bg-blue-600/10 rounded-full blur-2xl pointer-events-none" />
+
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              
+              <div className="lg:col-span-8 space-y-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-400/10 border border-cyan-400/30 text-cyan-300 text-xs font-black uppercase tracking-widest">
+                  <Droplet size={14} className="text-cyan-400" />
+                  <span>Our In-House Manufactured Brand</span>
+                </div>
+
+                <h2 className="text-2xl sm:text-4xl font-black uppercase tracking-tight text-white">
+                  COOLTECH <span className="text-[#2596be]">Water Coolers & Tank Chillers</span>
+                </h2>
+
+                <p className="text-slate-300 text-sm sm:text-base leading-relaxed font-normal">
+                  In addition to our wholesale distribution of global brands, we manufacture and market our own specialized line of <strong className="text-white font-bold">COOLTECH</strong> products. Designed from the ground up to excel in the UAE's high-ambient climate, COOLTECH delivers industrial-grade cooling, hygiene, and outstanding reliability.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-xs">
+                    <p className="text-xs font-black text-cyan-300 uppercase tracking-wider">Engineered for UAE</p>
+                    <p className="text-xs text-slate-300 mt-1">Built specifically for peak Middle East summer temperatures up to +52°C.</p>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-xs">
+                    <p className="text-xs font-black text-cyan-300 uppercase tracking-wider">Durability & Value</p>
+                    <p className="text-xs text-slate-300 mt-1">Food-grade stainless steel tanks, anti-corrosive coils, and robust compressors.</p>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-xs">
+                    <p className="text-xs font-black text-cyan-300 uppercase tracking-wider">Factory Backed</p>
+                    <p className="text-xs text-slate-300 mt-1">Complete supply, certified installation, preventative maintenance, and genuine spare parts.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-4 flex flex-col items-center justify-center text-center p-6 bg-white/5 rounded-2xl border border-white/10">
+                <div className="w-16 h-16 rounded-2xl bg-[#2596be] flex items-center justify-center text-white mb-3 shadow-lg">
+                  <Droplet size={32} />
+                </div>
+                <h3 className="text-xl font-black text-white uppercase tracking-tight">COOLTECH</h3>
+                <p className="text-xs text-blue-200 mt-1 font-semibold uppercase tracking-wider">
+                  The Science of Cooling
+                </p>
+                <div className="h-px bg-white/10 w-full my-4"></div>
+                <p className="text-xs text-slate-300 leading-relaxed mb-4">
+                  Explore our range of heavy-duty water coolers, multi-tap drinking stations, and rooftop water tank chillers.
+                </p>
+                <button
+                  onClick={() => handleNavigateCategory("water-coolers")}
+                  className="w-full bg-[#2596be] hover:bg-[#1d7fa3] text-white font-bold text-xs uppercase tracking-wider py-3 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <span>Explore COOLTECH Units</span>
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* -------------------------------------------------
+          4. MAJOR LANDMARK PROJECTS & TRACK RECORD
+      ------------------------------------------------- */}
+      <section className="py-16 bg-white border-b border-slate-100" id="projects-section">
+        <div className="max-w-7xl mx-auto px-4">
+
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <span className="text-[10px] bg-blue-50 text-[#2596be] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-blue-100">
+              Proven Track Record
+            </span>
+            <h2 className="text-2xl sm:text-4xl font-black text-[#031b4e] uppercase tracking-tight mt-3">
+              Major Projects & Regional Experience
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-2">
+              Over 14+ years in the region, Cool Technologies has proudly catered to prestigious mega-projects across the UAE.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {MAJOR_PROJECTS.map((proj, idx) => (
+              <div
+                key={idx}
+                className="bg-slate-50 rounded-3xl p-7 border border-slate-200/80 hover:border-blue-300 hover:shadow-lg transition-all flex flex-col justify-between group"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-blue-100 text-[#031b4e]">
+                      {proj.tag}
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-400 font-bold">
+                      0{idx + 1}
+                    </span>
+                  </div>
+
+                  <h3 className="text-lg font-black text-[#031b4e] uppercase tracking-tight group-hover:text-[#2596be] transition-colors">
+                    {proj.name}
+                  </h3>
+                  <p className="text-xs font-bold text-[#2596be] mt-1 mb-3">
+                    {proj.client}
+                  </p>
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                    {proj.description}
+                  </p>
+                </div>
+
+                <div className="pt-4 mt-6 border-t border-slate-200/80 flex items-center justify-between text-xs text-slate-500 font-semibold">
+                  <span>Scope: Supply, Installation & Maintenance</span>
+                  <CheckCircle2 size={15} className="text-[#2596be]" />
+                </div>
+              </div>
+            ))}
+
+            {/* View Our Solutions Card */}
+            <div className="bg-[#031b4e] text-white rounded-3xl p-7 flex flex-col justify-between border border-blue-900 shadow-md">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-blue-500/20 text-cyan-300 border border-cyan-400/30">
+                  Solutions
+                </span>
+                <h3 className="text-xl font-black text-white uppercase tracking-tight mt-4">
+                  View Our Solutions
+                </h3>
+              </div>
+
+              <div className="space-y-3 mt-6">
+                <button
+                  onClick={() => {
+                    window.location.hash = "#/products";
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="w-full bg-[#2596be] hover:bg-[#1d7fa3] text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl transition-colors cursor-pointer text-center"
+                >
+                  Products
+                </button>
+                <button
+                  onClick={() => {
+                    window.location.hash = "#/services";
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="w-full bg-white/10 hover:bg-[#2596be] text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl transition-colors cursor-pointer text-center border border-white/15"
+                >
+                  Services
+                </button>
+                <button
+                  onClick={() => {
+                    window.location.hash = "#/spare-parts";
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="w-full bg-white/10 hover:bg-[#2596be] text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl transition-colors cursor-pointer text-center border border-white/15"
+                >
+                  Spare Parts
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* -------------------------------------------------
+          5. VISION & MISSION
+      ------------------------------------------------- */}
+      <section className="py-16 bg-slate-50 border-b border-slate-200" id="vision-mission-section">
+        <div className="max-w-7xl mx-auto px-4">
+
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="text-[11px] font-bold text-[#2596be] uppercase tracking-widest px-3 py-1 bg-blue-50/80 rounded-full border border-blue-100/80">
+              Strategic Foundation
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#031b4e] uppercase tracking-tight mt-3">
+              Vision & Mission
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            {/* Vision Card */}
+            <div className="bg-white rounded-3xl p-8 border border-slate-200/90 hover:border-blue-300 transition-all shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#031b4e] flex items-center justify-center shrink-0">
+                  <Eye size={24} className="text-[#2596be]" />
+                </div>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full bg-blue-100 text-[#031b4e]">
+                  Our Vision
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-lg sm:text-xl font-bold text-[#031b4e] uppercase tracking-tight">
+                  The UAE's Most Trusted Name in Cooling
+                </h3>
+                <p className="text-slate-600 text-sm leading-relaxed font-normal mt-3">
+                  &ldquo;To be the UAE’s most trusted name and leading distributor in cooling solutions, and a respected regional brand in water cooling technology, recognized for exceptional quality products, operational reliability, and lasting customer relationships.&rdquo;
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex items-center gap-2 text-xs text-slate-500 font-medium">
+                <CheckCircle2 size={15} className="text-[#2596be] shrink-0" />
+                <span>Known for quality, reliability, and service excellence across the UAE</span>
+              </div>
+            </div>
+
+            {/* Mission Card */}
+            <div className="bg-white rounded-3xl p-8 border border-slate-200/90 hover:border-blue-300 transition-all shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#031b4e] flex items-center justify-center shrink-0">
+                  <Target size={24} className="text-[#2596be]" />
+                </div>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full bg-blue-100 text-[#031b4e]">
+                  Our Mission
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-lg sm:text-xl font-bold text-[#031b4e] uppercase tracking-tight">
+                  Reliable Performance & Year-Round Comfort
+                </h3>
+                <p className="text-slate-600 text-sm leading-relaxed font-normal mt-3">
+                  &ldquo;To deliver reliable, energy-efficient cooling solutions through our wide range of 30+ leading brands and our own COOLTECH water coolers and water tank chillers, backed by professional supply, installation, and dependable maintenance services that keep our customers comfortable year-round.&rdquo;
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex items-center gap-2 text-xs text-slate-500 font-medium">
+                <CheckCircle2 size={15} className="text-[#2596be] shrink-0" />
+                <span>Dependable after-sales support meeting the UAE’s demanding climate</span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* -------------------------------------------------
+          6. CORE VALUES: QUALITY, SATISFACTION, RELIABILITY
+      ------------------------------------------------- */}
+      <section className="py-16 bg-white border-b border-slate-100" id="commitment-section">
+        <div className="max-w-7xl mx-auto px-4">
+
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <span className="text-[10px] bg-blue-50 text-[#2596be] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-blue-100">
+              Core Principles
+            </span>
+            <h2 className="text-2xl sm:text-4xl font-black text-[#031b4e] uppercase tracking-tight mt-3">
+              Quality, Satisfaction & Reliability
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-2">
+              Our business is anchored on uncompromising standards, complete transparency, and steadfast execution.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+            {/* Quality */}
+            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200/90 shadow-2xs space-y-3 hover:border-blue-300 transition-colors">
+              <div className="w-11 h-11 rounded-2xl bg-blue-100 text-[#031b4e] flex items-center justify-center">
+                <ShieldCheck size={22} className="text-[#2596be]" />
+              </div>
+              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wide">Quality</h3>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                We supply only products that meet high standards of performance and durability. Every unit is factory-inspected and supplied with genuine manufacturer protection.
+              </p>
+            </div>
+
+            {/* Customer Satisfaction */}
+            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200/90 shadow-2xs space-y-3 hover:border-blue-300 transition-colors">
+              <div className="w-11 h-11 rounded-2xl bg-blue-100 text-[#031b4e] flex items-center justify-center">
+                <ThumbsUp size={22} className="text-[#2596be]" />
+              </div>
+              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wide">Customer Satisfaction</h3>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                Transparency in dealings, clarity in communications, and prompt professional & technical assistance. We tailor solutions to meet and exceed each customer’s unique expectations.
+              </p>
+            </div>
+
+            {/* Reliability */}
+            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200/90 shadow-2xs space-y-3 hover:border-blue-300 transition-colors">
+              <div className="w-11 h-11 rounded-2xl bg-blue-100 text-[#031b4e] flex items-center justify-center">
+                <Clock size={22} className="text-[#2596be]" />
+              </div>
+              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wide">Reliability</h3>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                We deliver on time and stand behind our work. Our clients rely on our dependable project timelines, robust supply chains, and dedicated after-sales coverage.
+              </p>
+            </div>
+
+            {/* Professional Expertise */}
+            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200/90 shadow-2xs space-y-3 hover:border-blue-300 transition-colors">
+              <div className="w-11 h-11 rounded-2xl bg-blue-100 text-[#031b4e] flex items-center justify-center">
+                <Wrench size={22} className="text-[#2596be]" />
+              </div>
+              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wide">Industry Expertise</h3>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                Technically and professionally qualified staff with extensive sector experience. Well-organized and systematic engineers dedicated to precision HVAC execution.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* -------------------------------------------------
+          7. INDUSTRIES WE SERVE
+      ------------------------------------------------- */}
+      <section className="py-16 bg-slate-50 border-b border-slate-200" id="industries-section">
+        <div className="max-w-7xl mx-auto px-4">
+
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <span className="text-[10px] bg-blue-50 text-[#2596be] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-blue-100">
+              Sector Specialization
+            </span>
+            <h2 className="text-2xl sm:text-4xl font-black text-[#031b4e] uppercase tracking-tight mt-3">
+              Industries We Serve
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-2">
+              Delivering specialized climate control systems, water chillers, and appliances tailored to strict sector specifications.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+            <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-3 hover:border-blue-300 hover:shadow-md transition-all">
+              <div className="w-11 h-11 rounded-2xl bg-blue-50 text-[#031b4e] flex items-center justify-center">
+                <Building2 size={22} className="text-[#2596be]" />
+              </div>
+              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Building & Commercial</h3>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                Commercial towers, corporate offices, shopping malls, retail centers, and residential developments across the UAE.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-3 hover:border-blue-300 hover:shadow-md transition-all">
+              <div className="w-11 h-11 rounded-2xl bg-blue-50 text-[#031b4e] flex items-center justify-center">
+                <Landmark size={22} className="text-[#2596be]" />
+              </div>
+              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Infrastructure & Rail</h3>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                National rail networks (Etihad Rail), transport terminals, airports, and major civic utility projects.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-3 hover:border-blue-300 hover:shadow-md transition-all">
+              <div className="w-11 h-11 rounded-2xl bg-blue-50 text-[#031b4e] flex items-center justify-center">
+                <Factory size={22} className="text-[#2596be]" />
+              </div>
+              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Industrial & Oil Fields</h3>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                Industrial plants, process water chilling, and ADNOC oil field construction sites with high ambient heat protection.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-3 hover:border-blue-300 hover:shadow-md transition-all">
+              <div className="w-11 h-11 rounded-2xl bg-blue-50 text-[#031b4e] flex items-center justify-center">
+                <Warehouse size={22} className="text-[#2596be]" />
+              </div>
+              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Labour Camps & Staff Housing</h3>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                High-volume drinking water stations, centralized water coolers, and heavy-duty AC units for worker accommodation facilities.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-3 hover:border-blue-300 hover:shadow-md transition-all">
+              <div className="w-11 h-11 rounded-2xl bg-blue-50 text-[#031b4e] flex items-center justify-center">
+                <GraduationCap size={22} className="text-[#2596be]" />
+              </div>
+              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Schools & Universities</h3>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                Safe drinking water coolers, institutional HVAC systems, and hygienic water treatment for educational campuses.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-3 hover:border-blue-300 hover:shadow-md transition-all">
+              <div className="w-11 h-11 rounded-2xl bg-blue-50 text-[#031b4e] flex items-center justify-center">
+                <Hospital size={22} className="text-[#2596be]" />
+              </div>
+              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Hospitals & Healthcare</h3>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                Sanitary drinking systems, climate control for healthcare clinics, medical facilities, and specialized cooling.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-3 hover:border-blue-300 hover:shadow-md transition-all">
+              <div className="w-11 h-11 rounded-2xl bg-blue-50 text-[#031b4e] flex items-center justify-center">
+                <Building size={22} className="text-[#2596be]" />
+              </div>
+              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Government Institutions</h3>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                Municipal headquarters, public infrastructure departments, civil service buildings, and defense installations.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-3 hover:border-blue-300 hover:shadow-md transition-all">
+              <div className="w-11 h-11 rounded-2xl bg-blue-50 text-[#031b4e] flex items-center justify-center">
+                <CrownIcon />
+              </div>
+              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Rulers' Private Departments</h3>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                Prestigious private estates, royal palaces, VIP hospitality projects, and private government sectors.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* -------------------------------------------------
+          8. COMPANY STORY (Growth Journey Timeline)
+      ------------------------------------------------- */}
+      <section className="py-16 bg-white border-b border-slate-100" id="story-section">
+        <div className="max-w-7xl mx-auto px-4">
+
           <div className="text-center max-w-3xl mx-auto mb-12">
             <span className="text-[10px] bg-blue-50 text-[#2596be] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-blue-100">
               Corporate Journey
@@ -362,7 +784,7 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
               Company Story & Growth Journey
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-2">
-              Explore key historical milestones from our inception in 2012 to becoming an award-winning UAE climate control distributor.
+              Explore key historical milestones from our founding in 2012 to becoming an award-winning UAE climate control distributor.
             </p>
           </div>
 
@@ -373,7 +795,7 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              
+
               {/* Timeline Selection List */}
               <div className="lg:col-span-5 space-y-2 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                 {milestones.map((m, idx) => {
@@ -382,15 +804,13 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
                     <button
                       key={m.id || `${m.year}-${idx}`}
                       onClick={() => setActiveTimelineIdx(idx)}
-                      className={`w-full text-left p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-4 ${
-                        isActive
+                      className={`w-full text-left p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-4 ${isActive
                           ? "bg-[#031b4e] text-white border-[#031b4e] shadow-md translate-x-1"
                           : "bg-white text-slate-700 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50"
-                      }`}
+                        }`}
                     >
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-mono font-black text-xs shrink-0 ${
-                        isActive ? "bg-[#2596be] text-white" : "bg-slate-100 text-slate-800"
-                      }`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-mono font-black text-xs shrink-0 ${isActive ? "bg-[#2596be] text-white" : "bg-slate-100 text-slate-800"
+                        }`}>
                         {m.year}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -455,7 +875,7 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
                               </li>
                               <li className="flex items-center gap-2">
                                 <CheckCircle2 size={13} className="text-[#2596be] shrink-0" />
-                                <span>Guaranteed warranty coverage and rapid spare parts availability</span>
+                                <span>Guaranteed manufacturer warranty and rapid spare parts availability</span>
                               </li>
                             </>
                           )}
@@ -465,7 +885,7 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
 
                     <div className="pt-6 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400 font-medium">
                       <span>Cool Technologies UAE Corporate Archive</span>
-                      <button 
+                      <button
                         onClick={() => setActiveTimelineIdx((prev) => (prev + 1) % milestones.length)}
                         className="text-[#2596be] font-bold hover:underline flex items-center gap-1 cursor-pointer"
                       >
@@ -485,388 +905,25 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
       </section>
 
       {/* -------------------------------------------------
-          4. VISION & MISSION (Minimal & Clean Light Cards)
-      ------------------------------------------------- */}
-      <section className="py-16 bg-white border-b border-slate-100" id="vision-mission-section">
-        <div className="max-w-7xl mx-auto px-4">
-          
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-[11px] font-bold text-[#2596be] uppercase tracking-widest px-3 py-1 bg-blue-50/80 rounded-full border border-blue-100/80">
-              Strategic Foundation
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#031b4e] uppercase tracking-tight mt-3">
-              Vision & Mission
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* Vision Card */}
-            <div className="bg-slate-50/70 rounded-2xl p-7 border border-slate-200/80 hover:border-blue-300 transition-all shadow-2xs space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-blue-100/80 text-[#031b4e] flex items-center justify-center shrink-0">
-                  <Eye size={20} />
-                </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded bg-blue-100/60 text-blue-800">
-                  Our Vision
-                </span>
-              </div>
-
-              <div>
-                <h3 className="text-lg sm:text-xl font-bold text-[#031b4e] uppercase tracking-tight">
-                  GCC Leadership in Climate Technology
-                </h3>
-                <p className="text-slate-600 text-sm leading-relaxed font-normal mt-2">
-                  "To be the undisputed leader in B2B climate technology procurement within the GCC, bridging global OEM excellence with local engineering execution, and pioneering sustainable, low-GWP refrigerant initiatives."
-                </p>
-              </div>
-
-              <div className="pt-3 border-t border-slate-200/60 flex items-center gap-2 text-xs text-slate-500 font-medium">
-                <CheckCircle2 size={14} className="text-[#2596be] shrink-0" />
-                <span>Pioneering low-GWP & energy efficient HVAC solutions</span>
-              </div>
-            </div>
-
-            {/* Mission Card */}
-            <div className="bg-slate-50/70 rounded-2xl p-7 border border-slate-200/80 hover:border-blue-300 transition-all shadow-2xs space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-slate-200/80 text-[#031b4e] flex items-center justify-center shrink-0">
-                  <Target size={20} />
-                </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded bg-slate-200/60 text-slate-800">
-                  Our Mission
-                </span>
-              </div>
-
-              <div>
-                <h3 className="text-lg sm:text-xl font-bold text-[#031b4e] uppercase tracking-tight">
-                  Reliable High-Ambient Performance
-                </h3>
-                <p className="text-slate-600 text-sm leading-relaxed font-normal mt-2">
-                  "To design, source, and deliver reliable, energy-efficient temperature control systems that withstand the high ambient conditions of the Gulf region, guaranteeing maximum uptime and operational efficiency for every client."
-                </p>
-              </div>
-
-              <div className="pt-3 border-t border-slate-200/60 flex items-center gap-2 text-xs text-slate-500 font-medium">
-                <CheckCircle2 size={14} className="text-[#2596be] shrink-0" />
-                <span>Tested & verified for extreme Gulf temperatures (+52°C)</span>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-      {/* -------------------------------------------------
-          5. OUR COMMITMENT
-      ------------------------------------------------- */}
-      <section className="py-16 bg-slate-50 border-b border-slate-200" id="commitment-section">
-        <div className="max-w-7xl mx-auto px-4">
-          
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <span className="text-[10px] bg-blue-50 text-[#2596be] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-blue-100">
-              Core Corporate Values
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-[#031b4e] uppercase tracking-tight mt-3">
-              Our Commitment
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-2">
-              Built on 7 fundamental pillars of engineering integrity, quality assurance, and customer trust.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3 hover:shadow-md transition-shadow">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#2596be] flex items-center justify-center">
-                <ShieldCheck size={20} />
-              </div>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wide">Quality</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                ISO 9001:2015 certified quality control. Every unit is factory-inspected and supplied with genuine manufacturer protection.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3 hover:shadow-md transition-shadow">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#2596be] flex items-center justify-center">
-                <ThumbsUp size={20} />
-              </div>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wide">Customer Satisfaction</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Dedicated B2B account managers, transparent quotes, and tailored estimates for every mechanical contractor.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3 hover:shadow-md transition-shadow">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#2596be] flex items-center justify-center">
-                <Award size={20} />
-              </div>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wide">Professionalism</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                In-house mechanical engineers and factory-trained technicians adhering strictly to ASHRAE standards.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3 hover:shadow-md transition-shadow">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#2596be] flex items-center justify-center">
-                <Zap size={20} />
-              </div>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wide">Innovation</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Integrating inverter VRF technology, variable speed chillers, and smart digital thermostatic controls.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3 hover:shadow-md transition-shadow">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#2596be] flex items-center justify-center">
-                <HeartHandshake size={20} />
-              </div>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wide">Integrity</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Honest wholesale pricing, authentic OEM parts, and straightforward commercial SLAs without hidden terms.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3 hover:shadow-md transition-shadow">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#2596be] flex items-center justify-center">
-                <Clock size={20} />
-              </div>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wide">Reliability</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                24/7 service desk dispatch, rapid LTL freight delivery, and rapid warranty replacement turnaround.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3 hover:shadow-md transition-shadow md:col-span-2">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <Sparkles size={20} />
-              </div>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wide">Environmental Responsibility</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Promoting low global warming potential (low-GWP) eco-refrigerants, high SEER/COP energy efficiency ratios, and thermal performance audits to lower carbon footprints across the UAE.
-              </p>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-      {/* -------------------------------------------------
-          6. WHY CHOOSE COOL TECHNOLOGIES
-      ------------------------------------------------- */}
-      <section className="py-16 bg-white border-b border-slate-100" id="why-choose-section">
-        <div className="max-w-7xl mx-auto px-4">
-          
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <span className="text-[10px] bg-blue-50 text-[#2596be] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-blue-100">
-              Competitive Advantage
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-[#031b4e] uppercase tracking-tight mt-3">
-              Why Choose Cool Technologies
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-2">
-              Verified facts and advantages based directly on our corporate profile.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            
-            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200 hover:border-blue-300 transition-all space-y-3">
-              <span className="font-mono text-2xl font-black text-[#2596be]">14+ Years</span>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Market Experience</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Established in Abu Dhabi in 2012, serving UAE climate control markets for over a decade.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200 hover:border-blue-300 transition-all space-y-3">
-              <span className="font-mono text-2xl font-black text-[#2596be]">30+ Brands</span>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Global OEM Partners</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Official partnerships with Daikin, Midea, Panasonic, Mitsubishi, LG, Samsung, York, Carrier & Blue Star.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200 hover:border-blue-300 transition-all space-y-3">
-              <span className="font-mono text-2xl font-black text-[#2596be]">Industrial</span>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">HVAC & Chiller Expertise</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Specialized in heavy industrial water chillers, VRF multi-zone systems, and central water cooling plants.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200 hover:border-blue-300 transition-all space-y-3">
-              <span className="font-mono text-2xl font-black text-[#2596be]">Certified</span>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Mechanical Technicians</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                In-house mechanical engineers and factory-trained service teams for installation and maintenance.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200 hover:border-blue-300 transition-all space-y-3">
-              <span className="font-mono text-2xl font-black text-[#2596be]">24/7 Desk</span>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Fast Response SLA</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Dedicated emergency service desk and rapid LTL freight dispatch across all 7 Emirates.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200 hover:border-blue-300 transition-all space-y-3">
-              <span className="font-mono text-2xl font-black text-[#2596be]">Bespoke</span>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Customized Solutions</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Tailored engineering estimates, duct sound attenuator fabrication, and capacity calculations.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200 hover:border-blue-300 transition-all space-y-3">
-              <span className="font-mono text-2xl font-black text-[#2596be]">Civil & B2B</span>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Gov & Industrial Projects</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Trusted contractor for civil developments, military camps, labor housing, and industrial zones.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200 hover:border-blue-300 transition-all space-y-3">
-              <span className="font-mono text-2xl font-black text-[#2596be]">Guaranteed</span>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">After-Sales Support</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Annual PPM maintenance contracts, genuine spare parts inventory, and pump overhaul coverage.
-              </p>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-      {/* -------------------------------------------------
-          INDUSTRIES WE SERVE
-      ------------------------------------------------- */}
-      <section className="py-16 bg-white border-b border-slate-100" id="industries-section">
-        <div className="max-w-7xl mx-auto px-4">
-          
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <span className="text-[10px] bg-blue-50 text-[#2596be] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-blue-100">
-              Sector Specialization
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-[#031b4e] uppercase tracking-tight mt-3">
-              Industries We Serve
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-2">
-              Delivering specialized climate control systems tailored to strict sector requirements.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 hover:border-blue-300 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#031b4e] flex items-center justify-center">
-                <Factory size={20} />
-              </div>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Industrial</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Manufacturing plants, process cooling, chemical facilities, warehouses, and logistics centers.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 hover:border-blue-300 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#031b4e] flex items-center justify-center">
-                <Building2 size={20} />
-              </div>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Commercial</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Corporate office towers, shopping malls, trade centers, showrooms, and retail complexes.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 hover:border-blue-300 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#031b4e] flex items-center justify-center">
-                <Building size={20} />
-              </div>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Government</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Public civil infrastructure, military bases, municipal buildings, and governmental facilities.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 hover:border-blue-300 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#031b4e] flex items-center justify-center">
-                <Hospital size={20} />
-              </div>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Healthcare</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Hospitals, pharmaceutical cold chains, medical research labs, and sterile cleanrooms.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 hover:border-blue-300 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#031b4e] flex items-center justify-center">
-                <GraduationCap size={20} />
-              </div>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Education</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Universities, public and private schools, technical institutes, and research campuses.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 hover:border-blue-300 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#031b4e] flex items-center justify-center">
-                <Hotel size={20} />
-              </div>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Hospitality</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Luxury hotel resorts, restaurants, catering kitchens, banquet halls, and leisure venues.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 hover:border-blue-300 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#031b4e] flex items-center justify-center">
-                <Home size={20} />
-              </div>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Residential</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Luxury residential villas, high-rise residential towers, and housing developments.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 hover:border-blue-300 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#031b4e] flex items-center justify-center">
-                <HardHat size={20} />
-              </div>
-              <h3 className="font-black text-sm text-[#031b4e] uppercase tracking-wider">Construction</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                Labor accommodation camps, temporary site offices, and heavy construction developments.
-              </p>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-      {/* -------------------------------------------------
-          9. AWARDS & RECOGNITION
+          9. AWARDS & RECOGNITION (OEM Excellence)
       ------------------------------------------------- */}
       <section className="py-16 bg-slate-50 border-b border-slate-200" id="awards-section">
         <div className="max-w-7xl mx-auto px-4">
-          
+
           <div className="text-center max-w-3xl mx-auto mb-12">
             <span className="text-[10px] bg-blue-50 text-[#2596be] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-blue-100">
-              Honors & Certifications
+              Industry Honors
             </span>
             <h2 className="text-2xl sm:text-4xl font-black text-[#031b4e] uppercase tracking-tight mt-3">
-              Awards & Recognition
+              Awards & OEM Recognition
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-2">
-              Recognized by premier global OEMs for distribution excellence and technical performance in the UAE.
+              Recognized by premier global manufacturers for distribution volume, technical excellence, and after-sales support in the UAE.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+
             {/* 1. Blue Star Award */}
             <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden space-y-4 hover:shadow-lg transition-shadow">
               <div className="w-12 h-12 rounded-2xl bg-blue-950 text-white flex items-center justify-center">
@@ -895,23 +952,7 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
                 </h3>
               </div>
               <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                Honored with the Clivet Best Performer Award 2024 in recognition of exceptional commercial HVAC equipment supply, project delivery, and high-efficiency chiller engineering.
-              </p>
-            </div>
-
-            {/* 3. ISO Certification */}
-            <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden space-y-4 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 rounded-2xl bg-[#2596be] text-white flex items-center justify-center">
-                <ShieldCheck size={24} />
-              </div>
-              <div>
-                <span className="font-mono text-[#2596be] text-xs font-black">QUALITY CERTIFICATION</span>
-                <h3 className="font-black text-lg text-[#031b4e] uppercase tracking-tight mt-1">
-                  ISO 9001:2015 Quality Management
-                </h3>
-              </div>
-              <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                Formally registered and certified under ISO 9001:2015 guidelines for quality management in HVAC equipment procurement, warehousing, and technical engineering services.
+                Honored with the Clivet Best Performer Award 2024 in recognition of exceptional commercial HVAC equipment supply, project delivery, and high-efficiency chiller engineering across the UAE.
               </p>
             </div>
 
@@ -925,7 +966,7 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
       ------------------------------------------------- */}
       <section className="py-16 bg-white border-b border-slate-100" id="partners-section">
         <div className="max-w-7xl mx-auto px-4">
-          
+
           <div className="text-center max-w-3xl mx-auto mb-12">
             <span className="text-[10px] bg-blue-50 text-[#2596be] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-blue-100">
               OEM Network
@@ -940,9 +981,9 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
 
           <div className="w-full flex justify-center">
             <div className="rounded-2xl overflow-hidden border border-slate-200/80 shadow-md bg-white p-2 sm:p-4 max-w-6xl w-full">
-              <img 
-                src={main1Image} 
-                alt="Cool Technologies Global Brand Partners Network" 
+              <img
+                src={main1Image}
+                alt="Cool Technologies Global Brand Partners Network"
                 className="w-full h-auto object-contain rounded-xl"
               />
             </div>
@@ -956,11 +997,11 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
       ------------------------------------------------- */}
       <section className="py-12 bg-slate-50/80 border-y border-slate-200/80" id="metrics-section">
         <div className="max-w-7xl mx-auto px-4">
-          
+
           <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-slate-200">
-            
+
             <div className="pt-4 md:pt-0">
-              <span className="font-mono text-3xl sm:text-4xl font-extrabold text-[#031b4e]">14+</span>
+              <span className="font-mono text-3xl sm:text-4xl font-extrabold text-[#031b4e]">{yearsInBusiness}+</span>
               <p className="text-xs font-bold text-slate-800 uppercase tracking-wider mt-1">Years Experience</p>
               <p className="text-[11px] text-slate-500 font-medium mt-0.5">Established in 2012</p>
             </div>
@@ -968,25 +1009,25 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
             <div className="pt-4 md:pt-0">
               <span className="font-mono text-3xl sm:text-4xl font-extrabold text-[#031b4e]">30+</span>
               <p className="text-xs font-bold text-slate-800 uppercase tracking-wider mt-1">Brand Partners</p>
-              <p className="text-[11px] text-slate-500 font-medium mt-0.5">Authorized OEMs</p>
+              <p className="text-[11px] text-slate-500 font-medium mt-0.5">Authorized Global OEMs</p>
             </div>
 
             <div className="pt-4 md:pt-0">
-              <span className="font-mono text-3xl sm:text-4xl font-extrabold text-[#031b4e]">1,200+</span>
-              <p className="text-xs font-bold text-slate-800 uppercase tracking-wider mt-1">Product Catalog</p>
-              <p className="text-[11px] text-slate-500 font-medium mt-0.5">ACs, Chillers & Parts</p>
+              <span className="font-mono text-3xl sm:text-4xl font-extrabold text-[#031b4e]">COOLTECH</span>
+              <p className="text-xs font-bold text-slate-800 uppercase tracking-wider mt-1">In-House Brand</p>
+              <p className="text-[11px] text-slate-500 font-medium mt-0.5">Water Coolers & Chillers</p>
             </div>
 
             <div className="pt-4 md:pt-0">
-              <span className="font-mono text-3xl sm:text-4xl font-extrabold text-[#031b4e]">5,000+</span>
-              <p className="text-xs font-bold text-slate-800 uppercase tracking-wider mt-1">Completed Projects</p>
-              <p className="text-[11px] text-slate-500 font-medium mt-0.5">Across UAE & GCC</p>
+              <span className="font-mono text-3xl sm:text-4xl font-extrabold text-[#031b4e]">7 Emirates</span>
+              <p className="text-xs font-bold text-slate-800 uppercase tracking-wider mt-1">Market Presence</p>
+              <p className="text-[11px] text-slate-500 font-medium mt-0.5">Nationwide UAE Coverage</p>
             </div>
 
             <div className="pt-4 md:pt-0 col-span-2 md:col-span-1">
-              <span className="font-mono text-3xl sm:text-4xl font-extrabold text-[#2596be]">99.4%</span>
-              <p className="text-xs font-bold text-slate-800 uppercase tracking-wider mt-1">Client Satisfaction</p>
-              <p className="text-[11px] text-slate-500 font-medium mt-0.5">Guaranteed Service SLA</p>
+              <span className="font-mono text-3xl sm:text-4xl font-extrabold text-[#2596be]">100%</span>
+              <p className="text-xs font-bold text-slate-800 uppercase tracking-wider mt-1">Dedicated Service</p>
+              <p className="text-[11px] text-slate-500 font-medium mt-0.5">Dependable Support</p>
             </div>
 
           </div>
@@ -995,24 +1036,24 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
       </section>
 
       {/* -------------------------------------------------
-          12. CALL TO ACTION (Minimal Clean Section)
+          12. CALL TO ACTION
       ------------------------------------------------- */}
       <section className="py-16 bg-white" id="cta-section">
         <div className="max-w-7xl mx-auto px-4">
-          
+
           <div className="bg-slate-50 rounded-2xl p-8 sm:p-12 border border-slate-200/90 shadow-2xs">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              
+
               <div className="lg:col-span-8 space-y-3">
                 <span className="text-[11px] font-bold text-[#2596be] uppercase tracking-wider px-3 py-1 bg-blue-50/80 rounded-full border border-blue-100/80">
                   Engineering Desk Support
                 </span>
                 <h2 className="text-2xl sm:text-3xl font-extrabold text-[#031b4e] uppercase tracking-tight pt-1">
-                  Need Cooling Solutions? <br />
-                  <span className="text-[#2596be]">Contact Our Experts Today.</span>
+                  Need Commercial Cooling Solutions? <br />
+                  <span className="text-[#2596be]">Contact Our Engineering Experts Today.</span>
                 </h2>
                 <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-2xl font-normal">
-                  Whether you require wholesale VRF pricing, a customized industrial water chiller estimate, or 24/7 emergency overhauling dispatch in Abu Dhabi or Dubai, our certified mechanical engineers are ready to assist.
+                  Whether you require wholesale commercial air conditioning pricing, specialized COOLTECH water coolers and tank chillers, or turnkey supply, installation, and maintenance across any Emirate, our qualified team is ready to assist.
                 </p>
 
                 {/* Direct Contact Handles */}
@@ -1025,10 +1066,10 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
                     <Mail size={15} className="text-[#2596be]" />
                     <span>{siteSettings.email}</span>
                   </a>
-                  <a 
-                    href={`https://wa.me/${siteSettings.whatsapp.replace(/[^0-9]/g, '')}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
+                  <a
+                    href={`https://wa.me/${siteSettings.whatsapp.replace(/[^0-9]/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex items-center gap-2 hover:text-[#2596be] transition-colors"
                   >
                     <MessageSquare size={15} className="text-[#2596be]" />
@@ -1039,11 +1080,15 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
 
               <div className="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col gap-3">
                 <button
-                  onClick={handleOpenGeneralQuote}
+                  onClick={() => {
+                    if (onCategorySelect) onCategorySelect(null);
+                    window.location.hash = "#/products";
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
                   className="w-full bg-[#031b4e] hover:bg-[#2596be] text-white font-bold text-xs uppercase tracking-wider py-3.5 px-6 rounded-xl shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <MessageSquare size={15} />
-                  <span>Request Engineering Quote</span>
+                  <Package size={15} />
+                  <span>Visit Our Products</span>
                 </button>
 
                 <a
@@ -1055,6 +1100,20 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
                   <MessageSquare size={15} className="text-[#2596be]" />
                   <span>Chat on WhatsApp</span>
                 </a>
+
+                <button
+                  onClick={() => {
+                    if (onOpenLogin) {
+                      onOpenLogin("signup");
+                    } else {
+                      window.location.hash = "#/retailer-application";
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }
+                  }}
+                  className="text-xs text-slate-500 hover:text-[#2596be] font-bold text-center pt-1 transition-colors cursor-pointer"
+                >
+                  Looking for trade terms? <span className="underline">Sign Up for an Account</span> &rarr;
+                </button>
               </div>
 
             </div>
@@ -1064,5 +1123,14 @@ export default function AboutPage({ onOpenQuote, onCategorySelect }: AboutPagePr
       </section>
 
     </div>
+  );
+}
+
+// Small icon helper for royal / private departments
+function CrownIcon() {
+  return (
+    <svg className="w-5 h-5 text-[#2596be]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14" />
+    </svg>
   );
 }

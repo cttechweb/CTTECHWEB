@@ -10,7 +10,7 @@ import {
 
 // Asset imports
 // @ts-ignore
-import hqImage from "../assets/images/cool_tech_hq_1784538496855.jpg";
+import hqImage from "../assets/images/cool_tech_hq_1784538496855.jpg?v=2";
 // @ts-ignore
 import airConditionerImg from "../assets/images/hvac_air_conditioner_1784350824930.jpg";
 // @ts-ignore

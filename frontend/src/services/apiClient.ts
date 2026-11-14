@@ -181,12 +181,12 @@ export const apiClient = {
   deactivateCategory: (id: string) => apiClient.delete(`/api/categories/${id}`, { requiresAuth: true }),
   reorderCategories: (orderedIds: string[]) => apiClient.post("/api/categories/reorder", { orderedIds }, { requiresAuth: true }),
 
-  // Brands
-  getBrands: () => apiClient.get("/api/brands"),
-  getBrandById: (id: string) => apiClient.get(`/api/brands/${id}`),
-  createBrand: (brand: any) => apiClient.post("/api/brands", brand, { requiresAuth: true }),
-  updateBrand: (id: string, brand: any) => apiClient.put(`/api/brands/${id}`, brand, { requiresAuth: true }),
-  deactivateBrand: (id: string) => apiClient.delete(`/api/brands/${id}`, { requiresAuth: true }),
+  // Brands Management (Cloudflare D1 via Worker API)
+  getBrands: () => apiClient.get<{ status: string; brands: any[] }>("/api/brands"),
+  getBrandById: (id: string) => apiClient.get<{ status: string; brand: any }>(`/api/brands/${id}`),
+  createBrand: (brand: any) => apiClient.post<{ status: string; brand: any }>("/api/brands", brand, { requiresAuth: true }),
+  updateBrand: (id: string, brand: any) => apiClient.put<{ status: string; brand: any }>(`/api/brands/${id}`, brand, { requiresAuth: true }),
+  deactivateBrand: (id: string) => apiClient.delete<{ status: string }>(`/api/brands/${id}`, { requiresAuth: true }),
 
   // Quotes / Sourcing Requests / RFQs
   submitQuote: (quoteData: any) => apiClient.post("/api/quotes", quoteData),

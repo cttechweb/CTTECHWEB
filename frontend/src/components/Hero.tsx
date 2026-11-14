@@ -36,9 +36,9 @@ export default function Hero({ onShopProductsClick, onRequestQuoteClick, onBecom
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [services, setServices] = useState({
-    purchase: false,
-    installation: false,
+    product: false,
     service: false,
+    spareParts: false,
   });
   const [enquiry, setEnquiry] = useState("");
   
@@ -71,9 +71,9 @@ export default function Hero({ onShopProductsClick, onRequestQuoteClick, onBecom
       setIsSubmitting(true);
 
       const selectedServicesList = [
-        services.purchase ? "HVAC Equipment Sourcing / Purchase" : null,
-        services.installation ? "System Installation & Commissioning" : null,
-        services.service ? "Technical Maintenance & Service" : null,
+        services.product ? "Product" : null,
+        services.service ? "Service" : null,
+        services.spareParts ? "Spare Parts" : null,
       ].filter(Boolean).join(", ");
 
       // Fire EmailJS notification IMMEDIATELY — does NOT wait for or depend on any API call
@@ -274,9 +274,9 @@ export default function Hero({ onShopProductsClick, onRequestQuoteClick, onBecom
                     </label>
                     <div className="grid grid-cols-3 gap-1.5">
                       {[
-                        { key: "purchase", label: "Purchase", id: "hero-lead-cb-purchase" },
-                        { key: "installation", label: "Installation", id: "hero-lead-cb-installation" },
-                        { key: "service", label: "Service", id: "hero-lead-cb-service" }
+                        { key: "product", label: "Product", id: "hero-lead-cb-product" },
+                        { key: "service", label: "Service", id: "hero-lead-cb-service" },
+                        { key: "spareParts", label: "Spare Parts", id: "hero-lead-cb-spareparts" }
                       ].map((item) => {
                         const isChecked = services[item.key as keyof typeof services];
                         return (
@@ -285,14 +285,14 @@ export default function Hero({ onShopProductsClick, onRequestQuoteClick, onBecom
                             type="button"
                             id={item.id}
                             onClick={() => setServices({ ...services, [item.key]: !isChecked })}
-                            className={`py-2 px-2 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer select-none flex items-center justify-center gap-1.5 ${
+                            className={`py-2 px-1 sm:px-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all border text-center cursor-pointer select-none flex items-center justify-center gap-1 sm:gap-1.5 ${
                               isChecked
                                 ? "bg-[#2596be] text-white border-[#2596be] shadow-sm"
                                 : "bg-[#2b446f]/60 text-slate-200 border-white/10 hover:bg-[#2b446f]/90 hover:border-white/20"
                             }`}
                           >
                             {isChecked && <Check size={12} className="stroke-[3]" />}
-                            <span>{item.label}</span>
+                            <span className="truncate">{item.label}</span>
                           </button>
                         );
                       })}

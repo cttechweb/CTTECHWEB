@@ -3,6 +3,7 @@ import { ClipboardList, Eye, Heart, Sparkles, Flame, Star, Share2, Check } from 
 import { Product } from "../types";
 import { useWishlist } from "../context/WishlistContext";
 import { getProductSlug } from "../utils/productSlug";
+import { openProductWhatsAppOrder } from "../utils/whatsappOrder";
 import DirhamSymbol from "./common/DirhamSymbol";
 
 interface ProductCardProps {
@@ -56,6 +57,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     } else if (onOpenQuoteWithProduct) {
       onOpenQuoteWithProduct(product.name);
     }
+  };
+
+  const handleWhatsAppClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    openProductWhatsAppOrder(product, product.minOrderQty || 1);
   };
 
   // Helper to render clean, professional promotional badge tag
@@ -235,12 +241,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       </div>
 
       {/* Actions Row */}
-      <div className="p-2.5 sm:p-4 pt-0">
+      <div className="p-2.5 sm:p-4 pt-0 space-y-1.5">
         <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={handleAddToCartClick}
-            className="flex-1 min-w-0 bg-[#2596be] hover:bg-[#1c7e9f] text-white py-2 px-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-xs active:scale-95 cursor-pointer"
+            className="flex-1 min-w-0 bg-[#2596be] hover:bg-[#1c7e9f] text-white py-2 px-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-2xs active:scale-95 cursor-pointer"
             id={`request-lead-quote-${product.id}`}
           >
             <ClipboardList size={13} className="shrink-0" />
@@ -259,6 +265,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <Eye size={14} />
           </button>
         </div>
+
+        {/* Minimal Clean WhatsApp Order Button */}
+        <button
+          type="button"
+          onClick={handleWhatsAppClick}
+          className="w-full py-1.5 px-2 rounded-xl bg-emerald-50 hover:bg-[#25D366] text-emerald-700 hover:text-white border border-emerald-200/80 hover:border-[#25D366] text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shadow-2xs group/wa"
+          id={`whatsapp-order-${product.id}`}
+          title="Order via WhatsApp"
+        >
+          <img src="/whatsapp-official.png" alt="WhatsApp" className="w-3.5 h-3.5 object-contain shrink-0" />
+          <span className="truncate">Order via WhatsApp</span>
+        </button>
       </div>
     </div>
   );

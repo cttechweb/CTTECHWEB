@@ -121,7 +121,7 @@ const ICON_OPTIONS = [
 ];
 
 export default function AdminGeneralSettings({ onShowToast, onNavigateToContactCenter }: AdminGeneralSettingsProps) {
-  const [activeTab, setActiveTab] = useState<"brands" | "achievements" | "contacts">("brands");
+  const [activeTab, setActiveTab] = useState<"achievements" | "contacts">("achievements");
   const [isNavCollapsed, setIsNavCollapsed] = useState<boolean>(false);
   const [isSavedRecently, setIsSavedRecently] = useState(false);
   const [savedSuccessMsg, setSavedSuccessMsg] = useState<string | null>(null);
@@ -250,7 +250,6 @@ export default function AdminGeneralSettings({ onShowToast, onNavigateToContactC
       const current = getGeneralSettings();
       const updated = saveGeneralSettings({
         ...current,
-        brandPartners: partners,
         achievements: achievements,
         brandTickerSpeed: tickerSpeed,
         achievementBgOpacity: globalAchievementBgOpacity,
@@ -732,11 +731,9 @@ export default function AdminGeneralSettings({ onShowToast, onNavigateToContactC
     }
   };
 
-  const activeBrandsCount = partners.filter((p) => p.isActive !== false).length;
   const activeAchievementsCount = achievements.filter((a) => a.isActive !== false).length;
 
   const SUBMODULES = [
-    { id: "brands" as const, label: "Trusted Partners", icon: <Building size={15} />, count: partners.length },
     { id: "achievements" as const, label: "Achievements", icon: <Trophy size={15} />, count: achievements.length },
     { id: "contacts" as const, label: "Contact & Comms Hub", icon: <Headphones size={15} />, count: branches.length },
   ];
@@ -883,7 +880,7 @@ export default function AdminGeneralSettings({ onShowToast, onNavigateToContactC
       {/* ───────────────────────────────────────────────────────────
           TAB 1: TRUSTED BY PARTNERS
       ─────────────────────────────────────────────────────────── */}
-      {activeTab === "brands" && (
+      {false && (
         <div className="bg-white border border-slate-200 rounded-xl shadow-2xs overflow-hidden">
           
           {/* Section Action Bar */}
@@ -891,7 +888,7 @@ export default function AdminGeneralSettings({ onShowToast, onNavigateToContactC
             <div>
               <h3 className="font-bold text-sm text-slate-900">Partner Brands Order & Display</h3>
               <p className="text-[11px] text-slate-500">
-                {activeBrandsCount} of {partners.length} brands active on the homepage ticker. Use arrows to adjust order.
+                {partners.filter(p => p.isActive !== false).length} of {partners.length} brands active on the homepage ticker. Use arrows to adjust order.
               </p>
             </div>
 

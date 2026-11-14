@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import Features from "./components/Features";
+import FeaturedProducts from "./components/FeaturedProducts";
 import Categories from "./components/Categories";
 import ProductCatalog from "./components/ProductCatalog";
 import Brands from "./components/Brands";
@@ -16,6 +17,7 @@ import LoginModal from "./components/LoginModal";
 import ProductsPage from "./components/ProductsPage";
 import ProductDetailPage from "./components/ProductDetailPage";
 import ServicesPage from "./components/ServicesPage";
+import SparePartsPage from "./components/SparePartsPage";
 import Achievements from "./components/Achievements";
 import CustomerReviews from "./components/CustomerReviews";
 import AboutShort from "./components/AboutShort";
@@ -25,6 +27,7 @@ import ManagementPage from "./components/ManagementPage";
 import MediaPage from "./components/MediaPage";
 import ContactPage from "./components/ContactPage";
 import CategoriesPage from "./components/CategoriesPage";
+import BrandsPage from "./components/BrandsPage";
 import AdminPanelPage from "./components/admin/AdminPanelPage";
 import AdminLoginScreen from "./components/admin/AdminLoginScreen";
 import SalesBuilderPage from "./components/admin/SalesBuilderPage";
@@ -60,6 +63,7 @@ import {
 import { 
   subscribeToServices, 
   getLocalServicesCache,
+  resetDefaultServices,
   createService as createServiceDb, 
   updateService as updateServiceDb, 
   deleteService as deleteServiceDb 
@@ -245,6 +249,21 @@ export default function App() {
       console.warn("Service delete error:", err);
     }
   };
+
+  const handleResetDefaultServices = () => {
+    const defaults = resetDefaultServices();
+    setServicesList(defaults);
+  };
+
+  useEffect(() => {
+    const handleServicesUpdate = (e: any) => {
+      if (e?.detail && Array.isArray(e.detail)) {
+        setServicesList(e.detail);
+      }
+    };
+    window.addEventListener("cooltech_services_updated", handleServicesUpdate);
+    return () => window.removeEventListener("cooltech_services_updated", handleServicesUpdate);
+  }, []);
 
   // Dynamic Workflows List (with localStorage persistence & D1 sync)
   const [workflowsList, setWorkflowsList] = useState<Workflow[]>(() => {
@@ -602,6 +621,7 @@ export default function App() {
         onAddService={handleAddService}
         onUpdateService={handleUpdateService}
         onDeleteService={handleDeleteService}
+        onResetDefaultServices={handleResetDefaultServices}
         onAddWorkflow={handleAddWorkflow}
         onUpdateWorkflow={handleUpdateWorkflow}
         onDeleteWorkflow={handleDeleteWorkflow}
@@ -801,10 +821,17 @@ export default function App() {
             onOpenLogin={() => handleOpenLoginModal("login")}
             reviews={reviewsList}
           />
+        ) : currentHash.startsWith("#/spare-parts") ? (
+          <SparePartsPage
+            onAddToCart={handleAddToCart}
+            onRequestQuote={handleOpenQuoteWithProduct}
+            onShowToast={showToast}
+          />
         ) : currentHash.startsWith("#/about") ? (
           <AboutPage
             onOpenQuote={handleOpenQuoteWithProduct}
             onCategorySelect={setActiveCategory}
+            onOpenLogin={(mode) => handleOpenLoginModal(mode || "signup")}
           />
         ) : currentHash.startsWith("#/management") ? (
           <ManagementPage
@@ -853,6 +880,14 @@ export default function App() {
             }}
             onOpenQuote={handleOpenQuoteGeneral}
           />
+        ) : currentHash.startsWith("#/brands") ? (
+          <BrandsPage
+            products={productsList}
+            onSelectBrand={(brandName) => {
+              window.location.hash = `#/products?brand=${encodeURIComponent(brandName)}`;
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
         ) : currentHash.startsWith("#/blog") ? (
           <BlogPage
             blogs={blogsList}
@@ -873,6 +908,18 @@ export default function App() {
 
             {/* Value Ribbon */}
             <Features />
+
+            {/* Featured Products Spotlight (Below Hero Section) */}
+            <FeaturedProducts
+              products={productsList}
+              onAddToCart={handleAddToCart}
+              onOpenProductDetail={handleOpenProductDetail}
+              onOpenQuoteWithProduct={handleOpenQuoteWithProduct}
+              onViewAllProducts={() => {
+                window.location.hash = "#/products";
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            />
 
             {/* Categories Section - Restored to top */}
             <Categories

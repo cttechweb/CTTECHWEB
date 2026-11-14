@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { 
-  Wrench, Sparkles, Phone, ArrowLeft,
-  ChevronRight, ChevronLeft, FileText, Thermometer, Wind, Droplet, Snowflake, Zap,
-  RefreshCw, Calendar, CheckCircle2, Clock, Star, Quote, ThumbsUp, ShieldCheck, Filter,
-  MessageSquare, User, Send, X, Download, Building, Award, ClipboardList, CheckCircle, Heart, Eye, Check, Loader2,
-  Upload, Camera, Trash2, Share2, Copy, Linkedin, Twitter
+  Wrench, Phone, MessageSquare, ClipboardList, ArrowRight,
+  ShieldCheck, Star, CheckCircle2, Clock, Upload, Camera, Trash2, X, Plus
 } from "lucide-react";
-import { SERVICES } from "../data";
 import { ServiceItem, Product } from "../types";
 import { ReviewItem } from "../types/review";
 import { useWishlist } from "../context/WishlistContext";
@@ -14,7 +10,7 @@ import { useAuth } from "../context/AuthContext";
 import { saveReviewToDatabase } from "../lib/reviewService";
 import { uploadProductImage } from "../services/storageService";
 import { getGeneralSettings } from "../services/generalSettingsService";
-import { openServiceWhatsAppOrder } from "../utils/whatsappOrder";
+import { getLocalServicesCache, subscribeToServices } from "../services/serviceService";
 
 interface ServicesPageProps {
   onRequestQuoteWithService: (serviceName: string) => void;
@@ -34,34 +30,19 @@ export function serviceToProduct(service: ServiceItem): Product {
     price: 0,
     hidePrice: true,
     rating: 5.0,
-    image: service.image || "/src/assets/images/hvac_air_conditioner_1784350824930.jpg",
-    description: service.tagline || service.description,
+    image: service.image || "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80",
+    description: service.description,
     inStock: true,
     minOrderQty: 1,
     status: "active",
     specifications: {
-      "Service Category": service.category,
-      "SLA Response": service.specs?.sla || "Scheduled Dispatch",
-      "Warranty": service.specs?.warranty || "100% Quality Guaranteed",
-      "Service Scope": service.specs?.targetAudience || "Commercial & Residential",
-      "Certified By": service.specs?.certifiedFor || "ISO & UAE Municipal Compliant",
+      "Service Category": service.badge || service.category || "HVAC Engineering",
+      "Scope": "Residential & Commercial HVAC",
+      "Region": "Abu Dhabi, Dubai & All UAE"
     },
     features: service.features || [],
-    tags: ["Service", service.category, "Field Engineering"]
+    tags: ["Service", service.badge || service.category || "HVAC", "AC Engineering"]
   };
-}
-
-
-interface ServiceReview {
-  id: string;
-  serviceTitle: string;
-  authorName: string;
-  authorRole: string;
-  location: string;
-  rating: number;
-  date: string;
-  comment: string;
-  verifiedBooking: boolean;
 }
 
 export default function ServicesPage({ 
@@ -69,18 +50,34 @@ export default function ServicesPage({
   onAddToCart,
   onOpenAbout,
   onOpenLogin,
-  reviews, 
+  reviews = [], 
   services: servicesProp 
 }: ServicesPageProps) {
   const { isInWishlist, toggleWishlist } = useWishlist();
-  const [activeTab, setActiveTab] = useState<string>("all");
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [detailImageIdx, setDetailImageIdx] = useState<number>(0);
-  const [copied, setCopied] = useState<boolean>(false);
-  const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
-  const [isCopiedLink, setIsCopiedLink] = useState<boolean>(false);
-  const itemsPerPage = 10;
+  
+  // Real-time reactive services list
+  const [servicesList, setServicesList] = useState<ServiceItem[]>(() => {
+    if (servicesProp && servicesProp.length > 0) return servicesProp;
+    return getLocalServicesCache();
+  });
+
+  useEffect(() => {
+    if (servicesProp && servicesProp.length > 0) {
+      setServicesList(servicesProp);
+    }
+  }, [servicesProp]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToServices((updated) => {
+      if (Array.isArray(updated) && updated.length > 0) {
+        setServicesList(updated);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Filter only active services for public display
+  const activeServices = servicesList.filter(s => s.isActive !== false);
 
   // Dynamic emergency dispatch hotline
   const [emergencyPhone, setEmergencyPhone] = useState<string>(() => {
@@ -110,41 +107,14 @@ export default function ServicesPage({
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [newReview, setNewReview] = useState({
     name: "",
-    service: "AC Deep Chemical Cleaning & Sanitization",
+    service: "AC Maintenance",
     rating: 5,
-    location: "Dubai, UAE",
+    location: "Abu Dhabi, UAE",
     comment: "",
     avatar: ""
   });
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
   const reviewFileInputRef = React.useRef<HTMLInputElement>(null);
-
-  // Auto-open review modal if redirected back after login (#/services?action=review)
-  useEffect(() => {
-    const handleReviewRedirectCheck = () => {
-      const hash = window.location.hash || "";
-      if (hash.includes("action=review")) {
-        if (user) {
-          setNewReview(prev => ({
-            ...prev,
-            name: profile?.name || user.displayName || user.email?.split("@")[0] || "",
-            location: profile?.address || "Dubai, UAE",
-            rating: 5,
-            comment: "",
-            avatar: user.photoURL || prev.avatar || ""
-          }));
-          setIsReviewModalOpen(true);
-          // Cleanly remove action=review without reloading page
-          const clean = hash.replace(/[?&]action=review(&|$)/, "").replace(/\?$/, "");
-          window.history.replaceState(null, "", window.location.pathname + clean);
-        }
-      }
-    };
-
-    if (!isAuthLoading) {
-      handleReviewRedirectCheck();
-    }
-  }, [isAuthLoading, user, profile]);
 
   const handleOpenReviewModal = () => {
     if (!user) {
@@ -159,12 +129,12 @@ export default function ServicesPage({
     setNewReview(prev => ({
       ...prev,
       name: profile?.name || user.displayName || user.email?.split("@")[0] || "",
-      location: profile?.address || "Dubai, UAE",
-      service: services[0]?.title || "AC Deep Chemical Cleaning & Sanitization",
+      location: profile?.address || "Abu Dhabi, UAE",
       rating: 5,
       comment: "",
-      avatar: user.photoURL || ""
+      avatar: user.photoURL || prev.avatar || ""
     }));
+    setReviewSubmitted(false);
     setIsReviewModalOpen(true);
   };
 
@@ -172,25 +142,27 @@ export default function ServicesPage({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload an image file (JPEG, PNG, WebP).");
+      return;
+    }
+
     if (file.size > 5 * 1024 * 1024) {
-      alert("Image size should be under 5MB.");
+      alert("Photo size should be under 5MB.");
       return;
     }
 
     setIsUploadingPhoto(true);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setNewReview(prev => ({ ...prev, avatar: reader.result as string }));
-    };
-    reader.readAsDataURL(file);
-
     try {
-      const result = await uploadProductImage(file, "reviews");
-      if (result?.url) {
-        setNewReview(prev => ({ ...prev, avatar: result.url }));
-      }
-    } catch (err) {
-      console.warn("Photo upload fallback to preview:", err);
+      const downloadUrl = await uploadProductImage(file);
+      setNewReview(prev => ({ ...prev, avatar: downloadUrl }));
+    } catch (err: any) {
+      console.warn("Failed to upload avatar:", err);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setNewReview(prev => ({ ...prev, avatar: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -203,1134 +175,307 @@ export default function ServicesPage({
     }
   };
 
-  // Synchronize hash state for deep linking
-  useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash;
-      if (hash.includes("?id=")) {
-        const id = hash.split("?id=")[1];
-        if (id) setSelectedServiceId(id);
-      }
-    };
-    handleHashChange();
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
-
-  // Services dataset (dynamic from D1 with fallback to src/data.ts)
-  const services = (servicesProp && servicesProp.length > 0) ? servicesProp : SERVICES;
-
-  // Dynamically filter approved service reviews
-  const approvedServiceReviews = reviews
-    ? reviews.filter(r => r.target === "service" && r.status === "approved")
-    : [];
-
-  // Verified Customer Reviews Dataset
-  const serviceReviews: ServiceReview[] = [
-    {
-      id: "rev-1",
-      serviceTitle: "AC Deep Chemical Cleaning & Sanitization",
-      authorName: "Tariq Al Mansoori",
-      authorRole: "Facility Director",
-      location: "Dubai Marina Heights, UAE",
-      rating: 5,
-      date: "July 18, 2026",
-      comment: "We contracted Cool Technologies for deep chemical foam cleaning across 45 residential units. The cooling output improved immediately and air odor completely vanished. Extremely punctual and clean work with floor protection mats used throughout.",
-      verifiedBooking: true
-    },
-    {
-      id: "rev-2",
-      serviceTitle: "Water Tank Chiller Installation & Servicing",
-      authorName: "Sarah Jenkins",
-      authorRole: "Villa Resident",
-      location: "Saadiyat Island, Abu Dhabi",
-      rating: 5,
-      date: "July 12, 2026",
-      comment: "During peak July heat, our water tank was reaching unlivable temperatures. Cool Technologies installed a 3 Ton tank chiller within 24 hours of my call. The water temperature is now a refreshing 22°C continuously. Outstanding service!",
-      verifiedBooking: true
-    },
-    {
-      id: "rev-3",
-      serviceTitle: "GI / Pre-Insulated Duct Fabrication & Air Balancing",
-      authorName: "Vikram Patel",
-      authorRole: "Senior Operations Lead",
-      location: "JAFZA Logistics Hub, Dubai",
-      rating: 5,
-      date: "June 29, 2026",
-      comment: "Their sheet metal engineering team fabricated custom PI ducts for our 12,000 sq ft logistics office with precision. Anemometer balancing reports were provided upon completion showing uniform airflow in every zone.",
-      verifiedBooking: true
-    },
-    {
-      id: "rev-4",
-      serviceTitle: "24/7 Emergency AC Repair & Diagnostics",
-      authorName: "Ahmed Hassan",
-      authorRole: "Hotel Maintenance Manager",
-      location: "Business Bay, Dubai",
-      rating: 5,
-      date: "June 21, 2026",
-      comment: "Our rooftop chiller package unit tripped at 2:00 AM on a Friday night. Their mobile emergency van arrived in under 45 minutes, replaced a faulty contactor & capacitor, and restored full cooling before guest disruption occurred.",
-      verifiedBooking: true
-    },
-    {
-      id: "rev-5",
-      serviceTitle: "Cold Room & Ice Machine Maintenance",
-      authorName: "Elena Rostova",
-      authorRole: "General Manager",
-      location: "Downtown Dubai",
-      rating: 5,
-      date: "June 14, 2026",
-      comment: "Regular descaling and seal maintenance by Cool Technologies has kept our restaurant walk-in freezer running at -18°C reliably without ice buildup. Highly trustworthy team for commercial food safety compliance.",
-      verifiedBooking: true
-    },
-    {
-      id: "rev-6",
-      serviceTitle: "Annual Maintenance Contracts (AMC & PPM)",
-      authorName: "Marcus Vance",
-      authorRole: "MEP Project Manager",
-      location: "Yas Island, Abu Dhabi",
-      rating: 5,
-      date: "May 30, 2026",
-      comment: "We renewed our annual PPM contract for the 3rd year with Cool Technologies. Their digital inspection logs and quarterly preventive checks have reduced breakdown calls by over 80%. Top tier HVAC partner in the region.",
-      verifiedBooking: true
-    }
-  ];
-
-  // Filtering & Pagination Logic
-  const filteredServices = activeTab === "all" 
-    ? services 
-    : services.filter(s => s.category === activeTab);
-
-  const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedServices = filteredServices.slice(startIndex, endIndex);
-
-  // Reset page when switching tabs
-  const handleTabChange = (tabId: string) => {
-    setActiveTab(tabId);
-    setCurrentPage(1);
-    const container = document.getElementById("services-list-container");
-    if (container) {
-      container.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
-
-  // Smooth scroll to top of service list on page switch
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-      const container = document.getElementById("services-list-container");
-      if (container) {
-        container.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }
-  };
-
   const handleReviewFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newReview.name.trim() || !newReview.comment.trim()) return;
 
-    if (!user) {
-      sessionStorage.setItem("ct_redirect_after_login", "#/services?action=review");
-      window.location.hash = "#/login?redirect=" + encodeURIComponent("services?action=review");
-      return;
-    }
-
     setIsSubmittingReview(true);
-
-    const reviewToSave: ReviewItem = {
-      id: `rev-svc-${Date.now()}`,
-      authorName: newReview.name.trim(),
-      authorRole: (profile?.companyName ? `${profile.companyName}` : profile?.designation) || "",
-      location: newReview.location.trim() || "UAE",
-      rating: newReview.rating,
-      comment: newReview.comment.trim(),
-      target: "service",
-      serviceTitle: newReview.service,
-      authorAvatar: newReview.avatar || user?.photoURL || undefined,
-      status: "pending", // ALWAYS set to pending so it requires admin moderation
-      createdAt: new Date().toISOString(),
-      verifiedBooking: true,
-      userId: user.uid,
-      userEmail: user.email || undefined
-    };
-
     try {
-      await saveReviewToDatabase(reviewToSave);
+      const reviewPayload: ReviewItem = {
+        id: `rev-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        targetType: "service",
+        targetId: newReview.service.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        targetTitle: newReview.service,
+        authorName: newReview.name.trim(),
+        authorEmail: user?.email || undefined,
+        authorRole: "Verified Client",
+        location: newReview.location.trim() || "UAE",
+        rating: newReview.rating,
+        title: `${newReview.service} Experience`,
+        comment: newReview.comment.trim(),
+        verifiedBooking: true,
+        verifiedBuyer: true,
+        status: "pending",
+        source: "client_portal",
+        likes: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      await saveReviewToDatabase(reviewPayload);
+      setReviewSubmitted(true);
+      setTimeout(() => {
+        setIsReviewModalOpen(false);
+        setReviewSubmitted(false);
+      }, 3000);
     } catch (err) {
-      console.error("Error saving review:", err);
+      console.warn("Error submitting review:", err);
+      setReviewSubmitted(true);
+      setTimeout(() => {
+        setIsReviewModalOpen(false);
+        setReviewSubmitted(false);
+      }, 3000);
     } finally {
       setIsSubmittingReview(false);
-      setReviewSubmitted(true);
     }
-
-    setTimeout(() => {
-      setReviewSubmitted(false);
-      setIsReviewModalOpen(false);
-      setNewReview({
-        name: "",
-        service: services[0]?.title || "AC Deep Chemical Cleaning & Sanitization",
-        rating: 5,
-        location: "Dubai, UAE",
-        comment: "",
-        avatar: ""
-      });
-    }, 2800);
   };
 
-  const selectedService = services.find(s => s.id === selectedServiceId);
-
-  // Generate 4 image gallery thumbnails for the service
-  const serviceImages = selectedService ? [
-    selectedService.image,
-    "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80",
-    "https://images.unsplash.com/photo-1581094288338-2314dddb7ece?auto=format&fit=crop&w=800&q=80",
-    "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=800&q=80"
-  ] : [];
-
-  const handlePrevDetailImage = () => {
-    setDetailImageIdx((prev) => (prev === 0 ? serviceImages.length - 1 : prev - 1));
+  // WhatsApp inquiry handler with pre-filled message
+  const handleWhatsAppInquiry = (service: ServiceItem) => {
+    const rawDigits = emergencyPhone.replace(/[^0-9]/g, "") || "97128156161";
+    const text = encodeURIComponent(
+      `Hello Cool Technologies, I would like to inquire regarding your "${service.title}" service in the UAE.`
+    );
+    window.open(`https://wa.me/${rawDigits}?text=${text}`, "_blank");
   };
 
-  const handleNextDetailImage = () => {
-    setDetailImageIdx((prev) => (prev === serviceImages.length - 1 ? 0 : prev + 1));
+  // Add to Quote cart
+  const handleAddToQuote = (service: ServiceItem) => {
+    if (onAddToCart) {
+      onAddToCart(serviceToProduct(service), 1);
+    } else {
+      onRequestQuoteWithService(service.title);
+    }
   };
 
-  // ==========================================
-  // SPECIFIC SERVICE DETAIL VIEW (MATCHING PRODUCT DETAIL PAGE)
-  // ==========================================
-  if (selectedService) {
-    return (
-      <div className="w-full bg-white min-h-screen py-6 md:py-10 text-slate-800 font-sans" id="service-detail-view">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          
-          {/* Breadcrumbs Navigation Bar matching Product Detail Page — hidden on mobile for clean clutter-free UX */}
-          <div className="hidden md:flex flex-wrap items-center justify-between gap-4 mb-6 text-xs text-slate-400 font-semibold" id="service-breadcrumbs">
-            <div className="flex items-center gap-1.5">
-              <button 
-                onClick={() => {
-                  setSelectedServiceId(null);
-                  setDetailImageIdx(0);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="hover:text-[#2596be] transition-colors flex items-center gap-1 cursor-pointer"
-              >
-                Home
-              </button>
-              <span>&gt;</span>
-              <button 
-                onClick={() => {
-                  setSelectedServiceId(null);
-                  setDetailImageIdx(0);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="hover:text-[#2596be] transition-colors cursor-pointer"
-              >
-                Services
-              </button>
-              <span>&gt;</span>
-              <span className="text-[#2596be] uppercase">{selectedService.category}</span>
-              <span>&gt;</span>
-              <span className="text-slate-600 truncate max-w-[200px] sm:max-w-xs">{selectedService.title}</span>
-            </div>
-            
-            <button 
-              onClick={() => {
-                setSelectedServiceId(null);
-                setDetailImageIdx(0);
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-              className="flex items-center gap-1.5 text-slate-500 hover:text-[#2596be] transition-colors cursor-pointer"
-              id="return-to-services-btn"
-            >
-              <ArrowLeft size={14} />
-              <span>Return to Services Directory</span>
-            </button>
-          </div>
+  // Category filter state matching Screenshot 1
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
-          {/* TOP SECTION: Gallery & Service Specification Details */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 md:gap-12 py-4 mb-10 text-slate-800" id="service-overview-card">
-            
-            {/* Left Column: Image Gallery Module (col-span 5) */}
-            <div className="lg:col-span-5 flex flex-col gap-4">
-              {/* Active Main Image Container with arrows */}
-              <div className="relative aspect-video sm:aspect-square bg-[#f8fafc] border border-slate-100 rounded-xl overflow-hidden flex items-center justify-center group shadow-xs">
-                <img 
-                  src={serviceImages[detailImageIdx]} 
-                  alt={selectedService.title} 
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  referrerPolicy="no-referrer"
-                />
-                
-                {/* Previous Arrow */}
-                <button 
-                  onClick={handlePrevDetailImage}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-[#2596be] hover:text-white transition-colors shadow-sm cursor-pointer z-10"
-                  title="Previous Image"
-                >
-                  <ChevronLeft size={16} className="stroke-[2.5]" />
-                </button>
+  const categories = [
+    { id: "all", label: "All Services" },
+    { id: "maintenance", label: "Maintenance" },
+    { id: "cleaning", label: "Cleaning" },
+    { id: "installation", label: "Installation" },
+    { id: "chillers", label: "Chillers" },
+    { id: "ducting", label: "Ducting" },
+    { id: "consultation", label: "Consultation" }
+  ];
 
-                {/* Next Arrow */}
-                <button 
-                  onClick={handleNextDetailImage}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-[#2596be] hover:text-white transition-colors shadow-sm cursor-pointer z-10"
-                  title="Next Image"
-                >
-                  <ChevronRight size={16} className="stroke-[2.5]" />
-                </button>
+  const filteredServices = activeServices.filter(s => {
+    if (selectedCategory === "all") return true;
+    const cat = (s.category || "").toLowerCase();
+    const badge = (s.badge || "").toLowerCase();
+    const title = s.title.toLowerCase();
+    const target = selectedCategory.toLowerCase();
+    return cat.includes(target) || badge.includes(target) || title.includes(target);
+  });
 
-                {/* Floating Top-Right Controls: Heart Wishlist + Share Icon directly below it */}
-                <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex flex-col gap-2 z-20">
-                  {/* Wishlist Heart Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleWishlist({ type: "service", service: selectedService });
-                    }}
-                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-md backdrop-blur-xs ${
-                      isInWishlist(selectedService.id)
-                        ? "bg-rose-50 text-rose-600 hover:bg-rose-100 scale-105 border border-rose-200"
-                        : "bg-white/95 hover:bg-white text-slate-500 hover:text-rose-600 border border-slate-200/80 hover:scale-105"
-                    }`}
-                    title={isInWishlist(selectedService.id) ? "Remove from Wishlist" : "Save to Wishlist"}
-                    aria-label="Save to Wishlist"
-                    id="service-detail-wishlist-toggle-btn"
-                  >
-                    <Heart
-                      size={18}
-                      className={isInWishlist(selectedService.id) ? "fill-rose-500 text-rose-500" : ""}
-                    />
-                  </button>
-
-                  {/* Share Icon Button (Placed below Heart on Image Right Side) */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsShareModalOpen(true);
-                    }}
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-white/95 hover:bg-white text-slate-500 hover:text-[#2596be] border border-slate-200/80 hover:scale-105 transition-all cursor-pointer shadow-md backdrop-blur-xs"
-                    title="Share service with image preview"
-                    aria-label="Share Service"
-                    id="service-detail-share-product-icon-btn"
-                  >
-                    <Share2 size={17} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Thumbnail Navigation Strip */}
-              <div className="grid grid-cols-4 gap-3">
-                {serviceImages.map((img, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setDetailImageIdx(idx)}
-                    className={`aspect-square bg-[#f8fafc] border rounded-lg overflow-hidden flex items-center justify-center transition-all cursor-pointer ${
-                      detailImageIdx === idx 
-                        ? "border-[#2596be] ring-2 ring-blue-100" 
-                        : "border-slate-200 hover:border-slate-300 opacity-70 hover:opacity-100"
-                    }`}
-                  >
-                    <img 
-                      src={img} 
-                      alt={`Thumbnail ${idx + 1}`} 
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Right Column: Commercial Summary & Key Specifications (col-span 7) */}
-            <div className="lg:col-span-7 flex flex-col justify-between" id="service-commercial-specs">
-              <div>
-                {/* Category tag */}
-                <span className="text-xs font-bold text-[#2596be] uppercase tracking-widest block mb-2" id="detail-category-badge">
-                  {selectedService.category}
-                </span>
-
-                {/* Service Title */}
-                <h1 className="font-sans font-black text-2xl sm:text-3xl text-[#031b4e] uppercase leading-tight tracking-tight mb-1" id="detail-service-title">
-                  {selectedService.title}
-                </h1>
-
-                {/* Service Model ID */}
-                <div className="text-xs font-mono font-extrabold text-slate-400 mb-4 tracking-wider uppercase">
-                  Service ID: <span className="text-slate-600">SRV-{selectedService.id.toUpperCase()}</span>
-                </div>
-
-                {/* SLA / Dispatch Status Badge */}
-                <div className="flex flex-wrap items-center gap-3 mb-6">
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                    ● DISPATCH READY WITHIN 2 HOURS
-                  </span>
-                  <span className="text-[11px] text-slate-400 font-semibold">Min. SLA: {selectedService.specs.sla}</span>
-                </div>
-
-                {/* Sourcing & Technical Certifications Row */}
-                <div className="border-t border-b border-slate-100 py-3 mb-6 flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">SERVICE CHANNEL</span>
-                    <span className="text-xs font-black text-slate-700 uppercase">DIRECT OEM / FIELD TECHS</span>
-                  </div>
-                  <div className="h-4 w-px bg-slate-200 hidden sm:block"></div>
-                  <div>
-                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">CERTIFICATION</span>
-                    <span className="text-xs font-black text-slate-700 uppercase">ISO / MUNICIPAL APPROVED</span>
-                  </div>
-                  <div className="h-4 w-px bg-slate-200 hidden sm:block"></div>
-                  <div>
-                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">PRIMARY REGION</span>
-                    <span className="text-xs font-black text-[#2596be] uppercase font-sans">GCC & UAE MARKET</span>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <p className="text-sm text-slate-500 leading-relaxed font-medium mb-6">
-                  {selectedService.description}
-                </p>
-
-                {/* 4-Column Key Metrics Spec Cards (Matching Product Detail Page) */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mb-8" id="key-spec-cards-grid">
-                  
-                  {/* Spec Box 1: Response Time */}
-                  <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3 flex flex-col items-center text-center justify-center">
-                    <div className="w-8 h-8 rounded-full bg-blue-50 text-[#2596be] flex items-center justify-center mb-2">
-                      <Clock size={16} className="stroke-[2.5]" />
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider block">Response Time</span>
-                    <span className="text-xs font-extrabold text-[#031b4e] mt-1 leading-tight">{selectedService.specs.sla}</span>
-                  </div>
-
-                  {/* Spec Box 2: Warranty */}
-                  <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3 flex flex-col items-center text-center justify-center">
-                    <div className="w-8 h-8 rounded-full bg-blue-50 text-[#2596be] flex items-center justify-center mb-2">
-                      <ShieldCheck size={16} className="stroke-[2.5]" />
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider block">Warranty</span>
-                    <span className="text-xs font-extrabold text-[#031b4e] mt-1 leading-tight">{selectedService.specs.warranty}</span>
-                  </div>
-
-                  {/* Spec Box 3: Target Units */}
-                  <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3 flex flex-col items-center text-center justify-center">
-                    <div className="w-8 h-8 rounded-full bg-blue-50 text-[#2596be] flex items-center justify-center mb-2">
-                      <Building size={16} className="stroke-[2.5]" />
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider block">Target Units</span>
-                    <span className="text-xs font-extrabold text-[#031b4e] mt-1 leading-tight line-clamp-1">{selectedService.specs.targetAudience}</span>
-                  </div>
-
-                  {/* Spec Box 4: Certified For */}
-                  <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3 flex flex-col items-center text-center justify-center">
-                    <div className="w-8 h-8 rounded-full bg-blue-50 text-[#2596be] flex items-center justify-center mb-2">
-                      <Award size={16} className="stroke-[2.5]" />
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider block">Certified For</span>
-                    <span className="text-xs font-extrabold text-[#031b4e] mt-1 leading-tight line-clamp-1">{selectedService.specs.certifiedFor}</span>
-                  </div>
-
-                </div>
-              </div>
-
-              {/* Action Buttons Bar matching Product Detail Page */}
-              <div className="space-y-3">
-                <div className="flex flex-col sm:flex-row items-stretch gap-3 border-t border-slate-100 pt-6">
-                  
-                  {/* Add to Quote Button */}
-                  <button
-                    onClick={() => {
-                      if (onAddToCart) {
-                        onAddToCart(serviceToProduct(selectedService), 1);
-                      } else {
-                        onRequestQuoteWithService(selectedService.title);
-                      }
-                    }}
-                    className="w-full sm:flex-1 h-12 min-h-[48px] bg-[#2596be] hover:bg-[#1c7e9f] text-white rounded-xl text-xs font-black tracking-wider uppercase shadow-md hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
-                    id="detail-add-quote-service-btn"
-                  >
-                    <ClipboardList size={16} />
-                    <span>Add Service to Quote</span>
-                  </button>
-
-                  {/* Direct WhatsApp Order / Inquiry */}
-                  <button
-                    type="button"
-                    onClick={() => openServiceWhatsAppOrder(selectedService)}
-                    className="w-full sm:w-auto sm:px-6 h-12 min-h-[48px] bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl text-xs font-black tracking-wider uppercase transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2 cursor-pointer shrink-0"
-                    id="service-whatsapp-order-btn"
-                    title="Book service or inquire directly via WhatsApp"
-                  >
-                    <img src="/whatsapp-official.png" alt="WhatsApp" className="w-4 h-4 object-contain shrink-0" />
-                    <span>Order via WhatsApp</span>
-                  </button>
-
-                  {/* Download Brochure / Scope Button */}
-                  <button
-                    onClick={() => {
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 2000);
-                      const el = document.getElementById("service-scope-section");
-                      if (el) {
-                        el.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }
-                    }}
-                    className="w-full sm:w-auto sm:px-5 h-12 min-h-[48px] border border-slate-200 hover:border-[#2596be] hover:text-[#2596be] text-slate-600 rounded-xl text-xs font-black tracking-wider uppercase transition-all flex items-center justify-center gap-2 bg-white cursor-pointer active:scale-95 shadow-2xs hover:shadow-sm shrink-0"
-                    id="detail-download-brochure-btn"
-                  >
-                    <Download size={15} />
-                    <span>{copied ? "Scope PDF Saved" : "Download Brochure"}</span>
-                  </button>
-
-                </div>
-
-                {/* Emergency Hotline Direct Line */}
-                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-2">
-                  <span className="text-xs text-slate-500 font-medium text-center sm:text-left">Need immediate emergency service dispatch?</span>
-                  <a 
-                    href={`tel:${emergencyPhone.replace(/[^0-9+]/g, "")}`} 
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#031b4e] hover:text-[#2596be] transition-colors"
-                  >
-                    <Phone size={13} />
-                    <span>{emergencyPhone}</span>
-                  </a>
-                </div>
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* LOWER SECTION: Technical Scope of Work & Verified Reviews */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-6 border-t border-slate-200" id="service-scope-section">
-            
-            {/* Left: Scope of Work */}
-            <div className="lg:col-span-7 bg-white rounded-xl p-6 border border-slate-200 shadow-2xs space-y-4">
-              <h2 className="font-display font-extrabold text-base text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-                <FileText size={18} className="text-[#2596be]" />
-                <span>Scope of Work & Technical Standards</span>
-              </h2>
-              
-              <div className="space-y-2.5">
-                {selectedService.features.map((item, idx) => (
-                  <div key={idx} className="flex items-start gap-3 bg-slate-50 p-3.5 rounded-lg border border-slate-200/60">
-                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
-                    <span className="text-xs font-semibold text-slate-800 leading-relaxed">{item}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Right: Service Verified Reviews */}
-            <div className="lg:col-span-5 bg-white rounded-xl p-6 border border-slate-200 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h2 className="font-display font-extrabold text-base text-slate-900 flex items-center gap-2">
-                  <Star size={18} className="text-amber-500 fill-amber-500" />
-                  <span>Customer Verification</span>
-                </h2>
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                  5.0 ★ (Verified)
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                {serviceReviews.slice(0, 2).map((rev) => (
-                  <div key={rev.id} className="p-3.5 bg-slate-50 rounded-lg border border-slate-100 space-y-1.5 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-900">{rev.authorName}</span>
-                      <span className="text-[10px] text-slate-400 font-medium">{rev.date}</span>
-                    </div>
-                    <div className="text-[11px] text-slate-500 font-medium">{rev.authorRole} • {rev.location}</div>
-                    <p className="text-slate-600 italic line-clamp-3">"{rev.comment}"</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-        {/* ================= SOCIAL SHARE SERVICE MODAL ================= */}
-        {isShareModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div 
-              className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden relative"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-[#2596be]/10 text-[#2596be] flex items-center justify-center font-bold">
-                    <Share2 size={16} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-slate-900">Share Service</h3>
-                    <p className="text-[11px] text-slate-500 font-medium">Send engineering scope, standards and booking link</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsShareModalOpen(false)}
-                  className="w-8 h-8 rounded-full hover:bg-slate-200/70 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Modal Body */}
-              <div className="p-6 space-y-5">
-                {/* Social Card Preview */}
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Card Preview (As Seen on Social Media & WhatsApp)</span>
-                  <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs bg-slate-50">
-                    <div className="h-40 w-full bg-slate-100 relative overflow-hidden flex items-center justify-center border-b border-slate-100">
-                      <img 
-                        src={selectedService.image || "/src/assets/images/hvac_air_conditioner_1784350824930.jpg"} 
-                        alt={selectedService.title} 
-                        className="w-full h-full object-cover" 
-                      />
-                      <span className="absolute top-2 right-2 px-2 py-0.5 bg-slate-900/80 text-white rounded text-[10px] font-bold uppercase tracking-wider">
-                        {selectedService.category}
-                      </span>
-                    </div>
-                    <div className="p-3 bg-white space-y-1">
-                      <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">cooltechnologies.ae</div>
-                      <div className="text-xs font-bold text-slate-800 line-clamp-1">{selectedService.title} | Cool Technologies UAE</div>
-                      <div className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
-                        {selectedService.description || selectedService.tagline || `Certified HVAC engineering and services by Cool Technologies UAE.`}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Direct Link Box */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Direct Share Link</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      readOnly
-                      value={typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}#/services?id=${selectedService.id}` : `https://cooltechnologies.ae/#/services?id=${selectedService.id}`}
-                      className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 font-mono select-all focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const url = `${window.location.origin}${window.location.pathname}#/services?id=${selectedService.id}`;
-                        navigator.clipboard.writeText(url);
-                        setIsCopiedLink(true);
-                        setTimeout(() => setIsCopiedLink(false), 2000);
-                      }}
-                      className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                        isCopiedLink 
-                          ? "bg-emerald-600 text-white" 
-                          : "bg-slate-900 hover:bg-slate-800 text-white active:scale-95"
-                      }`}
-                    >
-                      {isCopiedLink ? (
-                        <>
-                          <Check size={13} />
-                          <span>Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={13} />
-                          <span>Copy</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Channel Sharing Buttons */}
-                <div className="space-y-1.5 pt-1">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Share Instantly To</label>
-                  <div className="grid grid-cols-3 gap-2.5">
-                    {/* WhatsApp */}
-                    <a
-                      href={`https://wa.me/?text=${encodeURIComponent(
-                        `*Check out ${selectedService.title} by Cool Technologies UAE*\n\nCategory: ${selectedService.category}\n\nView service scope & booking:\n${typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}#/services?id=${selectedService.id}` : `https://cooltechnologies.ae/#/services?id=${selectedService.id}`}`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border border-emerald-100 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs transition-colors cursor-pointer group"
-                    >
-                      <img src="/whatsapp-official.png" alt="WhatsApp" className="w-5 h-5 object-contain group-hover:scale-110 transition-transform" />
-                      <span>WhatsApp</span>
-                    </a>
-
-                    {/* LinkedIn */}
-                    <a
-                      href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
-                        typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}#/services?id=${selectedService.id}` : `https://cooltechnologies.ae/#/services?id=${selectedService.id}`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border border-blue-100 bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs transition-colors cursor-pointer group"
-                    >
-                      <Linkedin size={20} className="text-[#0A66C2] group-hover:scale-110 transition-transform" />
-                      <span>LinkedIn</span>
-                    </a>
-
-                    {/* Twitter / X */}
-                    <a
-                      href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                        `Check out ${selectedService.title} by Cool Technologies UAE`
-                      )}&url=${encodeURIComponent(
-                        typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}#/services?id=${selectedService.id}` : `https://cooltechnologies.ae/#/services?id=${selectedService.id}`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-colors cursor-pointer group"
-                    >
-                      <Twitter size={20} className="text-slate-800 group-hover:scale-110 transition-transform" />
-                      <span>X / Twitter</span>
-                    </a>
-                  </div>
-
-                  {/* Native Mobile / System Share if available */}
-                  {typeof navigator !== "undefined" && typeof navigator.share === "function" && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.share({
-                          title: `${selectedService.title} | Cool Technologies UAE`,
-                          text: `Certified HVAC Engineering: ${selectedService.title}`,
-                          url: `${window.location.origin}${window.location.pathname}#/services?id=${selectedService.id}`,
-                        }).catch(() => {});
-                      }}
-                      className="w-full mt-2 py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
-                    >
-                      <Share2 size={14} />
-                      <span>Share with Device Apps...</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-      </div>
-
-    </div>
-  );
-}
-
-  // ==========================================
-  // MAIN SERVICES DIRECTORY (PAGINATED WITH 10 ITEMS PER PAGE)
-  // ==========================================
   return (
-    <div className="w-full bg-slate-50 min-h-screen font-sans pb-20 text-slate-800 scroll-pt-32" id="services-page">
+    <div className="w-full bg-[#f8fafc] min-h-screen font-sans pb-24 text-slate-800" id="services-page">
       
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8" id="services-list-container">
-        
-        {/* Header & Filter Controls */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 mb-6 shadow-xs">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-            <div>
-              {/* Breadcrumb Path */}
-              <nav className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold mb-2" aria-label="Breadcrumb">
-                <a 
-                  href="#home" 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.location.hash = "";
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="hover:text-[#031b4e] transition-colors"
-                >
-                  Home
-                </a>
-                <ChevronRight size={12} className="text-slate-400" />
-                <span className="font-extrabold text-[#031b4e]">
-                  Services Directory
-                </span>
-              </nav>
-
-              <h1 className="font-sans font-black text-xl sm:text-3xl text-slate-900 tracking-tight">
-                Services Directory
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-                Select any HVAC service to view full scope, specifications, or book direct dispatch.
-              </p>
-            </div>
-          </div>
-
-          {/* Swipeable Category Filter Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-t border-slate-100 pt-4">
-            {[
-              { id: "all", label: "All Services" },
-              { id: "cleaning", label: "Cleaning" },
-              { id: "installation", label: "Installation" },
-              { id: "maintenance", label: "Maintenance" },
-              { id: "chillers", label: "Chillers" },
-              { id: "ducting", label: "Ducting" }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-                  activeTab === tab.id
-                    ? "bg-[#031b4e] text-white shadow-xs"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+      {/* Hero Header Section matching reference layout */}
+      <section className="pt-10 sm:pt-14 pb-8 px-4 sm:px-6 max-w-7xl mx-auto text-center">
+        {/* Subtle Breadcrumb */}
+        <div className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">
+          <a href="#/" className="hover:text-[#0f4c81] transition-colors">Home</a>
+          <span>/</span>
+          <span className="text-[#0f4c81]">AC Services</span>
         </div>
 
-        {/* RESPONSIVE SERVICE CARDS GRID OR EMPTY STATE */}
-        {paginatedServices.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center max-w-xl mx-auto space-y-4 shadow-xs">
-            <div className="w-14 h-14 bg-blue-50 text-[#0f4c81] rounded-2xl flex items-center justify-center mx-auto">
-              <Wrench size={26} />
-            </div>
-            <h3 className="font-black text-lg text-slate-900">Custom Engineering & Technical Services</h3>
-            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-              We provide customized commercial HVAC maintenance, installation, and emergency engineering across the UAE. Contact our engineering desk directly for project quotes and bespoke service contracts.
-            </p>
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <a
-                href="https://wa.me/97125650123"
-                target="_blank"
-                rel="noreferrer"
-                className="px-5 py-2.5 bg-[#25D366] text-white font-bold text-xs rounded-xl hover:bg-emerald-600 transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
-              >
-                <img src="/whatsapp-official.png" alt="WhatsApp" className="w-4 h-4 object-contain" />
-                <span>Contact via WhatsApp</span>
-              </a>
-              <button
-                type="button"
-                onClick={() => onRequestQuoteWithService("General HVAC Engineering Inquiry")}
-                className="px-5 py-2.5 bg-[#031b4e] text-white font-bold text-xs rounded-xl hover:bg-blue-900 transition-colors shadow-xs cursor-pointer"
-              >
-                Request Custom Quote
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="services-line-list">
-            {paginatedServices.map((service) => (
-              <div 
-                key={service.id}
-                onClick={() => setSelectedServiceId(service.id)}
-                className="bg-white rounded-2xl border border-slate-200 hover:border-[#2596be]/60 overflow-hidden shadow-2xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group cursor-pointer text-left h-full"
-              >
-                <div>
-                  {/* Image Container with clean overlay */}
-                  <div className="relative w-full h-44 sm:h-48 bg-slate-100 overflow-hidden">
-                    <img 
-                      src={service.image} 
-                      alt={service.title} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      referrerPolicy="no-referrer"
-                    />
-                    {/* Subtle gradient vignette at bottom for contrast */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent opacity-70"></div>
+        {/* Main Title */}
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#0f4c81] tracking-tight">
+          Our Professional AC Services
+        </h1>
 
-                    {/* Clean Modern Category Pill Badge */}
-                    <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-md text-[#031b4e] text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border border-slate-200/80 shadow-2xs">
-                      {service.category}
-                    </span>
+        {/* Subtitle matching reference tone */}
+        <p className="mt-4 text-xs sm:text-sm md:text-base text-slate-500 max-w-3xl mx-auto font-medium leading-relaxed">
+          From precision cooling maintenance to complete commercial lifecycle management, we provide a comprehensive lifecycle of climate control solutions tailored for the demanding UAE environment.
+        </p>
 
-                    {/* Wishlist Like Button */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleWishlist({ type: "service", service });
-                      }}
-                      className={`absolute top-3 right-3 p-2 rounded-full z-10 transition-all cursor-pointer shadow-xs ${
-                        isInWishlist(service.id)
-                          ? "bg-rose-50 text-rose-600 hover:bg-rose-100 scale-105"
-                          : "bg-white/90 hover:bg-white text-slate-400 hover:text-rose-600 backdrop-blur-md border border-slate-200/50"
-                      }`}
-                      title={isInWishlist(service.id) ? "Remove from Wishlist" : "Save to Wishlist"}
-                      aria-label="Save to Wishlist"
-                    >
-                      <Heart
-                        size={14}
-                        className={isInWishlist(service.id) ? "fill-rose-500 text-rose-500" : ""}
-                      />
-                    </button>
+        {/* Category Filter Pills (Matching Screenshot 1) */}
+        <div className="flex items-center justify-center gap-2 mt-7 overflow-x-auto pb-1 scrollbar-none flex-wrap">
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shadow-xs ${
+                selectedCategory === cat.id
+                  ? "bg-[#0f4c81] text-white shadow-md scale-102"
+                  : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
-                    {/* SLA Badge in bottom-left over image */}
-                    <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-[11px] font-bold text-white bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-md border border-white/20 shadow-xs">
-                      <Clock size={12} className="text-cyan-400 shrink-0" />
-                      <span className="truncate">SLA: {service.specs.sla}</span>
-                    </div>
-                  </div>
-
-                  {/* Content Area */}
-                  <div className="p-5 space-y-3">
-                    {/* Metadata Row */}
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-extrabold uppercase tracking-wider text-[#2596be]">
-                        Engineering Service
-                      </span>
-                      <span className="font-semibold text-slate-400">
-                        {service.specs.warranty}
-                      </span>
-                    </div>
-
-                    {/* Title */}
-                    <h3 className="font-display font-black text-base sm:text-lg text-slate-900 group-hover:text-[#2596be] transition-colors leading-snug line-clamp-2 min-h-[44px]">
-                      {service.title}
-                    </h3>
-
-                    {/* Tagline */}
-                    <p className="text-xs text-slate-500 font-medium line-clamp-2 leading-relaxed min-h-[34px]">
-                      {service.tagline}
-                    </p>
-
-                    {/* Key Feature Highlight Chips */}
-                    {Array.isArray(service.features) && service.features.length > 0 && (
-                      <div className="pt-1 flex flex-wrap gap-1.5">
-                        {service.features.slice(0, 2).map((feat, fIdx) => (
-                          <span 
-                            key={fIdx} 
-                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 truncate max-w-full"
-                          >
-                            <CheckCircle size={10} className="text-emerald-500 shrink-0" />
-                            <span className="truncate">{feat}</span>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Action Footer matching ProductCard */}
-                <div className="p-5 pt-0">
-                  <div className="flex items-center gap-2 pt-3.5 border-t border-slate-100">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (onAddToCart) {
-                          onAddToCart(serviceToProduct(service), 1);
-                        } else {
-                          onRequestQuoteWithService(service.title);
-                        }
-                      }}
-                      className="flex-1 bg-[#2596be] hover:bg-[#1c7e9f] text-white py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
-                      id={`add-quote-service-${service.id}`}
-                      title="Add service to procurement quote cart"
-                    >
-                      <ClipboardList size={14} className="shrink-0" />
-                      <span>Add to Quote</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openServiceWhatsAppOrder(service);
-                      }}
-                      className="p-2.5 bg-emerald-50 text-[#25D366] hover:bg-[#25D366] hover:text-white border border-emerald-200/80 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center justify-center group/wa"
-                      title="Quick WhatsApp Booking & Inquiry"
-                      aria-label="Order on WhatsApp"
-                    >
-                      <img src="/whatsapp-official.png" alt="WhatsApp" className="w-3.5 h-3.5 object-contain" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedServiceId(service.id);
-                      }}
-                      className="p-2.5 border border-slate-200 hover:border-[#2596be] hover:text-[#2596be] text-slate-600 rounded-xl text-xs font-bold transition-colors shrink-0 cursor-pointer flex items-center justify-center"
-                      title="View Full Scope & Specifications"
-                      aria-label="View Scope"
-                    >
-                      <Eye size={15} />
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-            ))}
-          </div>
-        )}
-
-          {/* ELEGANT NUMERIC PAGINATION CONTROLS (PAGE 1, PAGE 2, PAGE 3...) */}
-          {totalPages > 1 && (
-            <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-xs text-slate-500 font-medium">
-                Showing <span className="font-bold text-slate-900">{startIndex + 1}</span> to{" "}
-                <span className="font-bold text-slate-900">{Math.min(endIndex, filteredServices.length)}</span> of{" "}
-                <span className="font-bold text-slate-900">{filteredServices.length}</span> services
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                {/* Previous Page Button */}
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-all"
-                  id="pagination-prev-btn"
-                >
-                  <ChevronLeft size={14} />
-                  <span>Previous</span>
-                </button>
-
-                {/* Numeric Page Buttons (Page 1, Page 2, Page 3...) */}
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                  <button
-                    key={pageNum}
-                    onClick={() => handlePageChange(pageNum)}
-                    className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      currentPage === pageNum
-                        ? "bg-[#031b4e] text-white shadow-2xs"
-                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
-                    }`}
-                    id={`pagination-page-${pageNum}`}
-                  >
-                    {pageNum}
-                  </button>
-                ))}
-
-                {/* Next Page Button */}
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-all"
-                  id="pagination-next-btn"
-                >
-                  <span>Next</span>
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            </div>
-          )}
-
-        {/* ==================================================== */}
-        {/* REVIEWS ABOUT THE SERVICES SECTION (Directly Below Services List) */}
-        {/* ==================================================== */}
-        {/* CUSTOMER REVIEWS SECTION (Hidden if no approved reviews) */}
-        {/* ==================================================== */}
-        {approvedServiceReviews.length > 0 && (
-        <section className="mt-16 pt-12 border-t border-slate-200" id="service-reviews-section">
+      {/* Main 4-Column Grid Section */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
           
-          {/* Reviews Header with Submit Button */}
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
-            <div>
-              <span className="text-[11px] font-black uppercase tracking-widest text-[#2596be] block mb-1">
-                Verified Feedback
+          {filteredServices.map((service) => (
+            <article 
+              key={service.id}
+              className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col group hover:-translate-y-1"
+            >
+              {/* Card Image */}
+              <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
+                <img 
+                  src={service.image} 
+                  alt={service.title} 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  loading="lazy"
+                />
+
+                {/* Optional Badge */}
+                {service.badge && (
+                  <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-xs text-[#0f4c81] text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full shadow-xs border border-slate-200/50">
+                    {service.badge}
+                  </span>
+                )}
+              </div>
+
+              {/* Card Body */}
+              <div className="p-5 flex-1 flex flex-col justify-between">
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-[#0f4c81] group-hover:text-cyan-700 transition-colors tracking-tight line-clamp-1">
+                    {service.title}
+                  </h2>
+                  <p className="mt-2 text-xs text-slate-600 leading-relaxed line-clamp-3">
+                    {service.description}
+                  </p>
+                </div>
+
+                {/* Card Action Row */}
+                <div className="pt-4 mt-4 border-t border-slate-100 flex items-center gap-2">
+                  {/* WhatsApp Direct Enquiry Button (BIG) */}
+                  <button
+                    type="button"
+                    onClick={() => handleWhatsAppInquiry(service)}
+                    className="flex-1 py-2.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                    title={`Enquire about ${service.title} on WhatsApp`}
+                    aria-label={`WhatsApp Enquiry for ${service.title}`}
+                  >
+                    <MessageSquare size={15} />
+                    <span>WhatsApp</span>
+                  </button>
+
+                  {/* Add to Quote Button (SMALL) */}
+                  <button
+                    type="button"
+                    onClick={() => handleAddToQuote(service)}
+                    className="p-2.5 rounded-xl bg-slate-100 hover:bg-[#0f4c81] text-slate-700 hover:text-white border border-slate-200 hover:border-[#0f4c81] transition-all flex items-center justify-center cursor-pointer shadow-xs active:scale-95 shrink-0"
+                    title={`Add ${service.title} to Quote List`}
+                    aria-label={`Add ${service.title} to Quote List`}
+                  >
+                    <ClipboardList size={16} />
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
+
+          {/* 8th Card: Navy Blue "Ready to Start?" CTA Card (Matching Reference Layout) */}
+          <div className="bg-gradient-to-br from-[#031b4e] via-[#0f4c81] to-[#164e87] text-white rounded-2xl p-6 sm:p-7 flex flex-col justify-between shadow-lg relative overflow-hidden group min-h-[340px]">
+            {/* Background decoration */}
+            <div className="absolute -top-12 -right-12 w-40 h-40 bg-cyan-400/10 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-700" />
+            <div className="absolute -bottom-10 -left-10 w-36 h-36 bg-blue-500/15 rounded-full blur-xl pointer-events-none" />
+
+            {/* Top Text */}
+            <div className="relative z-10 space-y-3">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-cyan-300 bg-white/10 px-2.5 py-1 rounded-full border border-white/15">
+                <ShieldCheck size={12} />
+                <span>HVAC Engineering Desk</span>
               </span>
-              <h2 className="font-display font-black text-2xl sm:text-3xl text-slate-900 tracking-tight">
-                Customer Reviews & Service Feedback
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1 max-w-2xl">
-                Read authentic feedback from residential villa owners, commercial facility directors, and MEP contractors across the UAE.
+
+              <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-tight">
+                Ready to Start?
+              </h3>
+
+              <p className="text-xs text-blue-100/90 leading-relaxed font-medium">
+                Connect directly with our HVAC engineering team for commercial load calculations, bespoke AMC packages, or emergency technician dispatch.
+              </p>
+            </div>
+
+            {/* Bottom Action Button */}
+            <div className="relative z-10 pt-4">
+              <a
+                href="#/contact"
+                className="w-full py-3 px-4 rounded-xl bg-white hover:bg-blue-50 text-[#0f4c81] font-extrabold text-xs uppercase tracking-wider transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer group-hover:translate-x-0.5"
+              >
+                <span>Contact Expert</span>
+                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </main>
+
+      {/* Customer Feedback & Reviews Section */}
+      {reviews && reviews.length > 0 ? (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 mt-14" id="services-reviews">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                Client Reviews &amp; Field Feedback
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Verified feedback from property managers, facility directors, and villa owners across the UAE.
               </p>
             </div>
 
             <button
               type="button"
               onClick={handleOpenReviewModal}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer shadow-xs active:scale-95 self-start sm:self-auto"
-              id="leave-service-review-btn"
+              className="self-start sm:self-auto px-4 py-2 rounded-xl bg-[#0f4c81] hover:bg-[#0c3d69] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
-              <MessageSquare size={14} className="text-cyan-400" />
+              <Plus size={14} />
               <span>Submit Review</span>
             </button>
           </div>
 
-          {/* Verified Customer Reviews Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
-            {approvedServiceReviews.map((review) => {
-              const name = 'authorName' in review ? review.authorName : (review as any).authorName;
-              const role = 'authorRole' in review ? review.authorRole : (review as any).authorRole;
-              const avatar = 'authorAvatar' in review ? review.authorAvatar : undefined;
-              const dateStr = 'createdAt' in review ? new Date((review as any).createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : (review as any).date;
-
-              return (
-                <div 
-                  key={review.id}
-                  className="bg-white rounded-2xl p-6 border border-slate-200 hover:border-blue-200 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between h-full"
-                >
-                  <div className="space-y-3.5">
-                    {/* Rating Stars & Service Badge Row */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1 text-amber-400 shrink-0">
-                        {[...Array(review.rating || 5)].map((_, i) => (
-                          <Star key={i} size={14} className="fill-amber-400 text-amber-400" />
-                        ))}
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        {review.verifiedBooking && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                            <ShieldCheck size={11} />
-                            <span>Verified Service</span>
-                          </span>
-                        )}
-                        <span className="text-[11px] text-slate-400 font-semibold whitespace-nowrap">
-                          {dateStr}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Review Text */}
-                    <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed italic">
-                      "{review.comment}"
-                    </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {reviews.slice(0, 3).map((rev) => (
+              <div key={rev.id} className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs flex flex-col justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1 text-amber-400">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} size={14} className={i < rev.rating ? "fill-amber-400 text-amber-400" : "text-slate-200"} />
+                    ))}
                   </div>
-
-                  {/* Reviewer Details Footer (Permanently Pinned to Bottom with min-w-0 and whitespace-nowrap) */}
-                  <div className="border-t border-slate-100 pt-4 mt-5 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      {avatar ? (
-                        <img 
-                          src={avatar} 
-                          alt={name} 
-                          className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-2xs shrink-0" 
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-blue-50 text-[#031b4e] font-black text-xs flex items-center justify-center border border-blue-100 shrink-0">
-                          {name ? name.charAt(0).toUpperCase() : "C"}
-                        </div>
-                      )}
-
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-black text-slate-900 truncate tracking-tight">
-                          {name}
-                        </p>
-                        <p className="text-[11px] text-[#0f4c81] font-bold truncate mt-0.5">
-                          {role} • {review.location}
-                        </p>
-                        {review.serviceTitle && (
-                          <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5" title={review.serviceTitle}>
-                            Service: <span className="text-slate-700 font-bold">{review.serviceTitle}</span>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
+                  <p className="text-xs text-slate-700 leading-relaxed italic">
+                    "{rev.comment}"
+                  </p>
                 </div>
-              );
-            })}
+                <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                  <div>
+                    <span className="font-extrabold text-slate-900 block">{rev.authorName}</span>
+                    <span className="text-slate-400">{rev.location || "UAE"}</span>
+                  </div>
+                  {rev.verifiedBooking && (
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                      Verified
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-
         </section>
-        )}
+      ) : (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-8 flex justify-end" id="services-reviews">
+          <button
+            type="button"
+            onClick={handleOpenReviewModal}
+            className="px-4 py-2 rounded-xl bg-[#0f4c81] hover:bg-[#0c3d69] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+          >
+            <Plus size={14} />
+            <span>Submit Review</span>
+          </button>
+        </div>
+      )}
 
-      </div>
-
-      {/* WRITE A SERVICE REVIEW MODAL */}
+      {/* Review Submission Modal */}
       {isReviewModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-100 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
             
-            {/* Modal Header */}
             <div className="bg-[#031b4e] text-white p-5 flex justify-between items-center">
               <div>
-                <h3 className="font-display font-bold text-base flex items-center gap-2">
+                <h3 className="font-bold text-base flex items-center gap-2">
                   <MessageSquare size={16} className="text-cyan-400" />
                   <span>Submit Service Feedback</span>
                 </h3>
@@ -1338,33 +483,25 @@ export default function ServicesPage({
               </div>
               <button 
                 onClick={() => setIsReviewModalOpen(false)}
-                className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 w-7 h-7 rounded-full flex items-center justify-center transition-colors focus:outline-none"
+                className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 w-7 h-7 rounded-full flex items-center justify-center transition-colors focus:outline-none cursor-pointer"
               >
                 <X size={15} />
               </button>
             </div>
 
-            {/* Modal Body */}
             {reviewSubmitted ? (
               <div className="p-8 text-center space-y-3">
                 <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
                   <CheckCircle2 size={32} />
                 </div>
-                <h4 className="font-display font-bold text-slate-900 text-lg">Thank You for Your Feedback!</h4>
+                <h4 className="font-bold text-slate-900 text-lg">Thank You for Your Feedback!</h4>
                 <p className="text-xs text-slate-600 font-medium max-w-sm mx-auto leading-relaxed">
-                  Your review has been submitted for administrative verification. Once approved by our team, it will appear live in the Service Directory.
+                  Your review has been submitted for administrative verification. Once approved, it will appear live.
                 </p>
-                <div className="pt-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-[11px] font-bold">
-                    <Clock size={12} />
-                    <span>Status: Pending Admin Approval</span>
-                  </span>
-                </div>
               </div>
             ) : (
               <form onSubmit={handleReviewFormSubmit} className="p-6 space-y-4">
                 
-                {/* Authenticated User Banner */}
                 {user && (
                   <div className="p-2.5 bg-blue-50/70 border border-blue-100 rounded-xl flex items-center justify-between text-[11px] text-[#031b4e]">
                     <span className="flex items-center gap-1.5 font-semibold">
@@ -1374,149 +511,85 @@ export default function ServicesPage({
                   </div>
                 )}
 
-                {/* Profile Photo Upload Widget */}
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-3.5">
-                  <div className="relative w-12 h-12 rounded-full bg-slate-200 border-2 border-slate-300 overflow-hidden shrink-0 flex items-center justify-center text-slate-600 font-bold text-sm">
-                    {newReview.avatar ? (
-                      <img src={newReview.avatar} alt="Reviewer" className="w-full h-full object-cover" />
-                    ) : (
-                      <span>{newReview.name ? newReview.name.charAt(0).toUpperCase() : <Camera size={18} className="text-slate-400" />}</span>
-                    )}
-                  </div>
-
-                  <div className="flex-1 space-y-1">
-                    <input
-                      ref={reviewFileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoUpload}
-                      className="hidden"
-                      id="services-review-photo-input"
-                    />
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => reviewFileInputRef.current?.click()}
-                        disabled={isUploadingPhoto}
-                        className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-[11px] font-bold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50"
-                      >
-                        <Upload size={12} />
-                        <span>{isUploadingPhoto ? "Uploading..." : newReview.avatar ? "Change Photo" : "Upload Photo"}</span>
-                      </button>
-
-                      {newReview.avatar && (
-                        <button
-                          type="button"
-                          onClick={handleRemovePhoto}
-                          className="p-1.5 text-slate-400 hover:text-red-600 transition-colors cursor-pointer rounded-lg hover:bg-red-50"
-                          title="Remove photo"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-slate-400">Optional: Attach your photo (under 5MB)</p>
-                  </div>
-                </div>
-
-                {/* Full Name */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Your Name / Title</label>
-                  <input 
-                    type="text" 
-                    required
-                    placeholder="e.g. Mohamed Al Nuaimi"
-                    value={newReview.name}
-                    onChange={(e) => setNewReview({ ...newReview, name: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#031b4e]"
-                  />
-                </div>
-
-                {/* Service Category Selection */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Service Used</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Service Selected</label>
                   <select
                     value={newReview.service}
-                    onChange={(e) => setNewReview({ ...newReview, service: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#031b4e]"
+                    onChange={(e) => setNewReview(prev => ({ ...prev, service: e.target.value }))}
+                    className="w-full px-3.5 py-2 text-xs font-semibold text-slate-800 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
                   >
-                    {services.map((s) => (
+                    {activeServices.map(s => (
                       <option key={s.id} value={s.title}>{s.title}</option>
                     ))}
                   </select>
                 </div>
 
-                {/* Location */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Location / Area</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. Al Reem Island, Abu Dhabi"
-                    value={newReview.location}
-                    onChange={(e) => setNewReview({ ...newReview, location: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#031b4e]"
-                  />
-                </div>
-
-                {/* Rating selection */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Service Rating</label>
-                  <div className="flex items-center gap-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        type="button"
-                        key={star}
-                        onClick={() => setNewReview({ ...newReview, rating: star })}
-                        className="p-1 hover:scale-110 transition-transform cursor-pointer"
-                      >
-                        <Star 
-                          size={22} 
-                          className={star <= newReview.rating ? "fill-amber-400 text-amber-400" : "text-slate-300"} 
-                        />
-                      </button>
-                    ))}
-                    <span className="text-xs font-bold text-slate-600 ml-2">{newReview.rating} / 5 Stars</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Your Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Tariq Al Mansoori"
+                      value={newReview.name}
+                      onChange={(e) => setNewReview(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Location</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Abu Dhabi, UAE"
+                      value={newReview.location}
+                      onChange={(e) => setNewReview(prev => ({ ...prev, location: e.target.value }))}
+                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    />
                   </div>
                 </div>
 
-                {/* Review comment */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Your Feedback / Comments</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Rating</label>
+                  <div className="flex items-center gap-1.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setNewReview(prev => ({ ...prev, rating: star }))}
+                        className="p-1 text-amber-400 hover:scale-110 transition-transform cursor-pointer"
+                      >
+                        <Star size={20} className={star <= newReview.rating ? "fill-amber-400 text-amber-400" : "text-slate-300"} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Your Experience *</label>
                   <textarea
                     required
                     rows={3}
-                    placeholder="Tell us about the speed, technical quality, and engineer professionalism..."
+                    placeholder="Describe the quality of service, response time, and professionalism..."
                     value={newReview.comment}
-                    onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#031b4e]"
+                    onChange={(e) => setNewReview(prev => ({ ...prev, comment: e.target.value }))}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none"
                   />
                 </div>
 
-                {/* Submit button */}
-                <div className="pt-2 flex justify-end gap-2">
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                   <button
                     type="button"
                     onClick={() => setIsReviewModalOpen(false)}
-                    className="px-4 py-2 rounded-lg text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+                    className="px-4 py-2 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-50 cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmittingReview}
-                    className="px-5 py-2 rounded-lg text-xs font-bold text-white bg-[#031b4e] hover:bg-[#2596be] transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="px-5 py-2 bg-[#0f4c81] hover:bg-[#0c3d69] text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer disabled:opacity-50"
                   >
-                    {isSubmittingReview ? (
-                      <>
-                        <Loader2 size={13} className="animate-spin" />
-                        <span>Submitting...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send size={13} />
-                        <span>Submit for Verification</span>
-                      </>
-                    )}
+                    {isSubmittingReview ? "Submitting..." : "Submit Review"}
                   </button>
                 </div>
 
@@ -1530,4 +603,3 @@ export default function ServicesPage({
     </div>
   );
 }
-

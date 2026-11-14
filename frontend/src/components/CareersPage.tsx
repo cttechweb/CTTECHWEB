@@ -206,55 +206,46 @@ export default function CareersPage({ onOpenQuote }: CareersPageProps) {
   return (
     <div className="bg-white text-slate-800 min-h-screen flex flex-col font-sans">
       
-      {/* ----------------- 1. HERO SECTION ----------------- */}
-      <section className="relative bg-[#031b4e] text-white overflow-hidden py-16 lg:py-24 border-b border-slate-800">
-        {/* Background Image with Overlay */}
-        <div className="absolute inset-0 z-0">
-          <img
-            src={heroBanner}
-            alt="Cool Technologies Industrial Facility"
-            className="w-full h-full object-cover object-center opacity-25"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#031b4e] via-[#031b4e]/95 to-[#031b4e]/80" />
-        </div>
-
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* ----------------- 1. HERO SECTION (Minimal White Background) ----------------- */}
+      <section className="bg-white border-b border-slate-200 py-10 sm:py-14">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-xs text-slate-300 font-semibold mb-6">
-            <a href="#/" className="hover:text-cyan-400 transition-colors">
+          <nav className="flex items-center gap-2 text-xs text-slate-500 font-semibold mb-6">
+            <button 
+              onClick={() => {
+                window.location.hash = "#/";
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="hover:text-[#2596be] transition-colors cursor-pointer"
+            >
               Home
-            </a>
-            <ChevronRight size={12} className="text-slate-500" />
-            <span className="text-cyan-400 font-bold">Careers</span>
+            </button>
+            <ChevronRight size={12} className="text-slate-400" />
+            <span className="text-[#031b4e] font-bold uppercase tracking-wider">Careers</span>
           </nav>
 
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/20 text-cyan-300 text-xs font-bold uppercase tracking-widest mb-4">
-              <Building2 size={14} className="text-cyan-400" />
-              <span>{config.heroBadge || "Join Our Team"}</span>
-            </div>
-
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight font-display mb-6">
-              {config.heroTitle || "Careers at Cool Technologies"}
+          <div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#031b4e] tracking-tight uppercase font-sans">
+              Careers at Cool <span className="text-[#2596be]">Technologies</span>
             </h1>
 
-            <p className="text-base sm:text-lg text-slate-300 leading-relaxed font-medium mb-8">
+            <p className="text-slate-600 text-xs sm:text-sm md:text-base font-normal mt-3 max-w-3xl leading-relaxed">
               {config.heroSubtitle || "Join a team dedicated to innovation, quality, and customer satisfaction. Build your career with one of the UAE's trusted industrial cooling solution providers."}
             </p>
 
-            <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex flex-wrap gap-3 items-center pt-5">
               <button
                 onClick={handleScrollToPositions}
-                className="bg-[#2596be] hover:bg-[#1f7d9f] text-white font-bold px-7 py-3.5 rounded-xl shadow-lg hover:shadow-cyan-500/20 transition-all flex items-center gap-2 text-sm cursor-pointer"
+                className="bg-[#031b4e] hover:bg-[#2596be] text-white font-bold px-6 py-2.5 rounded-xl shadow-xs transition-all flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
               >
                 <span>View Open Positions ({activeJobs.length})</span>
-                <ArrowDown size={16} />
+                <ArrowDown size={14} />
               </button>
 
               {config.allowGeneralApplications !== false && (
                 <button
                   onClick={() => handleApplyClick({ title: "General Application", id: "general" })}
-                  className="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold px-6 py-3.5 rounded-xl transition-all text-sm cursor-pointer"
+                  className="bg-white hover:bg-slate-50 text-[#031b4e] border border-slate-300 font-bold px-5 py-2.5 rounded-xl transition-all text-xs sm:text-sm cursor-pointer shadow-xs"
                 >
                   Submit General Resume
                 </button>

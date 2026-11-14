@@ -477,19 +477,42 @@ export interface BlogPost {
 
 export interface ServiceItem {
   id: string;
-  category: string;
   title: string;
-  tagline: string;
   description: string;
-  iconName: string;
-  features: string[];
-  specs: {
-    sla: string;
-    warranty: string;
-    targetAudience: string;
-    certifiedFor: string;
-  };
   image: string;
+  category?: string;
+  tagline?: string;
+  badge?: string;
+  isActive?: boolean;
+  order?: number;
+  iconName?: string;
+  features?: string[];
+  specs?: {
+    sla?: string;
+    warranty?: string;
+    targetAudience?: string;
+    certifiedFor?: string;
+  };
+}
+
+export interface SparePart {
+  id: string;
+  partNumber: string;
+  title: string;
+  brand: string;
+  category: string;
+  subCategory?: string;
+  description: string;
+  compatibility?: string;
+  specs?: Record<string, string>;
+  image: string;
+  images?: string[];
+  inStock: boolean;
+  price?: number;
+  badge?: string;
+  order?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface BrandPartner {
@@ -583,7 +606,16 @@ export interface GeneralSiteSettings {
   socialSeoSettings?: SocialSeoPreviewSettings;
   phoneContacts?: DynamicContactNumber[];
   emailContacts?: DynamicContactEmail[];
+  enquiryTypes?: EnquiryTypeOption[];
   updatedAt?: string;
+}
+
+export interface EnquiryTypeOption {
+  id: string;
+  value: string;
+  label: string;
+  isActive?: boolean;
+  order?: number;
 }
 
 export interface DynamicContactNumber {
@@ -638,7 +670,7 @@ export interface DynamicSocialLink {
 
 export interface WhatsAppRoutingSettings {
   floatingWidgetEnabled: boolean;
-  floatingPhoneNumber: string; // e.g. "+971 50 123 4567"
+  floatingPhoneNumber: string; // e.g. "+971 2 565 0123"
   floatingPrefilledMessage: string; // e.g. "Hello Cool Technologies, I would like to inquire about commercial cooling equipment."
   floatingButtonPosition?: "bottom-right" | "bottom-left";
   emailAutoReplyWhatsappNumber: string; // Used in email confirmation card
@@ -650,8 +682,8 @@ export interface DepartmentHotlines {
   servicesEmergencyPhone?: string; // e.g. "+971 2 815 6161" or "+971 2 565 0123"
   mediaPressEmail?: string; // e.g. "media@cooltechuae.com"
   pressEmail?: string; // e.g. "press@cooltechuae.com"
-  pressDeskPhone?: string; // e.g. "+971 2 555 1234"
-  pressWhatsapp?: string; // e.g. "+971 50 123 4567"
+  pressDeskPhone?: string; // e.g. "+971 2 565 0123"
+  pressWhatsapp?: string; // e.g. "+971 2 565 0123"
   legalEmail?: string; // e.g. "legal@cooltechuae.com"
   legalPhone?: string; // e.g. "+971 2 565 0123"
   privacyEmail?: string; // e.g. "privacy@cooltechuae.com"

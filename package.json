@@ -13,6 +13,7 @@
     "preview": "npm --prefix frontend run preview",
     "lint": "npm --prefix frontend run lint",
     "clean": "npm --prefix frontend run clean",
+    "scrape:spare-parts": "node scripts/scrape-spare-parts.cjs",
     "worker:dev": "npm --prefix backend run dev",
     "worker:deploy": "npm --prefix backend run deploy"
   }

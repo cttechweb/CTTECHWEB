@@ -18,16 +18,16 @@ export function getCleanWhatsAppNumber(): string {
       settings.whatsappSettings?.floatingPhoneNumber ||
       settings.whatsappSettings?.contactPageWhatsappNumber ||
       settings.whatsapp ||
-      "+971 50 123 4567";
+      "+971 2 565 0123";
 
     let digits = rawNumber.replace(/[^0-9]/g, "");
     // If UAE local format starting with 0 (e.g., 0501234567), prepend country code 971
     if (digits.startsWith("0") && digits.length === 10) {
       digits = "971" + digits.slice(1);
     }
-    return digits || "971501234567";
+    return digits || "97125650123";
   } catch (e) {
-    return "971501234567";
+    return "97125650123";
   }
 }
 

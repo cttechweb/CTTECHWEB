@@ -57,7 +57,7 @@ export default function ContactForm() {
                   </div>
                   <div>
                     <p className="font-bold text-xs text-blue-200 uppercase tracking-widest leading-none mb-1">Commercial Hotline</p>
-                    <p className="font-semibold text-white">+1 (800) 555-COOL</p>
+                    <p className="font-semibold text-white">+971 2 565 0123</p>
                   </div>
                 </div>
 
@@ -67,7 +67,7 @@ export default function ContactForm() {
                   </div>
                   <div>
                     <p className="font-bold text-xs text-blue-200 uppercase tracking-widest leading-none mb-1">Contractor Support</p>
-                    <p className="font-semibold text-white">contractors@cooltechnologies.com</p>
+                    <p className="font-semibold text-white">info@cooltechuae.com</p>
                   </div>
                 </div>
 
@@ -77,9 +77,9 @@ export default function ContactForm() {
                   </div>
                   <div>
                     <p className="font-bold text-xs text-blue-200 uppercase tracking-widest leading-none mb-1">Headquarters</p>
-                    <p className="text-sm text-blue-500/100 leading-snug font-semibold">
-                      500 Cool Tech Way, Suite 100,<br />
-                      Chicago, IL 60611
+                    <p className="text-sm text-blue-200 leading-snug font-semibold">
+                      Plot-99, Sector M-42,<br />
+                      Mussafah Industrial, Abu Dhabi, UAE
                     </p>
                   </div>
                 </div>
@@ -90,7 +90,7 @@ export default function ContactForm() {
             {/* Operational hours info */}
             <div className="relative z-10 pt-8 border-t border-white/10 mt-8 flex items-center gap-2.5 text-xs text-blue-200 font-semibold">
               <Clock size={16} className="text-cyan-300" />
-              <span>Estimating & Engineering Desk Open Mon-Fri 7AM - 7PM CST</span>
+              <span>Estimating & Engineering Desk Open Mon-Sat 8:00 AM - 7:00 PM GST</span>
             </div>
 
           </div>
@@ -145,7 +145,7 @@ export default function ContactForm() {
                     </label>
                     <input
                       type="tel"
-                      placeholder="(555) 012-3456"
+                      placeholder="+971 2 565 0123"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       className="border border-gray-200 bg-gray-50/50 rounded px-3 py-2 focus:outline-none focus:border-[#0f4c81] focus:bg-white transition-colors"

@@ -965,7 +965,7 @@ export default function ProductEditorModal({
       minOrderQty: showMinOrderQty ? Number(minOrderQty || 1) : 0,
       showMinOrderQty: Boolean(showMinOrderQty),
       badge: badge || undefined,
-      isFeatured: badge === "Featured",
+      isFeatured: badge === "Featured" || Boolean(editingProduct?.isFeatured),
       emblemImage: emblemImage.trim() || undefined,
       emblemText: emblemText.trim() || undefined,
       emblemSize,

@@ -19,13 +19,15 @@ import {
   AlertCircle,
   PhoneCall
 } from "lucide-react";
-import { CompanyBranch, GeneralSiteSettings, ContactFaqItem } from "../types";
+import { CompanyBranch, GeneralSiteSettings, ContactFaqItem, EnquiryTypeOption } from "../types";
 import { 
   getBranches, 
   getGeneralSettings, 
   getContactFaqs,
+  getEnquiryTypes,
   DEFAULT_PHONE_CONTACTS,
-  DEFAULT_EMAIL_CONTACTS
+  DEFAULT_EMAIL_CONTACTS,
+  DEFAULT_ENQUIRY_TYPES
 } from "../services/generalSettingsService";
 import { submitGeneralEnquiry } from "../services/enquiryService";
 
@@ -35,14 +37,6 @@ interface ContactPageProps {
   onOpenProducts?: () => void;
   onShowToast?: (message: string) => void;
 }
-
-const INQUIRY_CATEGORIES = [
-  { value: "product_support", label: "Product Support" },
-  { value: "equipment_quotation", label: "HVAC Equipment Quotation & Sourcing" },
-  { value: "service_maintenance", label: "Service & Maintenance Query" },
-  { value: "warranty_parts", label: "Warranty & Spare Parts Claim" },
-  { value: "general_enquiry", label: "General Business & Partnership Enquiry" }
-];
 
 export default function ContactPage({ initialCategory, onShowToast }: ContactPageProps) {
   const [settings, setSettings] = useState<GeneralSiteSettings>(getGeneralSettings());
@@ -130,6 +124,10 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
   // FAQ State
   const [openFaqIdx, setOpenFaqIdx] = useState<number | null>(0);
 
+  const [enquiryTypes, setEnquiryTypes] = useState<EnquiryTypeOption[]>(() => {
+    return getEnquiryTypes().filter((t) => t.isActive !== false);
+  });
+
   const loadData = () => {
     const s = getGeneralSettings();
     setSettings(s);
@@ -137,6 +135,8 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
     setBranches(bList);
     const fList = getContactFaqs().filter((f) => f.isActive !== false);
     setFaqs(fList);
+    const eList = getEnquiryTypes().filter((t) => t.isActive !== false);
+    setEnquiryTypes(eList);
 
     if (bList.length > 0) {
       if (!activeBranchId || !bList.some((b) => b.id === activeBranchId)) {
@@ -151,11 +151,13 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
     window.addEventListener("cooltech_settings_updated", loadData);
     window.addEventListener("cooltech_contact_settings_updated", loadData);
     window.addEventListener("cooltech_general_settings_updated", loadData);
+    window.addEventListener("cooltech_enquiry_types_updated", loadData);
     window.addEventListener("storage", loadData);
     return () => {
       window.removeEventListener("cooltech_settings_updated", loadData);
       window.removeEventListener("cooltech_contact_settings_updated", loadData);
       window.removeEventListener("cooltech_general_settings_updated", loadData);
+      window.removeEventListener("cooltech_enquiry_types_updated", loadData);
       window.removeEventListener("storage", loadData);
     };
   }, []);
@@ -239,7 +241,7 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
         email: email.trim(),
         phone: phone.trim() || undefined,
         companyName: company.trim() || undefined,
-        subject: `Contact Inquiry: ${INQUIRY_CATEGORIES.find((c) => c.value === inquiryCategory)?.label || inquiryCategory}`,
+        subject: `Contact Inquiry: ${enquiryTypes.find((c) => c.value === inquiryCategory)?.label || inquiryCategory}`,
         message: message.trim(),
         metadata: {
           inquiryCategory,
@@ -305,72 +307,44 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
           <div className="lg:col-span-7 bg-white p-6 sm:p-8 lg:p-9 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
             
             <div className="mb-6" id="contact-form">
-              <h2 className="text-2xl font-black text-[#031b4e] uppercase tracking-tight font-sans">
-                {isFromProductSupport 
-                  ? "Product Support & Technical Inquiry" 
-                  : isFromEquipmentQuotation 
-                  ? "HVAC Equipment Quotation & Sourcing" 
-                  : "Send Us a Message"}
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight font-sans">
+                Enquiry Form
               </h2>
-              <p className="text-xs text-slate-500 font-semibold mt-1">
-                {isFromProductSupport 
-                  ? "Fill your details and submit your request here. Our engineering and support team will contact you promptly."
-                  : isFromEquipmentQuotation
-                  ? (inquiryProduct 
-                      ? `Requesting wholesale quotation for: ${inquiryProduct}. Fill your details below to receive an official proposal.`
-                      : "Fill your details and submit your quotation request below. Our commercial sales engineering team will contact you promptly.")
-                  : "Fill out the form below. Our engineering and sales team will contact you promptly."}
+              <p className="text-xs text-slate-500 font-normal mt-1">
+                Fill out the form below and our team will get in touch promptly.
               </p>
             </div>
 
             {!isSubmitted ? (
               <form onSubmit={handleSubmitForm} className="space-y-4">
                 
-                {/* Full Name & Company Name */}
+                {/* Name & Organization Name */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-bold text-slate-700 block">
-                        Your Full Name <span className="text-red-500">*</span>
-                      </label>
-                      {(isFromProductSupport || isFromEquipmentQuotation) && (
-                        <span className="text-red-500 font-semibold text-[11px]">
-                          Please fill your details
-                        </span>
-                      )}
-                    </div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                      Your Name <span className="text-red-500">*</span>
+                    </label>
                     <input
                       ref={nameInputRef}
                       type="text"
                       required
-                      placeholder="e.g. Mohammed Al Mansoori"
+                      placeholder="Your name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className={`w-full px-3.5 py-2.5 text-xs font-semibold border rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none transition-all text-slate-900 placeholder:text-slate-400 ${
-                        isFromProductSupport || isFromEquipmentQuotation
-                          ? "border-[#0f4c81] ring-2 ring-[#0f4c81]/15"
-                          : "border-slate-300 focus:border-[#0f4c81] focus:ring-2 focus:ring-[#0f4c81]/15"
-                      }`}
+                      className="w-full px-3.5 py-2.5 text-xs border border-slate-200 rounded-lg bg-white focus:bg-white focus:outline-none focus:border-[#0f4c81] focus:ring-1 focus:ring-[#0f4c81] transition-all text-slate-900 placeholder:text-slate-400"
                     />
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-bold text-slate-700 block">
-                        Company / Organization Name
-                      </label>
-                      {isFromEquipmentQuotation && (
-                        <span className="text-red-500 font-semibold text-[11px]">
-                          Please fill your company
-                        </span>
-                      )}
-                    </div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                      Organization Name
+                    </label>
                     <input
                       type="text"
-                      placeholder="e.g. Al Futtaim Contracting, Emrill LLC"
+                      placeholder="Company or organization name"
                       value={company}
                       onChange={(e) => setCompany(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-xs font-semibold border border-slate-300 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:border-[#0f4c81] focus:ring-2 focus:ring-[#0f4c81]/15 transition-all text-slate-900 placeholder:text-slate-400"
+                      className="w-full px-3.5 py-2.5 text-xs border border-slate-200 rounded-lg bg-white focus:bg-white focus:outline-none focus:border-[#0f4c81] focus:ring-1 focus:ring-[#0f4c81] transition-all text-slate-900 placeholder:text-slate-400"
                     />
                   </div>
                 </div>
@@ -378,52 +352,38 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
                 {/* Email & Phone */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-bold text-slate-700 block">
-                        Email Address (Gmail / Corporate ID) <span className="text-red-500">*</span>
-                      </label>
-                      {isFromEquipmentQuotation && (
-                        <span className="text-red-500 font-semibold text-[11px]">
-                          Please fill your email
-                        </span>
-                      )}
-                    </div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="email"
                       required
-                      placeholder="e.g. engineer@company.ae"
+                      placeholder="name@company.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-xs font-semibold border border-slate-300 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:border-[#0f4c81] focus:ring-2 focus:ring-[#0f4c81]/15 transition-all text-slate-900 placeholder:text-slate-400"
+                      className="w-full px-3.5 py-2.5 text-xs border border-slate-200 rounded-lg bg-white focus:bg-white focus:outline-none focus:border-[#0f4c81] focus:ring-1 focus:ring-[#0f4c81] transition-all text-slate-900 placeholder:text-slate-400"
                     />
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-bold text-slate-700 block">
-                        Phone Number (+971) <span className="text-red-500">*</span>
-                      </label>
-                      {isFromEquipmentQuotation && (
-                        <span className="text-red-500 font-semibold text-[11px]">
-                          Please fill your phone
-                        </span>
-                      )}
-                    </div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                      Phone Number <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="tel"
                       required
-                      placeholder="e.g. +971 50 123 4567"
+                      placeholder="+971 50 123 4567"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-xs font-semibold border border-slate-300 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:border-[#0f4c81] focus:ring-2 focus:ring-[#0f4c81]/15 transition-all text-slate-900 placeholder:text-slate-400"
+                      className="w-full px-3.5 py-2.5 text-xs border border-slate-200 rounded-lg bg-white focus:bg-white focus:outline-none focus:border-[#0f4c81] focus:ring-1 focus:ring-[#0f4c81] transition-all text-slate-900 placeholder:text-slate-400"
                     />
                   </div>
                 </div>
 
-                {/* Inquiry Category / Problem Dropdown */}
+                {/* Enquiry Category Dropdown */}
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                    Inquiry Type / Problem Category <span className="text-red-500">*</span>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                    Enquiry Type <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={inquiryCategory}
@@ -436,14 +396,10 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
                         setIsFromEquipmentQuotation(false);
                       }
                     }}
-                    className={`w-full px-3.5 py-2.5 text-xs font-semibold border rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none transition-all text-slate-900 ${
-                      isFromProductSupport || isFromEquipmentQuotation
-                        ? "border-[#0f4c81] ring-2 ring-[#0f4c81]/15"
-                        : "border-slate-300 focus:border-[#0f4c81] focus:ring-2 focus:ring-[#0f4c81]/15"
-                    }`}
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 rounded-lg bg-white focus:bg-white focus:outline-none focus:border-[#0f4c81] focus:ring-1 focus:ring-[#0f4c81] transition-all text-slate-900"
                   >
-                    {INQUIRY_CATEGORIES.map((cat) => (
-                      <option key={cat.value} value={cat.value}>
+                    {enquiryTypes.map((cat) => (
+                      <option key={cat.id || cat.value} value={cat.value}>
                         {cat.label}
                       </option>
                     ))}
@@ -452,57 +408,32 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
 
                 {/* Message Textarea */}
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold text-slate-700 block">
-                      {isFromProductSupport 
-                        ? "Your Complaint / Technical Issue Details" 
-                        : isFromEquipmentQuotation 
-                        ? "Quotation Scope & Equipment Requirements" 
-                        : "Your Message / Requirements"} <span className="text-red-500">*</span>
-                    </label>
-                    {isFromProductSupport ? (
-                      <span className="text-red-500 font-semibold text-[11px]">
-                        Please fill your complaint
-                      </span>
-                    ) : isFromEquipmentQuotation ? (
-                      <span className="text-red-500 font-semibold text-[11px]">
-                        Please fill your quotation requirements
-                      </span>
-                    ) : null}
-                  </div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                    Your Message <span className="text-red-500">*</span>
+                  </label>
                   <textarea
                     rows={4}
                     required
-                    placeholder={
-                      isFromProductSupport
-                        ? "Please fill your complaint here: Specify the HVAC product, model code, serial number, technical issue, or required spare parts..."
-                        : isFromEquipmentQuotation
-                        ? "Please specify required unit quantities, capacity tonnage, project location, delivery schedule, and any technical specifications..."
-                        : "Provide details about your project, model codes, unit tonnage, or technical support requirements..."
-                    }
+                    placeholder="Provide details about your project, model codes, unit tonnage, or requirements..."
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    className={`w-full px-3.5 py-2.5 text-xs font-medium border rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none transition-all text-slate-900 placeholder:text-slate-400 resize-y ${
-                      isFromProductSupport || isFromEquipmentQuotation
-                        ? "border-[#0f4c81]/70 focus:border-[#0f4c81] focus:ring-2 focus:ring-[#0f4c81]/15"
-                        : "border-slate-300 focus:border-[#0f4c81] focus:ring-2 focus:ring-[#0f4c81]/15"
-                    }`}
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-200 rounded-lg bg-white focus:bg-white focus:outline-none focus:border-[#0f4c81] focus:ring-1 focus:ring-[#0f4c81] transition-all text-slate-900 placeholder:text-slate-400 resize-y"
                   />
                 </div>
 
-                {/* Send Message Button */}
+                {/* Submit Button */}
                 <div className="pt-2">
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full sm:w-auto px-8 py-3 bg-[#0f4c81] hover:bg-[#031b4e] text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full sm:w-auto px-7 py-2.5 bg-[#0f4c81] hover:bg-[#031b4e] text-white font-bold text-xs rounded-lg shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     {isSubmitting ? (
-                      <span>Sending Message...</span>
+                      <span>Submitting Enquiry...</span>
                     ) : (
                       <>
-                        <Send size={14} />
-                        <span>Send Message</span>
+                        <Send size={13} />
+                        <span>Submit Enquiry</span>
                       </>
                     )}
                   </button>
@@ -510,22 +441,22 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
 
               </form>
             ) : (
-              <div className="py-10 text-center space-y-4 animate-in fade-in duration-300">
-                <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto shadow-2xs">
-                  <CheckCircle2 size={36} />
+              <div className="py-10 text-center space-y-3 animate-in fade-in duration-300">
+                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto border border-emerald-200">
+                  <CheckCircle2 size={24} />
                 </div>
-                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight font-sans">
-                  Message Sent Successfully!
+                <h3 className="text-lg font-bold text-slate-900 tracking-tight font-sans">
+                  Enquiry Submitted Successfully
                 </h3>
-                <p className="text-xs text-slate-600 font-medium max-w-md mx-auto leading-relaxed">
-                  Thank you, <strong>{name}</strong>. Your inquiry has been forwarded to our technical team. An engineer will get in touch with you at <strong>{email}</strong> or <strong>{phone}</strong> shortly.
+                <p className="text-xs text-slate-600 font-normal max-w-sm mx-auto leading-relaxed">
+                  Thank you, <strong>{name}</strong>. Our team has received your enquiry and will contact you shortly.
                 </p>
                 <button
                   type="button"
                   onClick={handleResetForm}
-                  className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                  className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg transition-all cursor-pointer"
                 >
-                  Send Another Message
+                  Send Another Enquiry
                 </button>
               </div>
             )}
@@ -606,12 +537,12 @@ export default function ContactPage({ initialCategory, onShowToast }: ContactPag
                   return (
                     <div className="space-y-3.5">
                       
-                      {/* 1. General Enquiry & WhatsApp Direct Line */}
+                      {/* 1. General */}
                       <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5">
                         <div className="flex items-center justify-between">
                           <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                             <PhoneCall size={14} className="text-[#0f4c81]" />
-                            General Enquiry &amp; WhatsApp
+                            General
                           </span>
                           <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                             Direct Line

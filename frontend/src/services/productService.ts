@@ -59,7 +59,9 @@ export function enrichProduct(p: Product): Product {
   }
   if (badge === "None" || badge === "") badge = undefined;
 
-  const isFeatured = p.isFeatured ?? overrides?.isFeatured ?? (specs._isFeatured === "true" || specs._isFeatured === true) ?? (badge === "Featured");
+  const isFeatured = overrides?.isFeatured !== undefined
+    ? overrides.isFeatured
+    : (p.isFeatured !== undefined ? p.isFeatured : ((specs._isFeatured === "true" || specs._isFeatured === true) || badge === "Featured"));
   const hidePrice = p.hidePrice ?? overrides?.hidePrice ?? (specs._hidePrice === "true" || specs._hidePrice === true);
   const emblemImage = p.emblemImage || overrides?.emblemImage || specs._emblemImage || undefined;
   const emblemText = p.emblemText || overrides?.emblemText || specs._emblemText || undefined;
