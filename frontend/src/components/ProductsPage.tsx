@@ -5,6 +5,7 @@ import {
 import { Product, Category } from "../types";
 import { PRODUCTS } from "../data";
 import { getLocalCategories, getCategories } from "../services/categoryService";
+import { getLocalBrands } from "../services/brandService";
 import { useWishlist } from "../context/WishlistContext";
 import { ProductCard } from "./ProductCard";
 import { matchesProductSearch } from "../utils/globalSearch";
@@ -331,8 +332,14 @@ export default function ProductsPage({
     return false;
   };
 
-  // Retrieve unique brands from product catalog
-  const availableBrands = ["All", ...Array.from(new Set(activeProducts.map(p => p.brand)))];
+  // Retrieve official brands list from brand directory
+  const availableBrands = useMemo(() => {
+    const official = getLocalBrands()
+      .filter((b) => b.isActive !== false)
+      .map((b) => b.name.trim());
+    const sorted = Array.from(new Set(official)).sort((a, b) => a.localeCompare(b));
+    return ["All", ...sorted];
+  }, []);
 
   // Pre-calculate extracted specs metadata for fast counting & filtering
   const productsWithSpecsMeta = useMemo(() => {
@@ -435,7 +442,10 @@ export default function ProductsPage({
 
     const matchesBrand =
       selectedBrand === "All" ||
-      (product.brand && product.brand.trim().toLowerCase() === selectedBrand.trim().toLowerCase());
+      (Boolean(product.brand) && (
+        product.brand.trim().toLowerCase() === selectedBrand.trim().toLowerCase() ||
+        (selectedBrand.toLowerCase() === "general" && product.brand.toLowerCase().includes("general") && !product.brand.toLowerCase().includes("super"))
+      ));
 
     const matchesBtu = (() => {
       if (selectedBtuRanges.length === 0) return true;

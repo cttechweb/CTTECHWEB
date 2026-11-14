@@ -9,6 +9,7 @@ import StickerEditorModal from "./StickerEditorModal";
 import { Product, Category, SpecTemplate, AppTemplate } from "../../types";
 import { uploadProductImage, uploadDocumentFile } from "../../services/storageService";
 import { getLocalCategories, getCategories } from "../../services/categoryService";
+import { getLocalBrands } from "../../services/brandService";
 import {
   getSpecTemplates,
   createSpecTemplate,
@@ -41,19 +42,23 @@ const DEFAULT_BRAND_OPTIONS = [
   "Brema", "Copeland", "Danfoss", "Honeywell", "COOLTECH"
 ];
 
-const BRANDS_STORAGE_KEY = "cooltech_managed_brands_v1";
+const BRANDS_STORAGE_KEY = "cooltech_managed_brands_v2";
 
 const getSavedBrands = (): string[] => {
   try {
     const saved = localStorage.getItem(BRANDS_STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length >= 40) return parsed;
     }
   } catch (e) {
     console.error("Failed to load saved brands:", e);
   }
-  return DEFAULT_BRAND_OPTIONS;
+  const official = getLocalBrands()
+    .filter((b) => b.isActive !== false)
+    .map((b) => b.name.trim());
+  const combined = Array.from(new Set([...official, "COOLTECH"])).sort((a, b) => a.localeCompare(b));
+  return combined;
 };
 
 const DEFAULT_STOCK_STATUS_OPTIONS = [
