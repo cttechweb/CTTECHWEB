@@ -5,7 +5,7 @@ import {
 import { Product, Category, BrandPartner } from "../types";
 import { PRODUCTS } from "../data";
 import { getLocalCategories, getCategories } from "../services/categoryService";
-import { getLocalBrands } from "../services/brandService";
+import { getLocalBrands, getBrands } from "../services/brandService";
 import { useWishlist } from "../context/WishlistContext";
 import { ProductCard } from "./ProductCard";
 import { matchesProductSearch } from "../utils/globalSearch";
@@ -338,6 +338,13 @@ export default function ProductsPage({
   });
 
   useEffect(() => {
+    // Fetch latest cloud brands from Firestore / D1 on mount
+    getBrands().then((brands) => {
+      if (brands && brands.length > 0) {
+        setPartnerBrands(brands.filter((b) => b.isActive !== false));
+      }
+    }).catch(() => {});
+
     const handleBrandsUpdate = (e: any) => {
       if (e?.detail && Array.isArray(e.detail)) {
         setPartnerBrands(e.detail.filter((b: BrandPartner) => b.isActive !== false));

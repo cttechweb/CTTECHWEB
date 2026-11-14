@@ -4,7 +4,7 @@
  * Handles automatic Firebase ID token retrieval, authorization headers, and error parsing.
  */
 
-import { auth } from "../lib/firebase";
+import { auth, onAuthStateChanged } from "../lib/firebase";
 import { sendEmailNotification } from "./emailService";
 
 export class ApiError extends Error {
@@ -34,7 +34,19 @@ const API_BASE_URL = (
  * Obtain the currently active Firebase user's ID token
  */
 export async function getFirebaseIdToken(forceRefresh = false): Promise<string | null> {
-  const currentUser = auth.currentUser;
+  let currentUser = auth.currentUser;
+  if (!currentUser) {
+    currentUser = await new Promise<any>((resolve) => {
+      const unsub = onAuthStateChanged(auth, (u) => {
+        unsub();
+        resolve(u);
+      });
+      setTimeout(() => {
+        try { unsub(); } catch {}
+        resolve(null);
+      }, 1000);
+    });
+  }
   if (!currentUser) return null;
   try {
     return await currentUser.getIdToken(forceRefresh);

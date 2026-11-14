@@ -281,111 +281,12 @@ export const DEFAULT_BRANCHES: CompanyBranch[] = [
 
 export const DEFAULT_BRAND_PARTNERS: BrandPartner[] = [
   {
-    id: "brand-admiral",
-    name: "Admiral",
-    displayType: "image",
-    logo: "/images/brands/Admiral.png",
-    logoUrl: "/images/brands/Admiral.png",
-    order: 1,
-    isActive: true
-  },
-  {
-    id: "brand-aftron",
-    name: "Aftron",
-    displayType: "image",
-    logo: "/images/brands/Aftron.png",
-    logoUrl: "/images/brands/Aftron.png",
-    order: 2,
-    isActive: true
-  },
-  {
-    id: "brand-akai",
-    name: "Akai",
-    displayType: "image",
-    logo: "/images/brands/AKAI.png",
-    logoUrl: "/images/brands/AKAI.png",
-    order: 3,
-    isActive: true
-  },
-  {
-    id: "brand-ariston",
-    name: "Ariston",
-    displayType: "image",
-    logo: "/images/brands/Ariston.png",
-    logoUrl: "/images/brands/Ariston.png",
-    order: 4,
-    isActive: true
-  },
-  {
-    id: "brand-aux",
-    name: "AUX",
-    displayType: "image",
-    logo: "/images/brands/AUX.png",
-    logoUrl: "/images/brands/AUX.png",
-    order: 5,
-    isActive: true
-  },
-  {
     id: "brand-bluestar",
     name: "Blue Star",
     displayType: "image",
     logo: "/images/brands/BlueStar.png",
     logoUrl: "/images/brands/BlueStar.png",
-    order: 6,
-    isActive: true
-  },
-  {
-    id: "brand-bompani",
-    name: "Bompani",
-    displayType: "image",
-    logo: "/images/brands/Bompani.png",
-    logoUrl: "/images/brands/Bompani.png",
-    order: 7,
-    isActive: true
-  },
-  {
-    id: "brand-brema",
-    name: "Brema",
-    displayType: "image",
-    logo: "/images/brands/Brema.png",
-    logoUrl: "/images/brands/Brema.png",
-    order: 8,
-    isActive: true
-  },
-  {
-    id: "brand-burco",
-    name: "Burco",
-    displayType: "image",
-    logo: "/images/brands/Burco.png",
-    logoUrl: "/images/brands/Burco.png",
-    order: 9,
-    isActive: true
-  },
-  {
-    id: "brand-carrier",
-    name: "Carrier",
-    displayType: "image",
-    logo: "/images/brands/Carrier.png",
-    logoUrl: "/images/brands/Carrier.png",
-    order: 10,
-    isActive: true
-  },
-  {
-    id: "brand-clivet",
-    name: "Clivet",
-    displayType: "image",
-    logo: "/images/brands/Clivet.png",
-    logoUrl: "/images/brands/Clivet.png",
-    order: 11,
-    isActive: true
-  },
-  {
-    id: "brand-coolex",
-    name: "Coolex",
-    displayType: "image",
-    logo: "/images/brands/Coolex.png",
-    logoUrl: "/images/brands/Coolex.png",
-    order: 12,
+    order: 1,
     isActive: true
   },
   {
@@ -394,115 +295,25 @@ export const DEFAULT_BRAND_PARTNERS: BrandPartner[] = [
     displayType: "image",
     logo: "/images/brands/Daikin.png",
     logoUrl: "/images/brands/Daikin.png",
-    order: 13,
+    order: 2,
     isActive: true
   },
   {
-    id: "brand-electrolux",
-    name: "Electrolux",
+    id: "brand-aftron",
+    name: "Aftron",
     displayType: "image",
-    logo: "/images/brands/Electrolux.png",
-    logoUrl: "/images/brands/Electrolux.png",
-    order: 14,
+    logo: "/images/brands/Aftron.png",
+    logoUrl: "/images/brands/Aftron.png",
+    order: 3,
     isActive: true
   },
   {
-    id: "brand-frego",
-    name: "Frego",
+    id: "brand-carrier",
+    name: "Carrier",
     displayType: "image",
-    logo: "/images/brands/FREGO.png",
-    logoUrl: "/images/brands/FREGO.png",
-    order: 15,
-    isActive: true
-  },
-  {
-    id: "brand-gemcool",
-    name: "GemCool",
-    displayType: "image",
-    logo: "/images/brands/GemCool.png",
-    logoUrl: "/images/brands/GemCool.png",
-    order: 16,
-    isActive: true
-  },
-  {
-    id: "brand-general",
-    name: "General",
-    displayType: "image",
-    logo: "/images/brands/GENERAL.png",
-    logoUrl: "/images/brands/GENERAL.png",
-    order: 17,
-    isActive: true
-  },
-  {
-    id: "brand-gnrl",
-    name: "GNRL",
-    displayType: "image",
-    logo: "/images/brands/GNRL.png",
-    logoUrl: "/images/brands/GNRL.png",
-    order: 18,
-    isActive: true
-  },
-  {
-    id: "brand-gree",
-    name: "Gree",
-    displayType: "image",
-    logo: "/images/brands/GREE.png",
-    logoUrl: "/images/brands/GREE.png",
-    order: 19,
-    isActive: true
-  },
-  {
-    id: "brand-haier",
-    name: "Haier",
-    displayType: "image",
-    logo: "/images/brands/Haier.png",
-    logoUrl: "/images/brands/Haier.png",
-    order: 20,
-    isActive: true
-  },
-  {
-    id: "brand-hisense",
-    name: "Hisense",
-    displayType: "image",
-    logo: "/images/brands/Hisense.png",
-    logoUrl: "/images/brands/Hisense.png",
-    order: 21,
-    isActive: true
-  },
-  {
-    id: "brand-hitachi",
-    name: "Hitachi",
-    displayType: "image",
-    logo: "/images/brands/Hitachi.png",
-    logoUrl: "/images/brands/Hitachi.png",
-    order: 22,
-    isActive: true
-  },
-  {
-    id: "brand-indesit",
-    name: "Indesit",
-    displayType: "image",
-    logo: "/images/brands/Indesit.png",
-    logoUrl: "/images/brands/Indesit.png",
-    order: 23,
-    isActive: true
-  },
-  {
-    id: "brand-jetcool",
-    name: "Jetcool",
-    displayType: "image",
-    logo: "/images/brands/Jetcool.png",
-    logoUrl: "/images/brands/Jetcool.png",
-    order: 24,
-    isActive: true
-  },
-  {
-    id: "brand-kelon",
-    name: "Kelon",
-    displayType: "image",
-    logo: "/images/brands/KELON.png",
-    logoUrl: "/images/brands/KELON.png",
-    order: 25,
+    logo: "/images/brands/Carrier.png",
+    logoUrl: "/images/brands/Carrier.png",
+    order: 4,
     isActive: true
   },
   {
@@ -511,6 +322,195 @@ export const DEFAULT_BRAND_PARTNERS: BrandPartner[] = [
     displayType: "image",
     logo: "/images/brands/LG.png",
     logoUrl: "/images/brands/LG.png",
+    order: 5,
+    isActive: true
+  },
+  {
+    id: "brand-admiral",
+    name: "Admiral",
+    displayType: "image",
+    logo: "/images/brands/Admiral.png",
+    logoUrl: "/images/brands/Admiral.png",
+    order: 6,
+    isActive: true
+  },
+  {
+    id: "brand-akai",
+    name: "Akai",
+    displayType: "image",
+    logo: "/images/brands/AKAI.png",
+    logoUrl: "/images/brands/AKAI.png",
+    order: 7,
+    isActive: true
+  },
+  {
+    id: "brand-ariston",
+    name: "Ariston",
+    displayType: "image",
+    logo: "/images/brands/Ariston.png",
+    logoUrl: "/images/brands/Ariston.png",
+    order: 8,
+    isActive: true
+  },
+  {
+    id: "brand-aux",
+    name: "AUX",
+    displayType: "image",
+    logo: "/images/brands/AUX.png",
+    logoUrl: "/images/brands/AUX.png",
+    order: 9,
+    isActive: true
+  },
+  {
+    id: "brand-bompani",
+    name: "Bompani",
+    displayType: "image",
+    logo: "/images/brands/Bompani.png",
+    logoUrl: "/images/brands/Bompani.png",
+    order: 10,
+    isActive: true
+  },
+  {
+    id: "brand-brema",
+    name: "Brema",
+    displayType: "image",
+    logo: "/images/brands/Brema.png",
+    logoUrl: "/images/brands/Brema.png",
+    order: 11,
+    isActive: true
+  },
+  {
+    id: "brand-burco",
+    name: "Burco",
+    displayType: "image",
+    logo: "/images/brands/Burco.png",
+    logoUrl: "/images/brands/Burco.png",
+    order: 12,
+    isActive: true
+  },
+  {
+    id: "brand-clivet",
+    name: "Clivet",
+    displayType: "image",
+    logo: "/images/brands/Clivet.png",
+    logoUrl: "/images/brands/Clivet.png",
+    order: 13,
+    isActive: true
+  },
+  {
+    id: "brand-coolex",
+    name: "Coolex",
+    displayType: "image",
+    logo: "/images/brands/Coolex.png",
+    logoUrl: "/images/brands/Coolex.png",
+    order: 14,
+    isActive: true
+  },
+  {
+    id: "brand-electrolux",
+    name: "Electrolux",
+    displayType: "image",
+    logo: "/images/brands/Electrolux.png",
+    logoUrl: "/images/brands/Electrolux.png",
+    order: 15,
+    isActive: true
+  },
+  {
+    id: "brand-frego",
+    name: "Frego",
+    displayType: "image",
+    logo: "/images/brands/FREGO.png",
+    logoUrl: "/images/brands/FREGO.png",
+    order: 16,
+    isActive: true
+  },
+  {
+    id: "brand-gemcool",
+    name: "GemCool",
+    displayType: "image",
+    logo: "/images/brands/GemCool.png",
+    logoUrl: "/images/brands/GemCool.png",
+    order: 17,
+    isActive: true
+  },
+  {
+    id: "brand-general",
+    name: "General",
+    displayType: "image",
+    logo: "/images/brands/GENERAL.png",
+    logoUrl: "/images/brands/GENERAL.png",
+    order: 18,
+    isActive: true
+  },
+  {
+    id: "brand-gnrl",
+    name: "GNRL",
+    displayType: "image",
+    logo: "/images/brands/GNRL.png",
+    logoUrl: "/images/brands/GNRL.png",
+    order: 19,
+    isActive: true
+  },
+  {
+    id: "brand-gree",
+    name: "Gree",
+    displayType: "image",
+    logo: "/images/brands/GREE.png",
+    logoUrl: "/images/brands/GREE.png",
+    order: 20,
+    isActive: true
+  },
+  {
+    id: "brand-haier",
+    name: "Haier",
+    displayType: "image",
+    logo: "/images/brands/Haier.png",
+    logoUrl: "/images/brands/Haier.png",
+    order: 21,
+    isActive: true
+  },
+  {
+    id: "brand-hisense",
+    name: "Hisense",
+    displayType: "image",
+    logo: "/images/brands/Hisense.png",
+    logoUrl: "/images/brands/Hisense.png",
+    order: 22,
+    isActive: true
+  },
+  {
+    id: "brand-hitachi",
+    name: "Hitachi",
+    displayType: "image",
+    logo: "/images/brands/Hitachi.png",
+    logoUrl: "/images/brands/Hitachi.png",
+    order: 23,
+    isActive: true
+  },
+  {
+    id: "brand-indesit",
+    name: "Indesit",
+    displayType: "image",
+    logo: "/images/brands/Indesit.png",
+    logoUrl: "/images/brands/Indesit.png",
+    order: 24,
+    isActive: true
+  },
+  {
+    id: "brand-jetcool",
+    name: "Jetcool",
+    displayType: "image",
+    logo: "/images/brands/Jetcool.png",
+    logoUrl: "/images/brands/Jetcool.png",
+    order: 25,
+    isActive: true
+  },
+  {
+    id: "brand-kelon",
+    name: "Kelon",
+    displayType: "image",
+    logo: "/images/brands/KELON.png",
+    logoUrl: "/images/brands/KELON.png",
     order: 26,
     isActive: true
   },
@@ -702,7 +702,7 @@ export const DEFAULT_BRAND_PARTNERS: BrandPartner[] = [
     logoUrl: "/images/brands/York.png",
     order: 47,
     isActive: true
-  },
+  }
 ];
 
 export const DEFAULT_ACHIEVEMENTS: AchievementMilestone[] = [
