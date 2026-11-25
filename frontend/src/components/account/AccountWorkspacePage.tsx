@@ -173,6 +173,7 @@ export default function AccountWorkspacePage({
   const [partnerSubmitting, setPartnerSubmitting] = useState(false);
   const [partnerSuccess, setPartnerSuccess] = useState(false);
   const [partnerError, setPartnerError] = useState("");
+  const [existingQuote, setExistingQuote] = useState<any>(null);
 
   // Step 1: Company Info
   const [partnerCompanyName, setPartnerCompanyName] = useState("");
@@ -248,18 +249,96 @@ export default function AccountWorkspacePage({
       setPartnerEmail(authUser?.email || "");
       setPartnerAddress(profile?.address || "");
 
-      // Check existing retailer application
+      // Check cached application first for instant display across logins
+      const userKey = authUser?.uid || (profile as any)?.id || authUser?.email || profile?.email;
+      if (userKey && typeof window !== "undefined") {
+        try {
+          const cached = localStorage.getItem(`ct_retailer_app_${userKey}`);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed && typeof parsed === "object") {
+              setExistingApp((prev: any) => prev || parsed);
+            }
+          }
+
+          const cachedQuote = localStorage.getItem(`ct_approved_quote_${userKey}`);
+          if (cachedQuote) {
+            setExistingQuote(JSON.parse(cachedQuote));
+          } else {
+            const rfqs = localStorage.getItem("cooltech_rfqs_v1");
+            if (rfqs) {
+              const parsedRfqs = JSON.parse(rfqs);
+              if (Array.isArray(parsedRfqs) && parsedRfqs.length > 0) {
+                const match = parsedRfqs.find(
+                  (q: any) =>
+                    q.userId === userKey ||
+                    q.email?.toLowerCase() === (authUser?.email || profile?.email || "").toLowerCase()
+                );
+                if (match) setExistingQuote(match);
+              }
+            }
+          }
+        } catch {}
+      }
+
+      // Check existing retailer application from server
       setCheckingExistingApp(true);
       apiClient.getMyRetailerApplication()
         .then((res) => {
           if (res?.application) {
             setExistingApp(res.application);
+            if (userKey && typeof window !== "undefined") {
+              try {
+                localStorage.setItem(`ct_retailer_app_${userKey}`, JSON.stringify(res.application));
+              } catch {}
+            }
           }
         })
         .catch(() => {})
         .finally(() => setCheckingExistingApp(false));
+
+      // Check existing quotations from server
+      apiClient.getMyQuotes()
+        .then((res: any) => {
+          if (res?.quotes && Array.isArray(res.quotes) && res.quotes.length > 0) {
+            const approved = res.quotes.find((q: any) => String(q.status).toUpperCase() === "APPROVED") || res.quotes[0];
+            if (approved) {
+              setExistingQuote(approved);
+              if (userKey && typeof window !== "undefined") {
+                try {
+                  localStorage.setItem(`ct_approved_quote_${userKey}`, JSON.stringify(approved));
+                } catch {}
+              }
+            }
+          }
+        })
+        .catch(() => {});
     }
   }, [profile, authUser]);
+
+  // Synchronize quotation updates dispatched from RFQ modal
+  useEffect(() => {
+    const handleRfqsUpdated = (e: any) => {
+      if (e.detail && Array.isArray(e.detail) && e.detail.length > 0) {
+        const userKey = authUser?.uid || (profile as any)?.id || authUser?.email || profile?.email;
+        const match = e.detail.find(
+          (q: any) =>
+            q.userId === userKey ||
+            q.email?.toLowerCase() === (authUser?.email || profile?.email || "").toLowerCase()
+        );
+        if (match) {
+          setExistingQuote(match);
+          if (userKey && typeof window !== "undefined") {
+            try {
+              localStorage.setItem(`ct_approved_quote_${userKey}`, JSON.stringify(match));
+            } catch {}
+          }
+        }
+      }
+    };
+    window.addEventListener("cooltech_rfqs_updated", handleRfqsUpdated);
+    return () => window.removeEventListener("cooltech_rfqs_updated", handleRfqsUpdated);
+  }, [authUser, profile]);
 
   // Handle email verification resend cooldown
   useEffect(() => {
@@ -390,6 +469,12 @@ export default function AccountWorkspacePage({
       const res = await apiClient.applyRetailer(payload);
       if (res?.application) {
         setExistingApp(res.application);
+        const userKey = authUser?.uid || (profile as any)?.id || authUser?.email || profile?.email;
+        if (userKey && typeof window !== "undefined") {
+          try {
+            localStorage.setItem(`ct_retailer_app_${userKey}`, JSON.stringify(res.application));
+          } catch {}
+        }
       }
       setPartnerSuccess(true);
       if (refreshProfile) await refreshProfile();
@@ -536,9 +621,113 @@ export default function AccountWorkspacePage({
   const isPartnerApproved = existingApp?.status === "approved" || profile?.isVerifiedRetailer;
   const isPartnerPending = existingApp?.status === "pending" || existingApp?.status === "under_review";
 
+  const approvalBusinessName =
+    existingApp?.companyName ||
+    existingApp?.legalName ||
+    profile?.companyName ||
+    authUser?.displayName ||
+    "Verified Business";
+
+  const approvalTradeLicense =
+    existingApp?.tradeLicenseNumber ||
+    profile?.taxId ||
+    "Verified";
+
+  const approvalApplicationId =
+    existingApp?.id ||
+    (existingApp as any)?.application_id ||
+    (profile?.id ? `APP-${profile.id.substring(0, 8).toUpperCase()}` : "APP-APPROVED");
+
+  const approvalDate = (() => {
+    const raw =
+      existingApp?.reviewedAt ||
+      (existingApp as any)?.reviewed_at ||
+      existingApp?.updatedAt ||
+      (existingApp as any)?.updated_at ||
+      existingApp?.createdAt ||
+      (existingApp as any)?.created_at;
+    if (!raw) return "Recently Approved";
+    try {
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) return String(raw);
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch {
+      return String(raw);
+    }
+  })();
+
+  const approvalAccountType =
+    existingApp?.businessType ||
+    (existingApp as any)?.business_type ||
+    (profile?.role === "retailer" ? "B2B Retailer" : "MEP / Reseller");
+
+  const approvalPaymentTerms =
+    existingApp?.paymentTermsRequested ||
+    (existingApp as any)?.payment_terms_requested ||
+    "Standard Trade Terms";
+
+  const quoteStatusNormalized = (existingQuote?.status || "").toLowerCase();
+  const isQuoteApproved =
+    quoteStatusNormalized === "approved" ||
+    existingQuote?.isApproved === true;
+
+  const isQuotePending =
+    Boolean(existingQuote) &&
+    !isQuoteApproved &&
+    quoteStatusNormalized !== "rejected" &&
+    quoteStatusNormalized !== "declined" &&
+    quoteStatusNormalized !== "cancelled";
+
+  const quoteId = existingQuote?.rfqNumber || existingQuote?.quotationNumber || existingQuote?.id || "RFQ-2026-784527";
+
+  const quoteApprovalDate = (() => {
+    const raw = existingQuote?.approvedAt || existingQuote?.reviewedAt || existingQuote?.quote_date || existingQuote?.updatedAt || existingQuote?.createdAt;
+    if (!raw) return "Nov 25, 2026";
+    try {
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) return String(raw);
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch {
+      return String(raw);
+    }
+  })();
+
+  const quoteLocation =
+    existingQuote?.projectLocation ||
+    existingQuote?.shipping_address ||
+    existingQuote?.deliveryAddress ||
+    "Abu Dhabi, UAE";
+
+  const quotePaymentTerms =
+    existingQuote?.paymentTerms ||
+    existingQuote?.payment_terms ||
+    approvalPaymentTerms ||
+    "Advance Payment";
+
+  const quoteScopeCount =
+    existingQuote?.products?.length ||
+    existingQuote?.items?.length ||
+    totalCartItems ||
+    1;
+
   const navItems = [
     { id: "profile", label: "My Profile", icon: User, description: "Personal & contact info" },
-    { id: "cart", label: "My Quote Cart", icon: ShoppingCart, count: totalCartItems, description: "Saved equipment quote list" },
+    { 
+      id: "cart", 
+      label: "My Quote Cart", 
+      icon: ShoppingCart, 
+      count: totalCartItems, 
+      badge: isQuoteApproved ? "Approved" : (isQuotePending ? "Pending" : undefined),
+      description: "Saved equipment quote list" 
+    },
     { id: "wishlist", label: "My Wishlist", icon: Heart, count: wishlist.length, description: "Saved products & services" },
     { 
       id: "partner", 
@@ -896,6 +1085,128 @@ export default function AccountWorkspacePage({
             {/* Desktop Tab 2: Cart */}
             {activeTab === "cart" && (
               <div className="space-y-6">
+
+                {/* Commercial Quotation Pending Review Banner (Desktop) */}
+                {isQuotePending && (
+                  <div className="bg-white border-2 border-amber-500/40 rounded-2xl p-6 shadow-xs relative overflow-hidden space-y-4">
+                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-500 via-orange-400 to-yellow-400" />
+                    
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                      <div className="flex items-start gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                          <Clock size={22} className="text-amber-600" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-wider border border-amber-200">
+                              Official RFQ Submitted
+                            </span>
+                            <span className="inline-block px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 text-[9px] font-bold">
+                              Dispatched to CRM
+                            </span>
+                          </div>
+                          <h3 className="text-base font-black text-slate-900 tracking-tight">
+                            Commercial Quotation Under Executive Review
+                          </h3>
+                          <p className="text-xs text-slate-600 leading-relaxed max-w-3xl">
+                            Your project quotation request for {quoteLocation} has been submitted to Cool Technologies Executive Management (CEO & COO). Once approved, your confirmed wholesale pricing and commercial terms will appear here.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quotation Pending Details Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-4 border-t border-slate-100 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Quotation ID</span>
+                        <span className="font-extrabold text-cyan-800 font-mono">{quoteId}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Submission Date</span>
+                        <span className="font-bold text-slate-800">{quoteApprovalDate}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Project Site</span>
+                        <span className="font-bold text-slate-800">{quoteLocation}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Requested Terms</span>
+                        <span className="font-bold text-slate-800">{quotePaymentTerms}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Equipment Scope</span>
+                        <span className="font-bold text-slate-800">{quoteScopeCount} Unit{quoteScopeCount > 1 ? "s" : ""} Pending</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Application Status</span>
+                        <span className="font-extrabold text-amber-700 flex items-center gap-1">
+                          <Clock size={13} className="text-amber-600" />
+                          Pending CEO Approval
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Commercial Quotation Approved Notification Banner (Desktop) */}
+                {isQuoteApproved && (
+                  <div className="bg-white border-2 border-emerald-500/40 rounded-2xl p-6 shadow-xs relative overflow-hidden space-y-4">
+                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+                    
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                      <div className="flex items-start gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                          <CheckCircle2 size={22} className="text-emerald-600" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider border border-emerald-200">
+                              Official Notification
+                            </span>
+                          </div>
+                          <h3 className="text-base font-black text-slate-900 tracking-tight">
+                            Commercial Quotation Approved
+                          </h3>
+                          <p className="text-xs text-slate-600 leading-relaxed max-w-3xl">
+                            Congratulations! Your commercial quotation request for {quoteLocation} has been approved by Cool Technologies Executive Management (CEO & COO). Your wholesale project rates and delivery terms are confirmed.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quotation Approval Details Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-4 border-t border-slate-100 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Quotation ID</span>
+                        <span className="font-extrabold text-cyan-800 font-mono">{quoteId}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Approval Date</span>
+                        <span className="font-bold text-slate-800">{quoteApprovalDate}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Project Site</span>
+                        <span className="font-bold text-slate-800">{quoteLocation}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Approved Terms</span>
+                        <span className="font-bold text-slate-800">{quotePaymentTerms}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Equipment Scope</span>
+                        <span className="font-bold text-slate-800">{quoteScopeCount} Unit{quoteScopeCount > 1 ? "s" : ""} Confirmed</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Application Status</span>
+                        <span className="font-extrabold text-emerald-700 flex items-center gap-1">
+                          <CheckCircle2 size={13} className="text-emerald-600" />
+                          Approved
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {cart.length === 0 ? (
                   <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-2xs space-y-4">
                     <div className="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
@@ -1294,9 +1605,89 @@ export default function AccountWorkspacePage({
                   </div>
                 </div>
                 
+                {/* B2B Application Approved Notification Banner (Desktop) */}
+                {isPartnerApproved && (
+                  <div className="bg-white border-2 border-emerald-500/40 rounded-2xl p-6 shadow-xs relative overflow-hidden space-y-4">
+                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+                    
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                      <div className="flex items-start gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                          <CheckCircle2 size={22} className="text-emerald-600" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
+                            <Sparkles size={11} className="text-emerald-700" />
+                            <span>Official Notification</span>
+                          </div>
+                          <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                            B2B Application Approved
+                          </h3>
+                          <p className="text-xs text-slate-600 leading-relaxed max-w-3xl">
+                            Congratulations! Your B2B retailer application has been approved by Cool Technologies. Your business account is now verified. You can access your retailer benefits and create quotations.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 7 Approval Details Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 pt-4 border-t border-slate-100 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Business Name</span>
+                        <span className="font-bold text-slate-900 truncate block mt-0.5" title={approvalBusinessName}>
+                          {approvalBusinessName}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Trade License</span>
+                        <span className="font-mono font-bold text-slate-800 block mt-0.5">
+                          {approvalTradeLicense}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Application ID</span>
+                        <span className="font-mono font-bold text-blue-700 block mt-0.5">
+                          {approvalApplicationId}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Approval Date</span>
+                        <span className="font-bold text-slate-800 block mt-0.5">
+                          {approvalDate}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Account Type</span>
+                        <span className="font-bold text-slate-800 capitalize block mt-0.5">
+                          {approvalAccountType}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Payment Terms</span>
+                        <span className="font-bold text-slate-800 block mt-0.5">
+                          {approvalPaymentTerms}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Application Status</span>
+                        <span className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
+                          <Check size={11} className="stroke-[3]" />
+                          Approved
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Status Summary if Application is Approved */}
                 {isPartnerApproved && (
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 shadow-2xs space-y-4">
+                  <div id="b2b-verified-card" className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 shadow-2xs space-y-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
                         <CheckCircle2 size={22} />
@@ -2124,6 +2515,117 @@ export default function AccountWorkspacePage({
         {/* Mobile View: Cart */}
         {mobileView === "cart" && (
           <div className="p-4 space-y-4">
+
+            {/* Commercial Quotation Pending Review Banner (Mobile) */}
+            {isQuotePending && (
+              <div className="bg-white border-2 border-amber-500/40 rounded-2xl p-4 shadow-xs relative overflow-hidden space-y-3">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-orange-400 to-yellow-400" />
+                
+                <div className="flex items-start gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                    <Clock size={18} className="text-amber-600" />
+                  </div>
+                  <div className="space-y-0.5 flex-1 min-w-0">
+                    <span className="inline-block px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-black uppercase tracking-wider">
+                      Under Review
+                    </span>
+                    <h3 className="text-sm font-black text-slate-900 tracking-tight">
+                      Commercial Quotation Submitted
+                    </h3>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Your project quotation request for {quoteLocation} is under executive review by Cool Technologies Executive Management (CEO & COO). Wholesale terms will be confirmed upon sign-off.
+                </p>
+
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-[11px]">
+                  <div>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Quotation ID</span>
+                    <span className="font-bold text-cyan-800 font-mono">{quoteId}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Submission Date</span>
+                    <span className="font-bold text-slate-800">{quoteApprovalDate}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Project Site</span>
+                    <span className="font-bold text-slate-800">{quoteLocation}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Requested Terms</span>
+                    <span className="font-bold text-slate-800">{quotePaymentTerms}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Equipment Scope</span>
+                    <span className="font-bold text-slate-800">{quoteScopeCount} Unit{quoteScopeCount > 1 ? "s" : ""} Pending</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Status</span>
+                    <span className="font-black text-amber-700 flex items-center gap-1">
+                      <Clock size={12} className="text-amber-600" />
+                      Pending CEO Approval
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Commercial Quotation Approved Notification Banner (Mobile) */}
+            {isQuoteApproved && (
+              <div className="bg-white border-2 border-emerald-500/40 rounded-2xl p-4 shadow-xs relative overflow-hidden space-y-3">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+                
+                <div className="flex items-start gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                    <CheckCircle2 size={18} className="text-emerald-600" />
+                  </div>
+                  <div className="space-y-0.5 flex-1 min-w-0">
+                    <span className="inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase tracking-wider">
+                      Official Notification
+                    </span>
+                    <h3 className="text-sm font-black text-slate-900 tracking-tight">
+                      Commercial Quotation Approved
+                    </h3>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Congratulations! Your commercial quotation request for {quoteLocation} has been approved by Cool Technologies Executive Management (CEO & COO). Wholesale terms confirmed.
+                </p>
+
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-[11px]">
+                  <div>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Quotation ID</span>
+                    <span className="font-bold text-cyan-800 font-mono">{quoteId}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Approval Date</span>
+                    <span className="font-bold text-slate-800">{quoteApprovalDate}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Project Site</span>
+                    <span className="font-bold text-slate-800">{quoteLocation}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Approved Terms</span>
+                    <span className="font-bold text-slate-800">{quotePaymentTerms}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Equipment Scope</span>
+                    <span className="font-bold text-slate-800">{quoteScopeCount} Unit{quoteScopeCount > 1 ? "s" : ""}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Status</span>
+                    <span className="font-black text-emerald-700 flex items-center gap-1">
+                      <CheckCircle2 size={12} className="text-emerald-600" />
+                      Approved
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {cart.length === 0 ? (
               <div className="bg-white rounded-2xl p-8 text-center border border-slate-200 space-y-3">
                 <ShoppingCart size={32} className="text-slate-300 mx-auto" />
@@ -2288,6 +2790,65 @@ export default function AccountWorkspacePage({
                 </div>
               </div>
             </div>
+            {/* B2B Application Approved Notification Banner (Mobile) */}
+            {isPartnerApproved && (
+              <div className="bg-white border-2 border-emerald-500/40 rounded-2xl p-4 shadow-xs relative overflow-hidden space-y-3">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+                
+                <div className="flex items-start gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                    <CheckCircle2 size={18} className="text-emerald-600" />
+                  </div>
+                  <div className="space-y-0.5 flex-1 min-w-0">
+                    <span className="inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase tracking-wider">
+                      Official Notification
+                    </span>
+                    <h3 className="text-sm font-black text-slate-900">
+                      B2B Application Approved
+                    </h3>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Congratulations! Your B2B retailer application has been approved by Cool Technologies. Your business account is now verified. You can access your retailer benefits and create quotations.
+                </p>
+
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-[11px]">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold block">Business Name</span>
+                    <span className="font-bold text-slate-900 truncate block">{approvalBusinessName}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold block">Trade License</span>
+                    <span className="font-mono font-bold text-slate-800 block">{approvalTradeLicense}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold block">Application ID</span>
+                    <span className="font-mono font-bold text-blue-700 block">{approvalApplicationId}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold block">Approval Date</span>
+                    <span className="font-bold text-slate-800 block">{approvalDate}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold block">Account Type</span>
+                    <span className="font-bold text-slate-800 block">{approvalAccountType}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold block">Payment Terms</span>
+                    <span className="font-bold text-slate-800 block">{approvalPaymentTerms}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[10px] text-slate-400 font-bold block">Application Status</span>
+                    <span className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                      <Check size={10} className="stroke-[3]" />
+                      Approved
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {isPartnerApproved ? (
               <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2 text-xs">
                 <div className="flex items-center gap-2 font-bold text-emerald-800">

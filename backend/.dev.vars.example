@@ -1,0 +1,9 @@
+# Local development environment variables for cooltech-api-worker (Website Backend)
+# Copy to .dev.vars for local wrangler dev execution:
+# wrangler dev --local --port 8787
+
+ENVIRONMENT="local"
+CRM_API_BASE_URL="http://127.0.0.1:8788"
+CRM_API_KEY="cooltech_local_dev_secret_key_2026"
+CRM_WEBHOOK_SECRET="cooltech_local_dev_webhook_secret_2026"
+CORS_ORIGIN="http://localhost:3000"

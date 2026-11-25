@@ -52,26 +52,26 @@ import SEOHead from "./components/common/SEOHead";
 import { useAuth } from "./context/AuthContext";
 import { subscribeToOrders } from "./services/orderService";
 import { subscribeToRfqs } from "./services/rfqService";
-import { 
-  subscribeToProducts, 
+import {
+  subscribeToProducts,
   getLocalProductsCache,
-  createProduct, 
-  updateProduct, 
+  createProduct,
+  updateProduct,
   deleteProduct,
   bulkSaveProducts
 } from "./services/productService";
-import { 
-  subscribeToServices, 
+import {
+  subscribeToServices,
   getLocalServicesCache,
   resetDefaultServices,
-  createService as createServiceDb, 
-  updateService as updateServiceDb, 
-  deleteService as deleteServiceDb 
+  createService as createServiceDb,
+  updateService as updateServiceDb,
+  deleteService as deleteServiceDb
 } from "./services/serviceService";
-import { 
-  subscribeToWorkflows, 
-  saveWorkflow as saveWorkflowDb, 
-  deleteWorkflow as deleteWorkflowDb 
+import {
+  subscribeToWorkflows,
+  saveWorkflow as saveWorkflowDb,
+  deleteWorkflow as deleteWorkflowDb
 } from "./services/workflowService";
 import { fetchGeneralSettings } from "./services/generalSettingsService";
 import { isAdminRoute, PRIMARY_ADMIN_ROUTE } from "./utils/adminRoute";
@@ -96,7 +96,7 @@ export default function App() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     try {
       return localStorage.getItem("cooltech_admin_authed") === "true" ||
-             sessionStorage.getItem("cooltech_admin_authed") === "true";
+        sessionStorage.getItem("cooltech_admin_authed") === "true";
     } catch {
       return false;
     }
@@ -107,7 +107,7 @@ export default function App() {
     try {
       localStorage.setItem("cooltech_admin_authed", "true");
       sessionStorage.setItem("cooltech_admin_authed", "true");
-    } catch {}
+    } catch { }
     showToast("Authenticated as Enterprise System Admin.");
   };
 
@@ -116,8 +116,8 @@ export default function App() {
     try {
       localStorage.removeItem("cooltech_admin_authed");
       sessionStorage.removeItem("cooltech_admin_authed");
-    } catch {}
-    if (logout) logout().catch(() => {});
+    } catch { }
+    if (logout) logout().catch(() => { });
     showToast("Signed out of Admin Portal.");
   };
 
@@ -140,13 +140,13 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem("cooltech_products_v3", JSON.stringify(productsList));
-    } catch {}
+    } catch { }
   }, [productsList]);
 
   useEffect(() => {
     try {
       localStorage.setItem("cooltech_services_v1", JSON.stringify(servicesList));
-    } catch {}
+    } catch { }
   }, [servicesList]);
 
   // Real-time Firestore Products, Orders & RFQs Subscriptions
@@ -155,7 +155,7 @@ export default function App() {
 
   useEffect(() => {
     // Sync global site & contact center settings from D1 cloud database
-    fetchGeneralSettings().catch(() => {});
+    fetchGeneralSettings().catch(() => { });
 
     const unsubProducts = subscribeToProducts((prods) => {
       if (Array.isArray(prods)) {
@@ -278,7 +278,7 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem("cooltech_dynamic_workflows_v1", JSON.stringify(workflowsList));
-    } catch {}
+    } catch { }
   }, [workflowsList]);
 
   // Sync workflows across tabs/windows in real time
@@ -287,7 +287,7 @@ export default function App() {
       if (e.key === "cooltech_dynamic_workflows_v1" && e.newValue) {
         try {
           setWorkflowsList(JSON.parse(e.newValue));
-        } catch {}
+        } catch { }
       }
     };
     window.addEventListener("storage", handleStorage);
@@ -328,7 +328,7 @@ export default function App() {
     setWorkflowsList(INITIAL_WORKFLOWS);
     try {
       localStorage.setItem("cooltech_dynamic_workflows_v1", JSON.stringify(INITIAL_WORKFLOWS));
-    } catch {}
+    } catch { }
   };
 
   // Dynamic Blogs List with Firestore DB Sync & Local Storage Cache
@@ -423,7 +423,7 @@ export default function App() {
       } else {
         setCart([]);
       }
-    } catch {}
+    } catch { }
   }, [b2bUser?.email]);
 
   // Automatically save cart changes to user's personal account storage
@@ -432,7 +432,7 @@ export default function App() {
       if (b2bUser?.email && cart.length > 0) {
         localStorage.setItem(`cooltech_cart_${b2bUser.email}`, JSON.stringify(cart));
       }
-    } catch {}
+    } catch { }
   }, [cart, b2bUser?.email]);
 
   const handleLoginSuccess = (usr: B2BUser) => {
@@ -443,7 +443,7 @@ export default function App() {
     if (b2bUser?.email) {
       try {
         localStorage.setItem(`cooltech_cart_${b2bUser.email}`, JSON.stringify(cart));
-      } catch {}
+      } catch { }
     }
     await authLogout();
     setCart([]);
@@ -501,7 +501,7 @@ export default function App() {
   const handleUpdateQuantity = (productId: string, quantity: number) => {
     setCart((prevCart) =>
       prevCart.map((item) =>
-         item.product.id === productId ? { ...item, quantity } : item
+        item.product.id === productId ? { ...item, quantity } : item
       )
     );
   };
@@ -683,8 +683,8 @@ export default function App() {
     const mode = (currentHash.startsWith("#/signup") || currentHash.startsWith("#/register"))
       ? "signup"
       : (currentHash.startsWith("#/forgot-password") || currentHash.startsWith("#/forgot"))
-      ? "forgot"
-      : "login";
+        ? "forgot"
+        : "login";
 
     return (
       <AuthPage
@@ -703,39 +703,47 @@ export default function App() {
 
   // DEDICATED FULL-PAGE ACCOUNT WORKSPACE (#/account, #/profile, #/wishlist, #/partner, #/retailer-application, #/b2b-application)
   if (
-    currentHash.startsWith("#/account") || 
-    currentHash.startsWith("#/profile") || 
+    currentHash.startsWith("#/account") ||
+    currentHash.startsWith("#/profile") ||
     currentHash.startsWith("#/wishlist") ||
     currentHash.startsWith("#/partner") ||
     currentHash.startsWith("#/retailer-application") ||
     currentHash.startsWith("#/b2b-application")
   ) {
     return (
-      <AccountWorkspacePage
-        cart={cart}
-        onUpdateQuantity={handleUpdateQuantity}
-        onRemoveItem={handleRemoveItem}
-        onClearCart={handleClearCart}
-        onAddToCart={handleAddToCart}
-        onRequestQuoteWithService={handleOpenQuoteWithProduct}
-        onNavigateHome={() => {
-          window.location.hash = "#/";
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }}
-        onNavigateCatalog={() => {
-          window.location.hash = "#/products";
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }}
-        onOpenCart={() => setIsCartOpen(true)}
-        onOpenQuote={handleOpenQuoteGeneral}
-        onShowToast={showToast}
-      />
+      <>
+        <AccountWorkspacePage
+          cart={cart}
+          onUpdateQuantity={handleUpdateQuantity}
+          onRemoveItem={handleRemoveItem}
+          onClearCart={handleClearCart}
+          onAddToCart={handleAddToCart}
+          onRequestQuoteWithService={handleOpenQuoteWithProduct}
+          onNavigateHome={() => {
+            window.location.hash = "#/";
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          onNavigateCatalog={() => {
+            window.location.hash = "#/products";
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          onOpenCart={() => setIsCartOpen(true)}
+          onOpenQuote={handleOpenQuoteGeneral}
+          onShowToast={showToast}
+        />
+        <QuoteModal
+          isOpen={isQuoteOpen}
+          onClose={() => setIsQuoteOpen(false)}
+          prefilledProduct={quotePrefilledProduct}
+          cartItems={quotePrefilledProduct ? undefined : cart}
+        />
+      </>
     );
   }
 
   return (
     <div className="min-h-screen bg-white text-slate-800 flex flex-col font-sans relative antialiased selection:bg-blue-100 selection:text-blue-900">
-      
+
       {/* Technical SEO Engine: Dynamic Meta Tags, Canonical Tags, OpenGraph & Schema.org JSON-LD */}
       <SEOHead />
 
@@ -743,9 +751,9 @@ export default function App() {
       <FloatingWidgets />
 
       {/* Floating Bottom-Left Smart Equipment Selector Trigger */}
-      <FloatingSelectorTrigger 
-        onOpenWizard={handleOpenWizard} 
-        currentHash={currentHash} 
+      <FloatingSelectorTrigger
+        onOpenWizard={handleOpenWizard}
+        currentHash={currentHash}
       />
 
       {/* Toast Notification Container */}
@@ -858,10 +866,10 @@ export default function App() {
               currentHash.includes("category=equipment_quotation") || currentHash.includes("category=quotation")
                 ? "equipment_quotation"
                 : currentHash.includes("category=product_support") ||
-              currentHash.includes("category=product-support") ||
-              currentHash.startsWith("#/support")
-                ? "product_support"
-                : undefined
+                  currentHash.includes("category=product-support") ||
+                  currentHash.startsWith("#/support")
+                  ? "product_support"
+                  : undefined
             }
             onOpenQuote={handleOpenQuoteWithProduct}
             onOpenProducts={() => {
@@ -949,8 +957,8 @@ export default function App() {
             <Achievements />
 
             {/* Customer Reviews Section */}
-            <CustomerReviews 
-              reviews={reviewsList} 
+            <CustomerReviews
+              reviews={reviewsList}
               onOpenLogin={() => handleOpenLoginModal("login")}
             />
           </>
@@ -1013,6 +1021,7 @@ export default function App() {
         isOpen={isQuoteOpen}
         onClose={() => setIsQuoteOpen(false)}
         prefilledProduct={quotePrefilledProduct}
+        cartItems={quotePrefilledProduct ? undefined : cart}
       />
 
       <ManagementModal

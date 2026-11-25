@@ -6,13 +6,27 @@ import { getOrCreateCompany } from "../services/companyService";
 import { sendEmailNotification, EmailOrderItem } from "../services/emailService";
 import { getLocalProductsCache } from "../services/productService";
 
+export interface QuoteCartItem {
+  product: {
+    id: string;
+    name: string;
+    brand?: string;
+    category?: string;
+    price?: number;
+    image?: string;
+    images?: string[];
+  };
+  quantity: number;
+}
+
 interface QuoteModalProps {
   isOpen: boolean;
   onClose: () => void;
   prefilledProduct?: string;
+  cartItems?: QuoteCartItem[];
 }
 
-export default function QuoteModal({ isOpen, onClose, prefilledProduct }: QuoteModalProps) {
+export default function QuoteModal({ isOpen, onClose, prefilledProduct, cartItems }: QuoteModalProps) {
   const { user, profile } = useAuth();
   const [name, setName] = useState(profile?.name || "");
   const [email, setEmail] = useState(profile?.email || user?.email || "");
@@ -61,9 +75,28 @@ export default function QuoteModal({ isOpen, onClose, prefilledProduct }: QuoteM
     setIsSubmitting(true);
 
     try {
-      // Build email product card if quote is for a specific product
+      // Build product list from cartItems or prefilledProduct
+      let productsList: { productName: string; quantity: number; productId?: string; brand?: string; category?: string; unitPrice?: number }[] = [];
       let matchedItems: EmailOrderItem[] | undefined;
-      if (prefilledProduct) {
+
+      if (cartItems && cartItems.length > 0) {
+        productsList = cartItems.map((item) => ({
+          productId: item.product.id,
+          productName: item.product.name,
+          quantity: item.quantity,
+          unitPrice: item.product.price || 0,
+          brand: item.product.brand || "General",
+          category: item.product.category || "Equipment",
+        }));
+        matchedItems = cartItems.map((item) => ({
+          productId: item.product.id,
+          name: item.product.name,
+          brand: item.product.brand || "General",
+          image: item.product.images?.[0] || item.product.image || "",
+          quantity: item.quantity,
+          unitPrice: item.product.price || 0,
+        }));
+      } else if (prefilledProduct) {
         const products = getLocalProductsCache();
         const found = products.find(
           (p) =>
@@ -71,6 +104,16 @@ export default function QuoteModal({ isOpen, onClose, prefilledProduct }: QuoteM
             p.id === prefilledProduct ||
             prefilledProduct.toLowerCase().includes(p.name.toLowerCase())
         );
+        productsList = [
+          {
+            productId: found?.id || "custom-product",
+            productName: prefilledProduct,
+            quantity: 1,
+            unitPrice: found?.price || 0,
+            brand: found?.brand || "General",
+            category: found?.category || "Equipment",
+          },
+        ];
         if (found) {
           matchedItems = [
             {
@@ -85,6 +128,10 @@ export default function QuoteModal({ isOpen, onClose, prefilledProduct }: QuoteM
         }
       }
 
+      const productSummaryText = productsList.length > 0
+        ? productsList.map((p) => `${p.quantity}x ${p.productName}`).join(", ")
+        : "HVAC Equipment";
+
       // Fire EmailJS notification IMMEDIATELY — does NOT depend on API/DB success
       sendEmailNotification({
         type: "rfq",
@@ -94,11 +141,11 @@ export default function QuoteModal({ isOpen, onClose, prefilledProduct }: QuoteM
         senderPhone: phone.trim(),
         companyName: company.trim(),
         subject: `[Cool Technologies] Quotation Request - ${company.trim() || name.trim()}`,
-        message: notes.trim() || `Customer requested a formal B2B quotation for ${prefilledProduct || "HVAC Equipment"}.`,
-        detailsText: `Client Name: ${name.trim()}\nCompany Name: ${company.trim()}\nEmail: ${email.trim()}\nPhone: ${phone.trim()}\nProject Location: ${projectLocation.trim()}\nDelivery Timeline: ${timeline}\nLoad Requirements: ${loadRequirements.trim() || "Standard"}\nRequested Item: ${prefilledProduct || "Custom Equipment Inquiries"}\nNotes: ${notes.trim() || "None"}`,
+        message: notes.trim() || `Customer requested a formal B2B quotation for ${productSummaryText}.`,
+        detailsText: `Client Name: ${name.trim()}\nCompany Name: ${company.trim()}\nEmail: ${email.trim()}\nPhone: ${phone.trim()}\nProject Location: ${projectLocation.trim()}\nDelivery Timeline: ${timeline}\nLoad Requirements: ${loadRequirements.trim() || "Standard"}\nRequested Items: ${productSummaryText}\nNotes: ${notes.trim() || "None"}`,
         orderItems: matchedItems,
         customParams: {
-          product_name: prefilledProduct || "General RFQ",
+          product_name: productSummaryText,
           timeline: timeline,
           location: projectLocation.trim()
         }
@@ -125,7 +172,7 @@ export default function QuoteModal({ isOpen, onClose, prefilledProduct }: QuoteM
           timeline,
           loadRequirements: loadRequirements.trim(),
           projectDescription: notes.trim(),
-          products: prefilledProduct ? [{ productName: prefilledProduct, quantity: 1 }] : [],
+          products: productsList,
           companyId: comp.id,
           userId: user?.uid || "",
         });
@@ -155,8 +202,8 @@ export default function QuoteModal({ isOpen, onClose, prefilledProduct }: QuoteM
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
       {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
+      <div
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
         onClick={handleCloseAndReset}
         id="quote-modal-backdrop"
       ></div>
@@ -164,7 +211,7 @@ export default function QuoteModal({ isOpen, onClose, prefilledProduct }: QuoteM
       {/* Positioner */}
       <div className="flex min-h-full items-center justify-center p-4 text-center">
         <div className="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all w-full max-w-2xl border border-gray-150">
-          
+
           {/* Close button */}
           <button
             onClick={handleCloseAndReset}
@@ -196,7 +243,7 @@ export default function QuoteModal({ isOpen, onClose, prefilledProduct }: QuoteM
           <div className="p-6 sm:p-7">
             {!isSuccess ? (
               <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-xs text-gray-700">
-                
+
                 {submitError && (
                   <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-700 flex items-start gap-2">
                     <AlertCircle size={15} className="shrink-0 mt-0.5" />
@@ -330,6 +377,27 @@ export default function QuoteModal({ isOpen, onClose, prefilledProduct }: QuoteM
                   />
                 </div>
 
+                {/* Requested Equipment Scope Preview */}
+                {cartItems && cartItems.length > 0 && (
+                  <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3">
+                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-2 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-cyan-800">
+                        <Layers size={13} className="text-cyan-600" />
+                        Selected Equipment in Cart ({cartItems.reduce((acc, i) => acc + i.quantity, 0)} Units)
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-medium">B2B Scope</span>
+                    </div>
+                    <div className="space-y-1.5 max-h-28 overflow-y-auto pr-1">
+                      {cartItems.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-xs bg-white border border-slate-100 rounded-lg px-2.5 py-1.5 shadow-xs">
+                          <span className="font-semibold text-slate-700 truncate max-w-[240px] sm:max-w-[320px]">{item.product.name}</span>
+                          <span className="text-cyan-700 font-bold text-[11px] shrink-0 ml-2">Qty: {item.quantity}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Submitting Button */}
                 <button
                   type="submit"
@@ -348,7 +416,7 @@ export default function QuoteModal({ isOpen, onClose, prefilledProduct }: QuoteM
                 <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4 border-2 border-emerald-200 shadow-sm">
                   <CheckCircle2 size={34} />
                 </div>
-                
+
                 <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-emerald-300">
                   RFQ Logged in Database
                 </span>
