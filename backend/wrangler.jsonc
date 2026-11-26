@@ -9,7 +9,8 @@
     "FIREBASE_PROJECT_ID": "cool-technologies-b2b",
     "ENVIRONMENT": "production",
     "CORS_ORIGIN": "*",
-    "R2_PUBLIC_URL": "https://pub-0fd8611859e54ef6af47da7f5d49fab4.r2.dev"
+    "R2_PUBLIC_URL": "https://pub-0fd8611859e54ef6af47da7f5d49fab4.r2.dev",
+    "CRM_API_BASE_URL": "https://cool-tech-crm-api.ctauhweb.workers.dev"
   },
 
   "d1_databases": [
