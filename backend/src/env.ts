@@ -7,5 +7,6 @@ export interface Env {
   CORS_ORIGIN?: string;
   CRM_API_BASE_URL?: string;
   CRM_API_KEY?: string;
+  CRM_APT_KEY?: string;
   CRM_WEBHOOK_SECRET?: string;
 }

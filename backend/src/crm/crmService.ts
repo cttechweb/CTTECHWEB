@@ -41,7 +41,7 @@ export async function dispatchEventToCrm<T>(
   env: Env
 ): Promise<CrmSyncResult> {
   const crmBaseUrl = env.CRM_API_BASE_URL?.trim();
-  const apiKey = env.CRM_API_KEY?.trim();
+  const apiKey = (env.CRM_API_KEY || env.CRM_APT_KEY)?.trim();
 
   // If CRM is not configured on this server, record stays marked as pending in D1
   if (!crmBaseUrl || !apiKey) {

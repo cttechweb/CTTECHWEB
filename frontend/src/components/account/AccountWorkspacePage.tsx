@@ -65,6 +65,51 @@ interface AccountWorkspacePageProps {
 type TabType = "profile" | "cart" | "wishlist" | "partner" | "security";
 type MobileViewType = "main" | "cart" | "wishlist" | "partner" | "security";
 
+interface CountryCodeOption {
+  code: string;
+  name: string;
+  flag: string;
+}
+
+const COUNTRY_CODES: CountryCodeOption[] = [
+  { code: "+971", name: "United Arab Emirates", flag: "🇦🇪" },
+  { code: "+966", name: "Saudi Arabia", flag: "🇸🇦" },
+  { code: "+974", name: "Qatar", flag: "🇶🇦" },
+  { code: "+968", name: "Oman", flag: "🇴🇲" },
+  { code: "+965", name: "Kuwait", flag: "🇰🇼" },
+  { code: "+973", name: "Bahrain", flag: "🇧🇭" },
+  { code: "+91", name: "India", flag: "🇮🇳" },
+  { code: "+92", name: "Pakistan", flag: "🇵🇰" },
+  { code: "+20", name: "Egypt", flag: "🇪🇬" },
+  { code: "+63", name: "Philippines", flag: "🇵🇭" },
+  { code: "+44", name: "United Kingdom", flag: "🇬🇧" },
+  { code: "+1", name: "USA / Canada", flag: "🇺🇸" },
+  { code: "+86", name: "China", flag: "🇨🇳" },
+  { code: "+49", name: "Germany", flag: "🇩🇪" },
+  { code: "+33", name: "France", flag: "🇫🇷" },
+  { code: "+39", name: "Italy", flag: "🇮🇹" },
+  { code: "+7", name: "Russia", flag: "🇷🇺" },
+  { code: "+90", name: "Turkey", flag: "🇹🇷" },
+  { code: "+962", name: "Jordan", flag: "🇯🇴" },
+  { code: "+961", name: "Lebanon", flag: "🇱🇧" },
+  { code: "+964", name: "Iraq", flag: "🇮🇶" },
+  { code: "+880", name: "Bangladesh", flag: "🇧🇩" },
+  { code: "+94", name: "Sri Lanka", flag: "🇱🇰" },
+  { code: "+977", name: "Nepal", flag: "🇳🇵" },
+  { code: "+212", name: "Morocco", flag: "🇲🇦" },
+  { code: "+216", name: "Tunisia", flag: "🇹🇳" },
+  { code: "+213", name: "Algeria", flag: "🇩🇿" },
+  { code: "+234", name: "Nigeria", flag: "🇳🇬" },
+  { code: "+254", name: "Kenya", flag: "🇰🇪" },
+  { code: "+27", name: "South Africa", flag: "🇿🇦" },
+  { code: "+60", name: "Malaysia", flag: "🇲🇾" },
+  { code: "+65", name: "Singapore", flag: "🇸🇬" },
+  { code: "+62", name: "Indonesia", flag: "🇮🇩" },
+  { code: "+81", name: "Japan", flag: "🇯🇵" },
+  { code: "+82", name: "South Korea", flag: "🇰🇷" },
+  { code: "+61", name: "Australia", flag: "🇦🇺" },
+];
+
 const EMIRATES = [
   "Abu Dhabi",
   "Dubai",
@@ -187,6 +232,8 @@ export default function AccountWorkspacePage({
   // Step 2: Primary Contact
   const [partnerContactPerson, setPartnerContactPerson] = useState("");
   const [partnerDesignation, setPartnerDesignation] = useState("");
+  const [partnerPhoneCountryCode, setPartnerPhoneCountryCode] = useState("+971");
+  const [partnerLocalPhone, setPartnerLocalPhone] = useState("");
   const [partnerPhone, setPartnerPhone] = useState("");
   const [partnerEmail, setPartnerEmail] = useState("");
 
@@ -202,9 +249,14 @@ export default function AccountWorkspacePage({
   // Step 4: Documents
   const [partnerTradeLicenseFile, setPartnerTradeLicenseFile] = useState("");
   const [partnerTradeLicenseUrl, setPartnerTradeLicenseUrl] = useState("");
+  const [partnerTradeLicensePreviewUrl, setPartnerTradeLicensePreviewUrl] = useState<string | null>(null);
+  const [partnerTradeLicenseFileType, setPartnerTradeLicenseFileType] = useState<"pdf" | "image" | null>(null);
   const [partnerVatCertFile, setPartnerVatCertFile] = useState("");
   const [partnerVatCertUrl, setPartnerVatCertUrl] = useState("");
+  const [partnerVatCertPreviewUrl, setPartnerVatCertPreviewUrl] = useState<string | null>(null);
+  const [partnerVatCertFileType, setPartnerVatCertFileType] = useState<"pdf" | "image" | null>(null);
   const [partnerUploadingDoc, setPartnerUploadingDoc] = useState<"license" | "vat" | null>(null);
+  const [partnerPhoneTouched, setPartnerPhoneTouched] = useState(false);
 
   // Sync tab if URL hash changes while already on the page
   useEffect(() => {
@@ -245,7 +297,27 @@ export default function AccountWorkspacePage({
       setPartnerCompanyName(profile?.companyName || "");
       setPartnerContactPerson(profile?.name || authUser?.displayName || "");
       setPartnerDesignation(profile?.designation || "");
-      setPartnerPhone(profile?.phone || "");
+      if (profile?.phone) {
+        let matchedCode = "+971";
+        let restNumber = profile.phone.trim();
+        for (const c of COUNTRY_CODES) {
+          if (restNumber.startsWith(c.code)) {
+            matchedCode = c.code;
+            restNumber = restNumber.slice(c.code.length).trim();
+            break;
+          }
+        }
+        if (restNumber.startsWith("05")) {
+          restNumber = restNumber.slice(1);
+        }
+        setPartnerPhoneCountryCode(matchedCode);
+        setPartnerLocalPhone(restNumber);
+        setPartnerPhone(`${matchedCode} ${restNumber}`.trim());
+      } else {
+        setPartnerPhoneCountryCode("+971");
+        setPartnerLocalPhone("");
+        setPartnerPhone("");
+      }
       setPartnerEmail(authUser?.email || "");
       setPartnerAddress(profile?.address || "");
 
@@ -354,6 +426,38 @@ export default function AccountWorkspacePage({
     );
   };
 
+  const getFullPartnerPhone = (code = partnerPhoneCountryCode, local = partnerLocalPhone) => {
+    const clean = (local || "").trim().replace(/^0+/, "");
+    return clean ? `${code} ${clean}` : "";
+  };
+
+  const validatePartnerPhone = (code = partnerPhoneCountryCode, localNum = partnerLocalPhone): { isValid: boolean; message: string } => {
+    const clean = (localNum || "").replace(/[\s\-\(\)]/g, "");
+    if (!clean) {
+      return { isValid: false, message: "Mobile / WhatsApp Number is required." };
+    }
+    if (!/^[0-9]+$/.test(clean)) {
+      return { isValid: false, message: "Phone number can only contain digits." };
+    }
+    if (code === "+971") {
+      const uaeDigits = clean.startsWith("0") ? clean.slice(1) : clean;
+      if (!uaeDigits.startsWith("5") || uaeDigits.length !== 9) {
+        return {
+          isValid: false,
+          message: "Please enter a valid 9-digit UAE mobile number starting with 5 (e.g. 50 123 4567)."
+        };
+      }
+      return { isValid: true, message: "" };
+    }
+    if (clean.length < 6 || clean.length > 15) {
+      return {
+        isValid: false,
+        message: "Please enter a valid phone number (6 to 15 digits)."
+      };
+    }
+    return { isValid: true, message: "" };
+  };
+
   const handlePartnerFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "license" | "vat") => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -363,16 +467,28 @@ export default function AccountWorkspacePage({
       return;
     }
 
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    const fileType: "pdf" | "image" = isPdf ? "pdf" : "image";
+    const previewUrl = URL.createObjectURL(file);
+
+    if (type === "license") {
+      setPartnerTradeLicenseFile(file.name);
+      setPartnerTradeLicensePreviewUrl(previewUrl);
+      setPartnerTradeLicenseFileType(fileType);
+    } else {
+      setPartnerVatCertFile(file.name);
+      setPartnerVatCertPreviewUrl(previewUrl);
+      setPartnerVatCertFileType(fileType);
+    }
+
     setPartnerUploadingDoc(type);
     setPartnerError("");
     try {
       const folder = type === "license" ? "trade-documents/licenses" : "trade-documents/vat";
       const result = await uploadDocumentFile(file, folder);
       if (type === "license") {
-        setPartnerTradeLicenseFile(file.name);
         setPartnerTradeLicenseUrl(result.url);
       } else {
-        setPartnerVatCertFile(file.name);
         setPartnerVatCertUrl(result.url);
       }
     } catch (err: any) {
@@ -380,6 +496,26 @@ export default function AccountWorkspacePage({
       setPartnerError("Failed to upload document to Cloudflare storage. Please try again.");
     } finally {
       setPartnerUploadingDoc(null);
+    }
+  };
+
+  const handleRemovePartnerDoc = (type: "license" | "vat") => {
+    if (type === "license") {
+      if (partnerTradeLicensePreviewUrl && partnerTradeLicensePreviewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(partnerTradeLicensePreviewUrl);
+      }
+      setPartnerTradeLicenseFile("");
+      setPartnerTradeLicenseUrl("");
+      setPartnerTradeLicensePreviewUrl(null);
+      setPartnerTradeLicenseFileType(null);
+    } else {
+      if (partnerVatCertPreviewUrl && partnerVatCertPreviewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(partnerVatCertPreviewUrl);
+      }
+      setPartnerVatCertFile("");
+      setPartnerVatCertUrl("");
+      setPartnerVatCertPreviewUrl(null);
+      setPartnerVatCertFileType(null);
     }
   };
 
@@ -412,10 +548,13 @@ export default function AccountWorkspacePage({
         setPartnerError("Designation is required.");
         return;
       }
-      if (!partnerPhone.trim()) {
-        setPartnerError("Mobile / WhatsApp Number is required.");
+      const phoneValidation = validatePartnerPhone(partnerPhoneCountryCode, partnerLocalPhone);
+      if (!phoneValidation.isValid) {
+        setPartnerPhoneTouched(true);
+        setPartnerError(phoneValidation.message || "Please enter a valid Mobile / WhatsApp number.");
         return;
       }
+      setPartnerPhone(getFullPartnerPhone(partnerPhoneCountryCode, partnerLocalPhone));
       if (!partnerEmail.trim() || !partnerEmail.includes("@")) {
         setPartnerError("A valid business email address is required.");
         return;
@@ -446,6 +585,7 @@ export default function AccountWorkspacePage({
     setPartnerSubmitting(true);
 
     try {
+      const fullPhone = getFullPartnerPhone(partnerPhoneCountryCode, partnerLocalPhone) || partnerPhone.trim();
       const payload = {
         companyName: partnerCompanyName.trim(),
         legalName: partnerCompanyName.trim(),
@@ -456,8 +596,8 @@ export default function AccountWorkspacePage({
         address: partnerAddress.trim(),
         contactPerson: partnerContactPerson.trim(),
         designation: partnerDesignation.trim(),
-        phone: partnerPhone.trim(),
-        whatsappNumber: partnerPhone.trim(),
+        phone: fullPhone,
+        whatsappNumber: fullPhone,
         email: partnerEmail.trim(),
         interestedCategories: partnerProducts,
         annualVolumeEstimate: partnerVolume,
@@ -486,11 +626,11 @@ export default function AccountWorkspacePage({
         title: `B2B Partner Application: ${partnerCompanyName.trim()}`,
         senderName: partnerContactPerson.trim(),
         senderEmail: partnerEmail.trim(),
-        senderPhone: partnerPhone.trim(),
+        senderPhone: fullPhone,
         companyName: partnerCompanyName.trim(),
         subject: `🤝 New B2B Wholesale Partner Application: ${partnerCompanyName.trim()}`,
         message: `New B2B trade partner application submitted with annual volume estimate: ${partnerVolume}.`,
-        detailsText: `Company: ${partnerCompanyName.trim()}\nTrade License: ${partnerTradeLicense.trim()}\nBusiness Type: ${partnerBusinessType}\nContact Person: ${partnerContactPerson.trim()} (${partnerDesignation.trim()})\nPhone: ${partnerPhone.trim()}\nEmail: ${partnerEmail.trim()}\nLocation: ${partnerAddress.trim()}, ${partnerCity.trim()}, ${partnerEmirate}\nInterested Products: ${partnerProducts.join(", ") || "General Wholesale"}\nEstimated Volume: ${partnerVolume}\nPayment Terms Requested: ${partnerPaymentTerms}`,
+        detailsText: `Company: ${partnerCompanyName.trim()}\nTrade License: ${partnerTradeLicense.trim()}\nBusiness Type: ${partnerBusinessType}\nContact Person: ${partnerContactPerson.trim()} (${partnerDesignation.trim()})\nPhone: ${fullPhone}\nEmail: ${partnerEmail.trim()}\nLocation: ${partnerAddress.trim()}, ${partnerCity.trim()}, ${partnerEmirate}\nInterested Products: ${partnerProducts.join(", ") || "General Wholesale"}\nEstimated Volume: ${partnerVolume}\nPayment Terms Requested: ${partnerPaymentTerms}`,
         customParams: {
           license_number: partnerTradeLicense.trim(),
           volume_estimate: partnerVolume,
@@ -1955,13 +2095,50 @@ export default function AccountWorkspacePage({
                               <label className="block text-xs font-bold text-slate-800 mb-1">
                                 7. Mobile / WhatsApp Number <span className="text-red-500">*</span>
                               </label>
-                              <input
-                                type="tel"
-                                value={partnerPhone}
-                                onChange={(e) => setPartnerPhone(e.target.value)}
-                                placeholder="e.g. +971 50 123 4567"
-                                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-blue-600"
-                              />
+                              <div className={`flex rounded-xl overflow-hidden border bg-slate-50 transition-colors ${
+                                partnerPhoneTouched && !validatePartnerPhone(partnerPhoneCountryCode, partnerLocalPhone).isValid
+                                  ? "border-red-400 focus-within:border-red-500 bg-red-50/20"
+                                  : "border-slate-200 focus-within:border-blue-600 focus-within:bg-white"
+                              }`}>
+                                <div className="relative shrink-0 flex items-center bg-slate-100 hover:bg-slate-200/80 border-r border-slate-200 transition-colors">
+                                  <select
+                                    value={partnerPhoneCountryCode}
+                                    onChange={(e) => {
+                                      const newCode = e.target.value;
+                                      setPartnerPhoneCountryCode(newCode);
+                                      setPartnerPhone(getFullPartnerPhone(newCode, partnerLocalPhone));
+                                      if (!partnerPhoneTouched) setPartnerPhoneTouched(true);
+                                    }}
+                                    className="h-full py-2.5 pl-3 pr-2 bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer"
+                                    aria-label="Country Code"
+                                  >
+                                    {COUNTRY_CODES.map((c) => (
+                                      <option key={`${c.code}-${c.name}`} value={c.code} className="bg-white text-slate-900 font-normal">
+                                        {c.flag} {c.code} ({c.name})
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <input
+                                  type="tel"
+                                  value={partnerLocalPhone}
+                                  onChange={(e) => {
+                                    const val = e.target.value.replace(/[^0-9\s]/g, "");
+                                    setPartnerLocalPhone(val);
+                                    setPartnerPhone(getFullPartnerPhone(partnerPhoneCountryCode, val));
+                                    if (!partnerPhoneTouched) setPartnerPhoneTouched(true);
+                                  }}
+                                  onBlur={() => setPartnerPhoneTouched(true)}
+                                  placeholder={partnerPhoneCountryCode === "+971" ? "50 123 4567" : "Mobile number"}
+                                  className="flex-1 px-3.5 py-2.5 bg-transparent text-xs text-slate-900 placeholder:text-slate-400 outline-none"
+                                />
+                              </div>
+                              {partnerPhoneTouched && !validatePartnerPhone(partnerPhoneCountryCode, partnerLocalPhone).isValid && (
+                                <p className="text-[11px] text-red-600 mt-1 flex items-center gap-1 font-medium">
+                                  <AlertCircle size={12} className="shrink-0 text-red-500" />
+                                  <span>{validatePartnerPhone(partnerPhoneCountryCode, partnerLocalPhone).message}</span>
+                                </p>
+                              )}
                             </div>
                             <div>
                               <label className="block text-xs font-bold text-slate-800 mb-1">
@@ -2139,41 +2316,173 @@ export default function AccountWorkspacePage({
                       {partnerStep === 4 && (
                         <div className="space-y-4">
                           <div>
-                            <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                              12. Trade License Copy <span className="text-red-500">* — Upload</span>
-                            </label>
-                            <label className="border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50 hover:bg-blue-50/30 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all">
-                              <UploadCloud size={22} className="text-blue-600 mb-1" />
-                              <span className="text-xs font-bold text-slate-800">
-                                {partnerTradeLicenseFile ? partnerTradeLicenseFile : "Select Trade License (PDF / JPG / PNG)"}
-                              </span>
-                              <span className="text-[10px] text-slate-400 mt-0.5">Maximum size 10MB</span>
-                              <input
-                                type="file"
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                onChange={(e) => handlePartnerFileUpload(e, "license")}
-                                className="hidden"
-                              />
-                            </label>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="text-xs font-bold text-slate-800">
+                                12. Trade License Copy <span className="text-red-500">* — Upload</span>
+                              </label>
+                              {partnerTradeLicenseFile && (
+                                <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <CheckCircle2 size={11} className="text-emerald-600" />
+                                  <span>Document Selected</span>
+                                </span>
+                              )}
+                            </div>
+
+                            {partnerTradeLicensePreviewUrl || partnerTradeLicenseUrl ? (
+                              <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50 shadow-xs">
+                                <div className="px-3.5 py-2.5 bg-white border-b border-slate-200 flex items-center justify-between">
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                                      <FileText size={18} />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="text-xs font-bold text-slate-900 truncate max-w-xs sm:max-w-md">
+                                        {partnerTradeLicenseFile || "Trade License Document"}
+                                      </p>
+                                      <p className="text-[10px] text-slate-500 font-medium">
+                                        {partnerTradeLicenseFileType === "pdf" ? "PDF Document • In-Place Preview" : "Image Document • In-Place Preview"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <label className="px-2.5 py-1 text-xs font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors">
+                                      Change
+                                      <input
+                                        type="file"
+                                        accept=".pdf,.jpg,.jpeg,.png"
+                                        onChange={(e) => handlePartnerFileUpload(e, "license")}
+                                        className="hidden"
+                                      />
+                                    </label>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemovePartnerDoc("license")}
+                                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                      title="Remove Document"
+                                    >
+                                      <Trash2 size={15} />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div className="p-3 bg-slate-100/70 flex justify-center">
+                                  {partnerTradeLicenseFileType === "pdf" || (!partnerTradeLicenseFileType && (partnerTradeLicenseFile.toLowerCase().endsWith(".pdf") || partnerTradeLicenseUrl?.toLowerCase().includes(".pdf"))) ? (
+                                    <div className="w-full bg-white rounded-lg border border-slate-200 shadow-2xs overflow-hidden">
+                                      <iframe
+                                        src={`${partnerTradeLicensePreviewUrl || partnerTradeLicenseUrl}#toolbar=0&navpanes=0`}
+                                        className="w-full h-80 sm:h-96 rounded-lg bg-white"
+                                        title="Trade License Preview"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <img
+                                      src={partnerTradeLicensePreviewUrl || partnerTradeLicenseUrl}
+                                      alt="Trade License Preview"
+                                      className="max-h-80 sm:max-h-96 object-contain rounded-lg border border-slate-200 shadow-2xs bg-white"
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <label className="border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50 hover:bg-blue-50/30 rounded-xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all">
+                                <UploadCloud size={24} className="text-blue-600 mb-1" />
+                                <span className="text-xs font-bold text-slate-800">
+                                  Select Trade License (PDF / JPG / PNG)
+                                </span>
+                                <span className="text-[10px] text-slate-400 mt-0.5">Maximum size 10MB • Document renders preview inline</span>
+                                <input
+                                  type="file"
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  onChange={(e) => handlePartnerFileUpload(e, "license")}
+                                  className="hidden"
+                                />
+                              </label>
+                            )}
                           </div>
 
                           <div>
-                            <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                              13. VAT Certificate — Upload <span className="text-slate-400 font-normal">(if VAT registered)</span>
-                            </label>
-                            <label className="border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50 hover:bg-blue-50/30 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all">
-                              <UploadCloud size={22} className="text-slate-500 mb-1" />
-                              <span className="text-xs font-bold text-slate-800">
-                                {partnerVatCertFile ? partnerVatCertFile : "Select VAT Certificate (Optional)"}
-                              </span>
-                              <span className="text-[10px] text-slate-400 mt-0.5">Maximum size 10MB</span>
-                              <input
-                                type="file"
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                onChange={(e) => handlePartnerFileUpload(e, "vat")}
-                                className="hidden"
-                              />
-                            </label>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="text-xs font-bold text-slate-800">
+                                13. VAT Certificate — Upload <span className="text-slate-400 font-normal">(if VAT registered)</span>
+                              </label>
+                              {partnerVatCertFile && (
+                                <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <CheckCircle2 size={11} className="text-emerald-600" />
+                                  <span>Document Selected</span>
+                                </span>
+                              )}
+                            </div>
+
+                            {partnerVatCertPreviewUrl || partnerVatCertUrl ? (
+                              <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50 shadow-xs">
+                                <div className="px-3.5 py-2.5 bg-white border-b border-slate-200 flex items-center justify-between">
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                                      <FileText size={18} />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="text-xs font-bold text-slate-900 truncate max-w-xs sm:max-w-md">
+                                        {partnerVatCertFile || "VAT Certificate Document"}
+                                      </p>
+                                      <p className="text-[10px] text-slate-500 font-medium">
+                                        {partnerVatCertFileType === "pdf" ? "PDF Document • In-Place Preview" : "Image Document • In-Place Preview"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <label className="px-2.5 py-1 text-xs font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors">
+                                      Change
+                                      <input
+                                        type="file"
+                                        accept=".pdf,.jpg,.jpeg,.png"
+                                        onChange={(e) => handlePartnerFileUpload(e, "vat")}
+                                        className="hidden"
+                                      />
+                                    </label>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemovePartnerDoc("vat")}
+                                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                      title="Remove Document"
+                                    >
+                                      <Trash2 size={15} />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div className="p-3 bg-slate-100/70 flex justify-center">
+                                  {partnerVatCertFileType === "pdf" || (!partnerVatCertFileType && (partnerVatCertFile.toLowerCase().endsWith(".pdf") || partnerVatCertUrl?.toLowerCase().includes(".pdf"))) ? (
+                                    <div className="w-full bg-white rounded-lg border border-slate-200 shadow-2xs overflow-hidden">
+                                      <iframe
+                                        src={`${partnerVatCertPreviewUrl || partnerVatCertUrl}#toolbar=0&navpanes=0`}
+                                        className="w-full h-80 sm:h-96 rounded-lg bg-white"
+                                        title="VAT Certificate Preview"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <img
+                                      src={partnerVatCertPreviewUrl || partnerVatCertUrl}
+                                      alt="VAT Certificate Preview"
+                                      className="max-h-80 sm:max-h-96 object-contain rounded-lg border border-slate-200 shadow-2xs bg-white"
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <label className="border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50 hover:bg-blue-50/30 rounded-xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all">
+                                <UploadCloud size={24} className="text-slate-500 mb-1" />
+                                <span className="text-xs font-bold text-slate-800">
+                                  Select VAT Certificate (Optional)
+                                </span>
+                                <span className="text-[10px] text-slate-400 mt-0.5">Maximum size 10MB • Document renders preview inline</span>
+                                <input
+                                  type="file"
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  onChange={(e) => handlePartnerFileUpload(e, "vat")}
+                                  className="hidden"
+                                />
+                              </label>
+                            )}
                           </div>
 
                           <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
@@ -2958,12 +3267,47 @@ export default function AccountWorkspacePage({
                       </div>
                       <div>
                         <label className="block text-[11px] font-bold text-slate-700 mb-1">Mobile / WhatsApp *</label>
-                        <input
-                          type="tel"
-                          value={partnerPhone}
-                          onChange={(e) => setPartnerPhone(e.target.value)}
-                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                        />
+                        <div className={`flex rounded-xl overflow-hidden border bg-slate-50 transition-colors ${
+                          partnerPhoneTouched && !validatePartnerPhone(partnerPhoneCountryCode, partnerLocalPhone).isValid
+                            ? "border-red-400 bg-red-50/20"
+                            : "border-slate-200"
+                        }`}>
+                          <select
+                            value={partnerPhoneCountryCode}
+                            onChange={(e) => {
+                              const newCode = e.target.value;
+                              setPartnerPhoneCountryCode(newCode);
+                              setPartnerPhone(getFullPartnerPhone(newCode, partnerLocalPhone));
+                              if (!partnerPhoneTouched) setPartnerPhoneTouched(true);
+                            }}
+                            className="h-full py-2 pl-2 pr-1 bg-slate-100 border-r border-slate-200 text-xs font-bold text-slate-800 outline-none cursor-pointer"
+                          >
+                            {COUNTRY_CODES.map((c) => (
+                              <option key={`m-${c.code}-${c.name}`} value={c.code} className="bg-white text-slate-900 font-normal">
+                                {c.flag} {c.code}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="tel"
+                            value={partnerLocalPhone}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9\s]/g, "");
+                              setPartnerLocalPhone(val);
+                              setPartnerPhone(getFullPartnerPhone(partnerPhoneCountryCode, val));
+                              if (!partnerPhoneTouched) setPartnerPhoneTouched(true);
+                            }}
+                            onBlur={() => setPartnerPhoneTouched(true)}
+                            placeholder={partnerPhoneCountryCode === "+971" ? "50 123 4567" : "Mobile number"}
+                            className="flex-1 px-3 py-2 bg-transparent text-xs text-slate-900 placeholder:text-slate-400 outline-none"
+                          />
+                        </div>
+                        {partnerPhoneTouched && !validatePartnerPhone(partnerPhoneCountryCode, partnerLocalPhone).isValid && (
+                          <p className="text-[10px] text-red-600 mt-1 flex items-center gap-1 font-medium">
+                            <AlertCircle size={11} className="shrink-0 text-red-500" />
+                            <span>{validatePartnerPhone(partnerPhoneCountryCode, partnerLocalPhone).message}</span>
+                          </p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-[11px] font-bold text-slate-700 mb-1">Email Address *</label>
@@ -3043,34 +3387,141 @@ export default function AccountWorkspacePage({
                   {partnerStep === 4 && (
                     <>
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Trade License Copy *</label>
-                        <label className="border-2 border-dashed border-slate-200 p-3 rounded-xl flex flex-col items-center text-center cursor-pointer bg-slate-50">
-                          <UploadCloud size={20} className="text-blue-600 mb-1" />
-                          <span className="text-[11px] font-bold text-slate-800">
-                            {partnerTradeLicenseFile || "Upload Trade License (PDF / JPG)"}
-                          </span>
-                          <input
-                            type="file"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            onChange={(e) => handlePartnerFileUpload(e, "license")}
-                            className="hidden"
-                          />
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-[11px] font-bold text-slate-700">Trade License Copy *</label>
+                          {partnerTradeLicenseFile && (
+                            <span className="text-[9px] text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold px-1.5 py-0.5 rounded-full">
+                              Selected
+                            </span>
+                          )}
+                        </div>
+                        {partnerTradeLicensePreviewUrl || partnerTradeLicenseUrl ? (
+                          <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
+                            <div className="p-2 bg-white border-b border-slate-200 flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <FileText size={14} className="text-red-500 shrink-0" />
+                                <span className="text-[11px] font-bold text-slate-800 truncate max-w-[170px]">
+                                  {partnerTradeLicenseFile || "Trade License"}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <label className="text-[10px] font-bold text-blue-600 cursor-pointer">
+                                  Change
+                                  <input
+                                    type="file"
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    onChange={(e) => handlePartnerFileUpload(e, "license")}
+                                    className="hidden"
+                                  />
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemovePartnerDoc("license")}
+                                  className="text-slate-400 hover:text-red-600 p-0.5"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            </div>
+                            <div className="p-2">
+                              {partnerTradeLicenseFileType === "pdf" || (!partnerTradeLicenseFileType && (partnerTradeLicenseFile.toLowerCase().endsWith(".pdf") || partnerTradeLicenseUrl?.toLowerCase().includes(".pdf"))) ? (
+                                <iframe
+                                  src={`${partnerTradeLicensePreviewUrl || partnerTradeLicenseUrl}#toolbar=0`}
+                                  className="w-full h-48 rounded bg-white border border-slate-200"
+                                  title="Trade License Preview"
+                                />
+                              ) : (
+                                <img
+                                  src={partnerTradeLicensePreviewUrl || partnerTradeLicenseUrl}
+                                  alt="Trade License Preview"
+                                  className="max-h-48 object-contain mx-auto rounded"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <label className="border-2 border-dashed border-slate-200 p-3 rounded-xl flex flex-col items-center text-center cursor-pointer bg-slate-50">
+                            <UploadCloud size={20} className="text-blue-600 mb-1" />
+                            <span className="text-[11px] font-bold text-slate-800">
+                              Upload Trade License (PDF / JPG)
+                            </span>
+                            <input
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={(e) => handlePartnerFileUpload(e, "license")}
+                              className="hidden"
+                            />
+                          </label>
+                        )}
                       </div>
+
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">VAT Certificate (Optional)</label>
-                        <label className="border-2 border-dashed border-slate-200 p-3 rounded-xl flex flex-col items-center text-center cursor-pointer bg-slate-50">
-                          <UploadCloud size={20} className="text-slate-500 mb-1" />
-                          <span className="text-[11px] font-bold text-slate-800">
-                            {partnerVatCertFile || "Upload VAT Certificate (Optional)"}
-                          </span>
-                          <input
-                            type="file"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            onChange={(e) => handlePartnerFileUpload(e, "vat")}
-                            className="hidden"
-                          />
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-[11px] font-bold text-slate-700">VAT Certificate (Optional)</label>
+                          {partnerVatCertFile && (
+                            <span className="text-[9px] text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold px-1.5 py-0.5 rounded-full">
+                              Selected
+                            </span>
+                          )}
+                        </div>
+                        {partnerVatCertPreviewUrl || partnerVatCertUrl ? (
+                          <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
+                            <div className="p-2 bg-white border-b border-slate-200 flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <FileText size={14} className="text-blue-500 shrink-0" />
+                                <span className="text-[11px] font-bold text-slate-800 truncate max-w-[170px]">
+                                  {partnerVatCertFile || "VAT Certificate"}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <label className="text-[10px] font-bold text-blue-600 cursor-pointer">
+                                  Change
+                                  <input
+                                    type="file"
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    onChange={(e) => handlePartnerFileUpload(e, "vat")}
+                                    className="hidden"
+                                  />
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemovePartnerDoc("vat")}
+                                  className="text-slate-400 hover:text-red-600 p-0.5"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            </div>
+                            <div className="p-2">
+                              {partnerVatCertFileType === "pdf" || (!partnerVatCertFileType && (partnerVatCertFile.toLowerCase().endsWith(".pdf") || partnerVatCertUrl?.toLowerCase().includes(".pdf"))) ? (
+                                <iframe
+                                  src={`${partnerVatCertPreviewUrl || partnerVatCertUrl}#toolbar=0`}
+                                  className="w-full h-48 rounded bg-white border border-slate-200"
+                                  title="VAT Certificate Preview"
+                                />
+                              ) : (
+                                <img
+                                  src={partnerVatCertPreviewUrl || partnerVatCertUrl}
+                                  alt="VAT Certificate Preview"
+                                  className="max-h-48 object-contain mx-auto rounded"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <label className="border-2 border-dashed border-slate-200 p-3 rounded-xl flex flex-col items-center text-center cursor-pointer bg-slate-50">
+                            <UploadCloud size={20} className="text-slate-500 mb-1" />
+                            <span className="text-[11px] font-bold text-slate-800">
+                              Upload VAT Certificate (Optional)
+                            </span>
+                            <input
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={(e) => handlePartnerFileUpload(e, "vat")}
+                              className="hidden"
+                            />
+                          </label>
+                        )}
                       </div>
                       <div className="flex gap-2 pt-2">
                         <button
